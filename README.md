@@ -45,28 +45,86 @@ INFLUXDB_BUCKET=pool_temps
 INFLUXDB_TOKEN=<your-token>
 INFLUXDB_USER=admin
 INFLUXDB_PASSWORD=<your-password>
-INKBIRD_SENSOR_ID=<your-sensor-id>
+INKBIRD_SENSOR_IDS="29908"
 GRAFANA_ADMIN_PASSWORD=<your-password>
 ```
 
-### 2. Find your sensor ID
+To add multiple sensors, comma-separate the quoted IDs:
 
-Start the stack and check the MQTT output:
+```
+INKBIRD_SENSOR_IDS="29908", "12345"
+```
+
+### 2. Hardware setup
+
+1. Connect the 433 MHz antenna to the RTL-SDR dongle via the SMA connector
+2. Plug the RTL-SDR dongle into a USB port on the Raspberry Pi
+3. Place the Inkbird sensor in the pool and make sure it's transmitting (the display should be active)
+
+Verify the Pi sees the dongle:
+
+```bash
+lsusb | grep -i rtl
+```
+
+You should see something like `Realtek Semiconductor Corp. RTL2832U DVB-T`.
+
+### 3. Find your sensor IDs
+
+Before starting the full stack, you can use rtl_433 directly to discover nearby sensors:
+
+```bash
+docker run --rm --privileged -v /dev/bus/usb:/dev/bus/usb hertzg/rtl_433 -f 433.92M -R 194
+```
+
+This listens for Inkbird sensors (protocol 194) and prints decoded packets to the console. You should see output like:
+
+```
+time      : 2026-04-01 12:00:00
+model     : Inkbird-ITH20R
+id        : 29908
+channel   : 0
+battery_ok: 1
+temperature_C: 26.100
+humidity  : 58
+```
+
+Note the `id` value for each sensor you want to monitor. Press `Ctrl+C` to stop.
+
+If you don't see any output, try removing `-R 194` to listen for all protocols — this helps confirm the dongle is working:
+
+```bash
+docker run --rm --privileged -v /dev/bus/usb:/dev/bus/usb hertzg/rtl_433 -f 433.92M
+```
+
+Add your sensor ID(s) to `INKBIRD_SENSOR_IDS` in `.env`:
+
+```
+# Single sensor
+INKBIRD_SENSOR_IDS="29908"
+
+# Multiple sensors
+INKBIRD_SENSOR_IDS="29908", "12345"
+```
+
+### 4. Start the stack
 
 ```bash
 docker compose up -d
-docker exec mosquitto mosquitto_sub -t "rtl_433/#" -v -C 1
 ```
 
-Look for the `id` field in the JSON payload and set `INKBIRD_SENSOR_ID` in `.env`.
-
-### 3. Start the stack
+Verify everything is running:
 
 ```bash
-docker compose up -d
+docker compose logs -f
 ```
 
-### 4. Access the dashboards
+Look for:
+- `rtl_433` connecting to the SDR dongle with no errors
+- `telegraf` connecting to MQTT (`Connected [tcp://mosquitto:1883]`)
+- No `401 Unauthorized` errors from InfluxDB
+
+### 5. Access the dashboards
 
 - **Grafana**: http://localhost:3000 (login with `admin` / your `GRAFANA_ADMIN_PASSWORD`)
 - **InfluxDB**: http://localhost:8086
