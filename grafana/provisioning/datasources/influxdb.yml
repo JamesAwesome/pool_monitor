@@ -1,0 +1,15 @@
+apiVersion: 1
+
+datasources:
+  - name: InfluxDB
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    jsonData:
+      version: Flux
+      organization: pool
+      defaultBucket: pool_temps
+    secureJsonData:
+      token: my-super-secret-token-change-me
+    isDefault: true
+    editable: true
