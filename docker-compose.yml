@@ -18,7 +18,6 @@ services:
     depends_on:
       - mosquitto
     command: >
-      rtl_433
       -f 433.92M
       -R 194
       -F mqtt://mosquitto:1883,retain=1
