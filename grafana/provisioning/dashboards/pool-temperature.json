@@ -50,8 +50,70 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
+        "w": 4,
         "x": 0,
+        "y": 0
+      },
+      "id": 11,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "max"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.4.2",
+      "targets": [
+        {
+          "query": "  from(bucket: \"pool_temps\")\n    |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n    |> filter(fn: (r) => r._field == \"temperature_C\")\n    |> group(columns: [\"id\"])\n    |> last()\n    |> map(fn: (r) => ({ r with _value: r._value * 9.0 / 5.0 + 32.0 }))\n    |> yield(name: \"last\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Current Pool Temperature F",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "P951FEA4DE68E13C5"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "fahrenheit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 4,
         "y": 0
       },
       "id": 5,
@@ -112,8 +174,8 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
-        "x": 6,
+        "w": 4,
+        "x": 8,
         "y": 0
       },
       "id": 8,
@@ -175,7 +237,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
+        "w": 4,
         "x": 12,
         "y": 0
       },
@@ -237,8 +299,8 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
-        "x": 18,
+        "w": 4,
+        "x": 16,
         "y": 0
       },
       "id": 7,
@@ -333,8 +395,8 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 15,
-        "w": 24,
+        "h": 13,
+        "w": 20,
         "x": 0,
         "y": 8
       },
@@ -392,9 +454,71 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
+        "w": 4,
         "x": 0,
-        "y": 23
+        "y": 21
+      },
+      "id": 12,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "max"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.4.2",
+      "targets": [
+        {
+          "query": "  from(bucket: \"pool_temps\")\n    |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n    |> filter(fn: (r) => r._field == \"temperature_C\")\n    |> group(columns: [\"id\"])\n    |> last()\n    |> yield(name: \"last\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Current Pool Temperature C ",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "P951FEA4DE68E13C5"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "celsius"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 4,
+        "y": 21
       },
       "id": 6,
       "options": {
@@ -454,9 +578,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
-        "x": 6,
-        "y": 23
+        "w": 4,
+        "x": 8,
+        "y": 21
       },
       "id": 9,
       "options": {
@@ -517,9 +641,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
+        "w": 4,
         "x": 12,
-        "y": 23
+        "y": 21
       },
       "id": 4,
       "options": {
@@ -579,9 +703,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
-        "x": 18,
-        "y": 23
+        "w": 4,
+        "x": 16,
+        "y": 21
       },
       "id": 10,
       "options": {
@@ -675,10 +799,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 17,
-        "w": 24,
+        "h": 14,
+        "w": 20,
         "x": 0,
-        "y": 31
+        "y": 29
       },
       "id": 1,
       "options": {
@@ -723,6 +847,6 @@
   "timezone": "browser",
   "title": "Pool Temperature",
   "uid": "adjqzvw",
-  "version": 38,
+  "version": 42,
   "weekStart": ""
 }
