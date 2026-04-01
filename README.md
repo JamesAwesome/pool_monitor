@@ -45,14 +45,16 @@ INFLUXDB_BUCKET=pool_temps
 INFLUXDB_TOKEN=<your-token>
 INFLUXDB_USER=admin
 INFLUXDB_PASSWORD=<your-password>
-INKBIRD_SENSOR_IDS="29908"
+INKBIRD_SENSOR_IDS="12345"
 GRAFANA_ADMIN_PASSWORD=<your-password>
 ```
 
-To add multiple sensors, comma-separate the quoted IDs:
+To add multiple sensors, comma-separate the quoted IDs. Each value must be
+individually quoted because Telegraf substitutes this directly into a TOML
+array (`id = [${INKBIRD_SENSOR_IDS}]`):
 
 ```
-INKBIRD_SENSOR_IDS="29908", "12345"
+INKBIRD_SENSOR_IDS="12345", "67890"
 ```
 
 ### 2. Hardware setup
@@ -82,7 +84,7 @@ This listens for Inkbird sensors (protocol 194) and prints decoded packets to th
 ```
 time      : 2026-04-01 12:00:00
 model     : Inkbird-ITH20R
-id        : 29908
+id        : 12345
 channel   : 0
 battery_ok: 1
 temperature_C: 26.100
@@ -101,10 +103,10 @@ Add your sensor ID(s) to `INKBIRD_SENSOR_IDS` in `.env`:
 
 ```
 # Single sensor
-INKBIRD_SENSOR_IDS="29908"
+INKBIRD_SENSOR_IDS="12345"
 
 # Multiple sensors
-INKBIRD_SENSOR_IDS="29908", "12345"
+INKBIRD_SENSOR_IDS="12345", "67890"
 ```
 
 ### 4. Start the stack
