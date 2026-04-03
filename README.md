@@ -45,16 +45,16 @@ INFLUXDB_BUCKET=pool_temps
 INFLUXDB_TOKEN=<your-token>
 INFLUXDB_USER=admin
 INFLUXDB_PASSWORD=<your-password>
-INKBIRD_SENSOR_IDS="12345"
+INKBIRD_SENSOR_IDS=12345
 GRAFANA_ADMIN_PASSWORD=<your-password>
 ```
 
-To add multiple sensors, comma-separate the quoted IDs. Each value must be
-individually quoted because Telegraf substitutes this directly into a TOML
-array (`id = [${INKBIRD_SENSOR_IDS}]`):
+Do **not** quote the sensor ID value — the TOML string quotes are already in
+`telegraf.conf`. For multiple sensors, include the inner TOML quotes so the
+array expands correctly (`id = ["12345", "67890"]`):
 
 ```
-INKBIRD_SENSOR_IDS="12345", "67890"
+INKBIRD_SENSOR_IDS=12345", "67890
 ```
 
 ### 2. Hardware setup
@@ -102,11 +102,11 @@ docker run --rm --privileged -v /dev/bus/usb:/dev/bus/usb hertzg/rtl_433 -f 433.
 Add your sensor ID(s) to `INKBIRD_SENSOR_IDS` in `.env`:
 
 ```
-# Single sensor
-INKBIRD_SENSOR_IDS="12345"
+# Single sensor (no quotes — telegraf.conf adds them)
+INKBIRD_SENSOR_IDS=12345
 
-# Multiple sensors
-INKBIRD_SENSOR_IDS="12345", "67890"
+# Multiple sensors (include inner TOML quotes for the array)
+INKBIRD_SENSOR_IDS=12345", "67890
 ```
 
 ### 4. Start the stack
