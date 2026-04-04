@@ -62,12 +62,25 @@ services:
       - "3000:3000"
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_SERVER_ROOT_URL: https://${GRAFANA_DOMAIN}/
+      GF_SERVER_DOMAIN: ${GRAFANA_DOMAIN}
+      GF_SECURITY_COOKIE_SECURE: "true"
       INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
     depends_on:
       - influxdb
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - grafana
 
 volumes:
   influxdb-data:

@@ -26,6 +26,7 @@ All services run as Docker containers via `docker-compose.yml`:
 - **Telegraf** - Subscribes to MQTT, filters by sensor ID, and writes to InfluxDB
 - **InfluxDB 2** - Time-series database for temperature data
 - **Grafana** - Dashboard and visualization
+- **cloudflared** - Cloudflare Tunnel connector for public HTTPS access to Grafana
 
 ## Setup
 
@@ -47,6 +48,8 @@ INFLUXDB_USER=admin
 INFLUXDB_PASSWORD=<your-password>
 INKBIRD_SENSOR_IDS=12345
 GRAFANA_ADMIN_PASSWORD=<your-password>
+GRAFANA_DOMAIN=pool.yourdomain.com
+CLOUDFLARE_TUNNEL_TOKEN=<your-token>
 ```
 
 Do **not** quote the sensor ID value — the TOML string quotes are already in
@@ -126,9 +129,27 @@ Look for:
 - `telegraf` connecting to MQTT (`Connected [tcp://mosquitto:1883]`)
 - No `401 Unauthorized` errors from InfluxDB
 
-### 5. Access the dashboards
+### 5. Set up Cloudflare Tunnel (optional)
 
-- **Grafana**: http://localhost:3000 (login with `admin` / your `GRAFANA_ADMIN_PASSWORD`)
+A Cloudflare Tunnel lets you access Grafana over the internet at a public URL without opening any ports on your router.
+
+1. Log in to the [Cloudflare Zero Trust dashboard](https://one.dash.cloudflare.com/)
+2. Go to **Networks → Tunnels** and create a new tunnel (choose "Cloudflared" connector)
+3. Add a **public hostname** (e.g. `pool.yourdomain.com`) pointing to service `http://grafana:3000`
+4. Copy the tunnel token and set it in `.env`:
+   ```
+   CLOUDFLARE_TUNNEL_TOKEN=eyJ...
+   GRAFANA_DOMAIN=pool.yourdomain.com
+   ```
+5. Restart the stack: `docker compose up -d`
+
+To restrict access further, add a **Cloudflare Access** application for your hostname in the Zero Trust dashboard. This puts an auth wall (email PIN, Google, GitHub, etc.) in front of Grafana so no one can reach the login page without passing Cloudflare authentication first.
+
+Port 3000 is still exposed locally for direct access on your network. Remove the `ports` mapping from the `grafana` service in `docker-compose.yml` if you only want access through the tunnel.
+
+### 6. Access the dashboards
+
+- **Grafana**: http://localhost:3000 or `https://<your GRAFANA_DOMAIN>` (login with `admin` / your `GRAFANA_ADMIN_PASSWORD`)
 - **InfluxDB**: http://localhost:8086
 
 ### Grafana Query
