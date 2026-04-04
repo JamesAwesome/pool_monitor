@@ -48,7 +48,6 @@ INFLUXDB_USER=admin
 INFLUXDB_PASSWORD=<your-password>
 INKBIRD_SENSOR_IDS=12345
 GRAFANA_ADMIN_PASSWORD=<your-password>
-GRAFANA_DOMAIN=pool.yourdomain.com
 CLOUDFLARE_TUNNEL_TOKEN=<your-token>
 ```
 
@@ -139,17 +138,18 @@ A Cloudflare Tunnel lets you access Grafana over the internet at a public URL wi
 4. Copy the tunnel token and set it in `.env`:
    ```
    CLOUDFLARE_TUNNEL_TOKEN=eyJ...
-   GRAFANA_DOMAIN=pool.yourdomain.com
    ```
 5. Restart the stack: `docker compose up -d`
 
-To restrict access further, add a **Cloudflare Access** application for your hostname in the Zero Trust dashboard. This puts an auth wall (email PIN, Google, GitHub, etc.) in front of Grafana so no one can reach the login page without passing Cloudflare authentication first.
+Grafana uses a request-based root URL, so it works on both the local network (`http://pi-ip:3000`) and the public tunnel URL without extra configuration.
+
+To prevent logins from the public internet, add a **Cloudflare WAF custom rule** for your domain that blocks requests where URI path starts with `/login` or `/api`. Local network access bypasses Cloudflare, so you can still log in at `http://pi-ip:3000`.
 
 Port 3000 is still exposed locally for direct access on your network. Remove the `ports` mapping from the `grafana` service in `docker-compose.yml` if you only want access through the tunnel.
 
 ### 6. Access the dashboards
 
-- **Grafana**: http://localhost:3000 or `https://<your GRAFANA_DOMAIN>` (login with `admin` / your `GRAFANA_ADMIN_PASSWORD`)
+- **Grafana**: http://localhost:3000 or your tunnel's public URL (login with `admin` / your `GRAFANA_ADMIN_PASSWORD`)
 - **InfluxDB**: http://localhost:8086
 
 ### Grafana Query
