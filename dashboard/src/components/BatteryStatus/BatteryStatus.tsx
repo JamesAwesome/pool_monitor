@@ -108,7 +108,7 @@ function BatteryChart({ history, loading: chartLoading }: { history: TimeSeriesP
             fill="url(#battGradient)"
             dot={false}
             activeDot={{ r: 4, fill: '#22c55e', stroke: '#fff', strokeWidth: 2 }}
-            animationDuration={200}
+
           />
         </AreaChart>
       </ResponsiveContainer>

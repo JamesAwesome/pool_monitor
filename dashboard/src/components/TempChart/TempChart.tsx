@@ -158,7 +158,6 @@ export function TempChart({ data, range, onRangeChange, loading }: TempChartProp
                 fill="url(#tempGradient)"
                 dot={false}
                 activeDot={{ r: 5, fill: '#38bdf8', stroke: '#fff', strokeWidth: 2 }}
-                animationDuration={200}
               />
             </AreaChart>
           </ResponsiveContainer>
