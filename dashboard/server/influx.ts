@@ -140,3 +140,20 @@ export async function queryBatteries(sensorId?: string): Promise<
     current: r._value * 100,
   }))
 }
+
+export async function queryBatteryHistory(sensorId: string): Promise<Array<{ time: string; value: number }>> {
+  const api = getQueryApi()
+
+  const query = `
+    from(bucket: "${bucket}")
+      |> range(start: -30d)
+      |> filter(fn: (r) => r._field == "battery_ok")
+      |> filter(fn: (r) => r.id == "${sensorId}")
+      |> group(columns: ["id"])
+      |> aggregateWindow(every: 1h, fn: last, createEmpty: false)
+      |> yield(name: "history")
+  `
+
+  const rows = await api.collectRows<{ _time: string; _value: number }>(query)
+  return rows.map((r) => ({ time: r._time, value: r._value * 100 }))
+}

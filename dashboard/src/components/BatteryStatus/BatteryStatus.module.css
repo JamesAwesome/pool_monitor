@@ -12,6 +12,9 @@
   border-radius: var(--radius-md);
   background: var(--gradient-card);
   border: var(--border-glow);
+  font: inherit;
+  text-align: left;
+  color: inherit;
 }
 
 .sensorId {
@@ -96,3 +99,61 @@
 .low .batteryTip { background: #ef4444; }
 .low .percentage { color: #ef4444; }
 .low .label { color: #ef4444; }
+
+.clickable {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 100ms ease, box-shadow var(--transition-fast);
+}
+
+.clickable:active {
+  transform: scale(0.96);
+}
+
+.clickable:hover {
+  box-shadow: var(--shadow-md), var(--glow-accent);
+}
+
+.chevron {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+  opacity: 0.5;
+  margin-left: auto;
+  line-height: 1;
+}
+
+.sheetHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-md);
+}
+
+.sheetModel {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.sheetPct {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.sheetPct.ok { color: #22c55e; }
+.sheetPct.warning { color: #f59e0b; }
+.sheetPct.low { color: #ef4444; }
+
+.chartWrap {
+  width: 100%;
+  height: 200px;
+}
+
+.chartLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
