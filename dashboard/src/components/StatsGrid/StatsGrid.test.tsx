@@ -21,8 +21,8 @@ describe('StatsGrid', () => {
     expect(cards).toHaveLength(4);
     expect(screen.getByText('Average')).toBeTruthy();
     expect(screen.getByText('Peak')).toBeTruthy();
-    expect(screen.getByText('Season Avg (180d)')).toBeTruthy();
-    expect(screen.getByText('Season Peak (180d)')).toBeTruthy();
+    expect(screen.getByText('Season Avg (YTD)')).toBeTruthy();
+    expect(screen.getByText('Season Peak (YTD)')).toBeTruthy();
   });
 
   it('renders 4 cards in loading state', () => {

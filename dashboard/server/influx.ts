@@ -23,6 +23,18 @@ function fluxQuery(range: string, field: string, aggregation: string, yieldName:
   `
 }
 
+function fluxQueryAbsolute(start: string, field: string, aggregation: string, yieldName: string, sensorId?: string): string {
+  const sensorFilter = sensorId ? `\n      |> filter(fn: (r) => r.id == "${sensorId}")` : ''
+  return `
+    from(bucket: "${bucket}")
+      |> range(start: ${start})
+      |> filter(fn: (r) => r._field == "${field}")${sensorFilter}
+      |> group(columns: ["id"])
+      |> ${aggregation}
+      |> yield(name: "${yieldName}")
+  `
+}
+
 interface StatRow {
   _value: number
 }
@@ -53,8 +65,8 @@ export async function queryStats(sensorId?: string): Promise<{
     current: fluxQuery('24h', 'temperature_C', 'last()', 'current', sensorId),
     average: fluxQuery('24h', 'temperature_C', 'mean()', 'average', sensorId),
     peak: fluxQuery('24h', 'temperature_C', 'max()', 'peak', sensorId),
-    seasonAvg: fluxQuery('180d', 'temperature_C', 'mean()', 'seasonAvg', sensorId),
-    seasonPeak: fluxQuery('180d', 'temperature_C', 'max()', 'seasonPeak', sensorId),
+    seasonAvg: fluxQueryAbsolute(`${new Date().getFullYear()}-01-01T00:00:00Z`, 'temperature_C', 'mean()', 'seasonAvg', sensorId),
+    seasonPeak: fluxQueryAbsolute(`${new Date().getFullYear()}-01-01T00:00:00Z`, 'temperature_C', 'max()', 'seasonPeak', sensorId),
   }
 
   const results = await Promise.all(
