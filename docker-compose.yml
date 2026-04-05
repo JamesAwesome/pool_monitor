@@ -88,6 +88,7 @@ services:
       INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
       PUBLIC_URL: ${PUBLIC_URL:-}
       TIMEZONE: ${TIMEZONE:-America/New_York}
+      TZ: ${TIMEZONE:-America/New_York}
     depends_on:
       - influxdb
 
