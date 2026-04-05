@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -46,6 +46,7 @@ export function TempChart({ data, range, onRangeChange, loading }: TempChartProp
   const [showCustom, setShowCustom] = useState(false);
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
+  const toRef = useRef<HTMLInputElement>(null);
 
   const chartData = useMemo(
     () =>
@@ -83,20 +84,32 @@ export function TempChart({ data, range, onRangeChange, loading }: TempChartProp
 
       {showCustom && (
         <div className={styles.customPanel}>
-          <label className={styles.dateLabel}>
-            From
-            <input type="datetime-local" value={customFrom}
-              onChange={(e) => setCustomFrom(e.target.value)} className={styles.dateInput} />
-          </label>
-          <label className={styles.dateLabel}>
-            To
-            <input type="datetime-local" value={customTo}
-              onChange={(e) => setCustomTo(e.target.value)} className={styles.dateInput} />
-          </label>
+          <input
+            type="date"
+            value={customFrom}
+            onChange={(e) => {
+              setCustomFrom(e.target.value);
+              if (toRef.current) toRef.current.showPicker();
+            }}
+            className={styles.dateInput}
+            aria-label="Start date"
+          />
+          <span className={styles.dateSep}>to</span>
+          <input
+            type="date"
+            ref={toRef}
+            value={customTo}
+            min={customFrom}
+            onChange={(e) => setCustomTo(e.target.value)}
+            className={styles.dateInput}
+            aria-label="End date"
+          />
           <button className={styles.applyBtn}
             onClick={() => { if (customFrom && customTo) onRangeChange(`custom:${customFrom}:${customTo}`); }}
-            type="button">
-            Apply
+            type="button"
+            disabled={!customFrom || !customTo}
+          >
+            Go
           </button>
         </div>
       )}
