@@ -61,10 +61,21 @@ pnpm typecheck        # TypeScript only
 
 ### Architecture
 - **Express server** (`server/`) serves the built SPA + `/api` endpoints. InfluxDB token stays server-side.
-- **API endpoints**: `/api/sensors`, `/api/stats`, `/api/history?range=12h`, `/api/battery`, `/api/health`. All accept optional `?sensor=<id>` to filter by sensor; omit for averaged "all sensors" view.
+- **API endpoints**:
+  - `/api/sensors` — list available sensors (id + model)
+  - `/api/stats?range=3d&sensor=X` — current, average, peak, season avg/peak. Average and peak follow the selected time range.
+  - `/api/history?range=3d&sensor=X` — time-series temperature data
+  - `/api/battery?sensor=X` — per-sensor battery levels
+  - `/api/battery-history?sensor=X` — 30-day battery history for a sensor
+  - `/api/season-history?sensor=X` — year-over-year avg/peak comparison
+  - `/api/health` — health check
+  - `/og-image.png` — dynamically generated 1200x630 PNG with current temp (for iMessage/social previews, cached 5 min)
+  - All data endpoints accept optional `?sensor=<id>` to filter by sensor; omit for averaged "all sensors" view.
+- **OG image**: `server/og-image.ts` generates a social preview image using `@napi-rs/canvas`. Inter font files bundled in `server/fonts/`. Dynamic OG meta tags injected into HTML in production.
 - **Data flow**: All API data is in Celsius. F/C conversion happens client-side via `src/utils/temperature.ts`.
-- **Theming**: CSS custom properties in `src/styles/tokens.css` with `[data-theme="dark"]` overrides. OS detection via `prefers-color-scheme` + manual toggle persisted in localStorage.
+- **Theming**: CSS custom properties in `src/styles/tokens.css` with `[data-theme="dark"]` overrides. OS detection via `prefers-color-scheme` + manual toggle persisted in localStorage. Light mode uses blue-tinted pool water palette.
 - **Multi-sensor**: `GET /api/sensors` returns available sensors (id + model). `SensorSelector` component shows pill chips; hidden when only 1 sensor exists.
+- **Interactive details**: Tapping battery indicators opens a bottom sheet with 30-day battery history chart and discharge rate. Tapping Season Avg/Peak cards shows year-over-year comparison table.
 
 ### Temperature color zones
 | Zone | Threshold |
@@ -73,6 +84,16 @@ pnpm typecheck        # TypeScript only
 | normal (green) | 70–80°F |
 | warm (amber) | 80–90°F |
 | hot (red) | >= 90°F (32.2°C) |
+
+### Environment variables (dashboard)
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `INFLUXDB_URL` | Yes | InfluxDB URL (set automatically in docker-compose) |
+| `INFLUXDB_TOKEN` | Yes | InfluxDB auth token |
+| `INFLUXDB_ORG` | Yes | InfluxDB organization |
+| `INFLUXDB_BUCKET` | Yes | InfluxDB bucket |
+| `DASHBOARD_TITLE` | No | Header title (default: "Pool Dashboard"), build-time via `VITE_APP_TITLE` |
+| `PUBLIC_URL` | No | Absolute URL for OG image (default: request Host header) |
 
 ## Grafana Dashboard
 

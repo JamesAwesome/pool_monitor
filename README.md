@@ -1,11 +1,11 @@
 # Pool Temperature Monitor
 
-A Raspberry Pi-based pool temperature monitoring system that captures wireless sensor data via SDR and displays it on a Grafana dashboard.
+A Raspberry Pi-based pool temperature monitoring system that captures wireless sensor data via SDR and displays it on a custom dashboard.
 
-The Inkbird IBS-P02R pool thermometer transmits on 433.92 MHz. An RTL-SDR dongle receives the signal, rtl_433 decodes it and publishes to MQTT, Telegraf writes the data to InfluxDB, and Grafana visualizes it.
+The Inkbird IBS-P02R pool thermometer transmits on 433.92 MHz. An RTL-SDR dongle receives the signal, rtl_433 decodes it and publishes to MQTT, Telegraf writes the data to InfluxDB, and a mobile-friendly React dashboard visualizes it.
 
 ```
-Inkbird IBS-P02R --> 433 MHz --> RTL-SDR --> rtl_433 --> Mosquitto (MQTT) --> Telegraf --> InfluxDB --> Grafana
+Inkbird IBS-P02R --> 433 MHz --> RTL-SDR --> rtl_433 --> Mosquitto (MQTT) --> Telegraf --> InfluxDB --> Dashboard
 ```
 
 ## Parts List
@@ -25,8 +25,9 @@ All services run as Docker containers via `docker-compose.yml`:
 - **Mosquitto** - MQTT broker
 - **Telegraf** - Subscribes to MQTT, filters by sensor ID, and writes to InfluxDB
 - **InfluxDB 2** - Time-series database for temperature data
-- **Grafana** - Dashboard and visualization
-- **cloudflared** - Cloudflare Tunnel connector for public HTTPS access to Grafana
+- **Pool Dashboard** - Mobile-first React/Express SPA on port 8080, queries InfluxDB directly. Features dark/light mode, F/C toggle, multi-sensor support, battery monitoring, interactive charts, and social link previews.
+- **Grafana** - Dashboard and visualization (port 3000, optional — the Pool Dashboard replaces this for daily use)
+- **cloudflared** - Cloudflare Tunnel connector for public HTTPS access
 
 ## Setup
 
@@ -49,6 +50,10 @@ INFLUXDB_PASSWORD=<your-password>
 INKBIRD_SENSOR_IDS=12345
 GRAFANA_ADMIN_PASSWORD=<your-password>
 CLOUDFLARE_TUNNEL_TOKEN=<your-token>
+
+# Optional — customize the dashboard
+DASHBOARD_TITLE=Pool Dashboard
+PUBLIC_URL=https://pool.yourdomain.com
 ```
 
 Do **not** quote the sensor ID value — the TOML string quotes are already in
@@ -149,6 +154,7 @@ Port 3000 is still exposed locally for direct access on your network. Remove the
 
 ### 6. Access the dashboards
 
+- **Pool Dashboard**: http://localhost:8080 — mobile-friendly temperature dashboard (no login required)
 - **Grafana**: http://localhost:3000 or your tunnel's public URL (login with `admin` / your `GRAFANA_ADMIN_PASSWORD`)
 - **InfluxDB**: http://localhost:8086
 
