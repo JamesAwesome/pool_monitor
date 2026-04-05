@@ -1,0 +1,1 @@
+export { CurrentTemp } from './CurrentTemp';

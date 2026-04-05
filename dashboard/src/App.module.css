@@ -1,0 +1,25 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  flex: 1;
+  padding-block: var(--spacing-xl);
+}
+
+@media (min-width: 768px) {
+  .main {
+    padding-block: var(--spacing-2xl);
+  }
+}
+
+.error {
+  background-color: var(--color-danger);
+  color: white;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-sm);
+}

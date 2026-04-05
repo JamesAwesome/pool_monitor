@@ -72,6 +72,20 @@ services:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
 
+  dashboard:
+    build: ./dashboard
+    container_name: pool-dashboard
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      INFLUXDB_URL: http://influxdb:8086
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
+      INFLUXDB_ORG: ${INFLUXDB_ORG}
+      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
+    depends_on:
+      - influxdb
+
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared

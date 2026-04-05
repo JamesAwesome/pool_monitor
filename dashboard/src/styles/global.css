@@ -1,0 +1,28 @@
+/* Global Styles */
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  transition: background-color var(--transition-base), color var(--transition-base);
+}
+
+.container {
+  max-width: 1024px;
+  margin-inline: auto;
+  padding-inline: var(--spacing-md);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
