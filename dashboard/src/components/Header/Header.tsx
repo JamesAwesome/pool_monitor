@@ -9,7 +9,7 @@ export function Header() {
       <nav className={styles.nav}>
         <h1 className={styles.title}>
           <span className={styles.icon} aria-hidden="true">🌊</span>
-          Pool Dashboard
+          {import.meta.env.VITE_APP_TITLE || 'Pool Dashboard'}
         </h1>
         <div className={styles.controls}>
           <button

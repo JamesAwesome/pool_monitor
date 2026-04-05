@@ -83,6 +83,10 @@ services:
       INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
       INFLUXDB_ORG: ${INFLUXDB_ORG}
       INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
+    build:
+      context: ./dashboard
+      args:
+        - VITE_APP_TITLE=${DASHBOARD_TITLE:-Pool Dashboard}
     depends_on:
       - influxdb
 

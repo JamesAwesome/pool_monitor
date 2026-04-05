@@ -8,6 +8,8 @@ COPY package.json pnpm-lock.yaml .npmrc ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
+ARG VITE_APP_TITLE="Pool Dashboard"
+ENV VITE_APP_TITLE=${VITE_APP_TITLE}
 RUN pnpm build
 
 FROM node:22-slim
