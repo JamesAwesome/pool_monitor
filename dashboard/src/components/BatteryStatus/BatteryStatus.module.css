@@ -134,6 +134,23 @@
   color: var(--color-text-secondary);
 }
 
+.sheetMeta {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xs);
+}
+
+.discharge {
+  font-size: var(--font-size-xs);
+  color: var(--color-warning);
+  font-weight: 500;
+}
+
+.estimate {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
 .sheetPct {
   font-size: var(--font-size-2xl);
   font-weight: 700;

@@ -18,6 +18,19 @@ interface BatteryStatusProps {
   loading: boolean;
 }
 
+const MS_PER_DAY = 86400000;
+
+function getDischargeRate(history: TimeSeriesPoint[]): string | null {
+  if (history.length < 2) return null;
+  const first = history[0];
+  const last = history[history.length - 1];
+  const days = (new Date(last.time).getTime() - new Date(first.time).getTime()) / MS_PER_DAY;
+  if (days < 0.5) return null;
+  const rate = (first.value - last.value) / days;
+  if (rate <= 0) return null;
+  return `${rate.toFixed(1)}%/day`;
+}
+
 function getBatteryStatus(level: number): 'ok' | 'warning' | 'low' {
   if (level > 50) return 'ok';
   if (level > 20) return 'warning';
@@ -183,7 +196,23 @@ export function BatteryStatus({ batteries, loading }: BatteryStatusProps) {
         {openSensor && (
           <>
             <div className={styles.sheetHeader}>
-              <span className={styles.sheetModel}>{openSensor.model}</span>
+              <div>
+                <span className={styles.sheetModel}>{openSensor.model}</span>
+                {!historyLoading && history.length >= 2 && (() => {
+                  const rate = getDischargeRate(history);
+                  if (!rate) return null;
+                  const rateNum = parseFloat(rate);
+                  const daysLeft = openSensor.current !== null && rateNum > 0
+                    ? Math.round(openSensor.current / rateNum)
+                    : null;
+                  return (
+                    <div className={styles.sheetMeta}>
+                      <span className={styles.discharge}>↓ {rate}</span>
+                      {daysLeft !== null && <span className={styles.estimate}>~{daysLeft}d remaining</span>}
+                    </div>
+                  );
+                })()}
+              </div>
               {openSensor.current !== null && (
                 <span className={`${styles.sheetPct} ${styles[getBatteryStatus(openSensor.current)]}`}>
                   {openSensor.current}%
