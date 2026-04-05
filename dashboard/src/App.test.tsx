@@ -7,7 +7,7 @@ vi.mock('./hooks/usePoolData', () => ({
     stats: { current: 25.0, average: 24.0, peak: 27.0, seasonAvg: 23.0, seasonPeak: 28.0 },
     history: [{ time: '2026-04-04T10:00:00Z', value: 25.0 }],
     batteries: [{ id: '29908', model: 'Inkbird-ITH20R', current: 100 }],
-    range: '12h',
+    range: '3d',
     setRange: vi.fn(),
     loading: false,
     error: null,
@@ -40,8 +40,8 @@ describe('App', () => {
 
   it('renders stat cards', () => {
     render(<App />);
-    expect(screen.getByText('Average')).toBeTruthy();
-    expect(screen.getByText('Peak')).toBeTruthy();
+    expect(screen.getByText(/Average \(3D\)/)).toBeTruthy();
+    expect(screen.getByText(/Peak \(3D\)/)).toBeTruthy();
   });
 
   it('renders the footer', () => {

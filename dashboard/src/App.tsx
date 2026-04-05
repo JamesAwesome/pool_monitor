@@ -18,7 +18,7 @@ function Dashboard() {
         {error && !loading && stats && <p className={styles.error}>{error}</p>}
         <SensorSelector sensors={sensors} selected={selectedSensor} onSelect={setSelectedSensor} />
         <CurrentTemp value={stats?.current ?? null} loading={loading} />
-        <StatsGrid stats={stats} loading={loading} selectedSensor={selectedSensor} />
+        <StatsGrid stats={stats} loading={loading} selectedSensor={selectedSensor} range={range} />
         <TempChart data={history} range={range} onRangeChange={setRange} loading={loading} />
         <BatteryStatus batteries={batteries} loading={loading} />
       </div>

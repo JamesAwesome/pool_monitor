@@ -33,8 +33,8 @@ describe('StatsGrid', () => {
     render(<StatsGrid stats={mockStats} loading={false} />);
     const cards = screen.getAllByTestId('stat-card');
     expect(cards).toHaveLength(4);
-    expect(screen.getByText('Average')).toBeTruthy();
-    expect(screen.getByText('Peak')).toBeTruthy();
+    expect(screen.getByText('Average (3D)')).toBeTruthy();
+    expect(screen.getByText('Peak (3D)')).toBeTruthy();
     expect(screen.getByText('Season Avg (YTD)')).toBeTruthy();
     expect(screen.getByText('Season Peak (YTD)')).toBeTruthy();
   });

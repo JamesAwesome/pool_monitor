@@ -40,7 +40,7 @@ export function usePoolData(refreshInterval = 30000): UsePoolDataReturn {
     try {
       const sensorParam = currentSensor ? `&sensor=${currentSensor}` : '';
       const [statsRes, historyRes, batteryRes] = await Promise.all([
-        fetch(`/api/stats${currentSensor ? `?sensor=${currentSensor}` : ''}`),
+        fetch(`/api/stats?range=${currentRange}${sensorParam}`),
         fetch(`/api/history?range=${currentRange}${sensorParam}`),
         fetch(`/api/battery${currentSensor ? `?sensor=${currentSensor}` : ''}`),
       ]);

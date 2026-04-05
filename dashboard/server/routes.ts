@@ -16,7 +16,8 @@ router.get('/api/sensors', async (_req, res) => {
 router.get('/api/stats', async (req, res) => {
   try {
     const sensor = typeof req.query.sensor === 'string' ? req.query.sensor : undefined
-    const stats = await queryStats(sensor)
+    const range = typeof req.query.range === 'string' ? req.query.range : '24h'
+    const stats = await queryStats(sensor, range)
     res.json(stats)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'

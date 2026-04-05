@@ -10,9 +10,15 @@ interface StatsGridProps {
   stats: PoolStats | null;
   loading: boolean;
   selectedSensor?: string | null;
+  range?: string;
 }
 
-export function StatsGrid({ stats, loading, selectedSensor }: StatsGridProps) {
+function rangeLabel(range: string): string {
+  if (range.startsWith('custom:')) return 'Custom';
+  return range.toUpperCase();
+}
+
+export function StatsGrid({ stats, loading, selectedSensor, range = '3d' }: StatsGridProps) {
   const { unit } = useTheme();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [seasonData, setSeasonData] = useState<SeasonYear[]>([]);
@@ -36,9 +42,9 @@ export function StatsGrid({ stats, loading, selectedSensor }: StatsGridProps) {
   return (
     <>
       <div className={styles.grid}>
-        <StatCard label="Average" value={stats?.average ?? null} loading={loading}
+        <StatCard label={`Average (${rangeLabel(range)})`} value={stats?.average ?? null} loading={loading}
           icon="≈" accentColor="#0ea5e9" />
-        <StatCard label="Peak" value={stats?.peak ?? null} loading={loading}
+        <StatCard label={`Peak (${rangeLabel(range)})`} value={stats?.peak ?? null} loading={loading}
           icon="↑" accentColor="#f59e0b" />
         <StatCard label="Season Avg (YTD)" value={stats?.seasonAvg ?? null} loading={loading}
           icon="≈" accentColor="#8b5cf6" onClick={openSeasonHistory} />

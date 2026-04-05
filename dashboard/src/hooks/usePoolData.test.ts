@@ -174,7 +174,7 @@ describe('usePoolData', () => {
     act(() => { result.current.setSelectedSensor('29908'); });
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith('/api/stats?sensor=29908');
+      expect(fetch).toHaveBeenCalledWith('/api/stats?range=3d&sensor=29908');
       expect(fetch).toHaveBeenCalledWith('/api/history?range=3d&sensor=29908');
       expect(fetch).toHaveBeenCalledWith('/api/battery?sensor=29908');
     });
@@ -185,13 +185,13 @@ describe('usePoolData', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     act(() => { result.current.setSelectedSensor('29908'); });
-    await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/stats?sensor=29908'));
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/stats?range=3d&sensor=29908'));
 
     (fetch as ReturnType<typeof vi.fn>).mockClear();
     act(() => { result.current.setSelectedSensor(null); });
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith('/api/stats');
+      expect(fetch).toHaveBeenCalledWith('/api/stats?range=3d');
     });
   });
 

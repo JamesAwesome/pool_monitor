@@ -52,7 +52,7 @@ export async function querySensors(): Promise<Array<{ id: string; model: string 
   return rows.map((r) => ({ id: r.id, model: r.model }))
 }
 
-export async function queryStats(sensorId?: string): Promise<{
+export async function queryStats(sensorId?: string, range = '24h'): Promise<{
   current: number | null
   average: number | null
   peak: number | null
@@ -63,8 +63,8 @@ export async function queryStats(sensorId?: string): Promise<{
 
   const queries = {
     current: fluxQuery('24h', 'temperature_C', 'last()', 'current', sensorId),
-    average: fluxQuery('24h', 'temperature_C', 'mean()', 'average', sensorId),
-    peak: fluxQuery('24h', 'temperature_C', 'max()', 'peak', sensorId),
+    average: fluxQuery(range, 'temperature_C', 'mean()', 'average', sensorId),
+    peak: fluxQuery(range, 'temperature_C', 'max()', 'peak', sensorId),
     seasonAvg: fluxQueryAbsolute(`${new Date().getFullYear()}-01-01T00:00:00Z`, 'temperature_C', 'mean()', 'seasonAvg', sensorId),
     seasonPeak: fluxQueryAbsolute(`${new Date().getFullYear()}-01-01T00:00:00Z`, 'temperature_C', 'max()', 'seasonPeak', sensorId),
   }
