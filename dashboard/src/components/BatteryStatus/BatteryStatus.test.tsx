@@ -103,6 +103,48 @@ describe('BatteryStatus', () => {
     expect(fetch).toHaveBeenCalledWith('/api/battery-history?sensor=29908');
   });
 
+  it('shows discharge rate and estimated days when history has declining data', async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve([
+        { time: '2026-04-01T00:00:00Z', value: 67 },
+        { time: '2026-04-02T00:00:00Z', value: 65 },
+        { time: '2026-04-03T00:00:00Z', value: 63 },
+        { time: '2026-04-04T00:00:00Z', value: 61 },
+      ]) })
+    );
+
+    const user = userEvent.setup();
+    render(<BatteryStatus batteries={[{ id: '29908', model: 'Inkbird', current: 61 }]} loading={false} />);
+    await user.click(screen.getByTestId('battery-item'));
+
+    // Wait for fetch to resolve and component to re-render
+    await screen.findByText(/\/day/);
+    expect(screen.getByText(/remaining/)).toBeTruthy();
+  });
+
+  it('does not show discharge rate when history starts at zero (regression: gap-fill artifact)', async () => {
+    // This was a real bug: createEmpty + fill(usePrevious) inserted 0% points
+    // before the sensor existed, making first=0 last=60 (battery "increasing")
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve([
+        { time: '2026-03-29T00:00:00Z', value: 0 },
+        { time: '2026-03-30T00:00:00Z', value: 0 },
+        { time: '2026-04-01T00:00:00Z', value: 67 },
+        { time: '2026-04-04T00:00:00Z', value: 61 },
+      ]) })
+    );
+
+    const user = userEvent.setup();
+    render(<BatteryStatus batteries={[{ id: '29908', model: 'Inkbird', current: 61 }]} loading={false} />);
+    await user.click(screen.getByTestId('battery-item'));
+
+    // Wait for fetch to resolve
+    await screen.findByText('Inkbird');
+    // Rate should NOT show because first.value (0) < last.value (61) => negative rate
+    expect(screen.queryByText(/\/day/)).toBeNull();
+    expect(screen.queryByText(/remaining/)).toBeNull();
+  });
+
   it('closes bottom sheet when close button is clicked', async () => {
     const user = userEvent.setup();
     render(<BatteryStatus batteries={[{ id: '29908', model: 'Inkbird', current: 100 }]} loading={false} />);
