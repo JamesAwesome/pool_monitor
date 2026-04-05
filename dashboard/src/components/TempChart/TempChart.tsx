@@ -34,11 +34,13 @@ const THRESHOLD_C = 32.2;
 
 function formatXTick(time: string, range: string, spansMultipleDays: boolean): string {
   const date = new Date(time);
-  if (range.endsWith('d') || range.startsWith('custom:')) {
+  if (range === '30d' || range.startsWith('custom:')) {
+    // Long ranges: date only, rely on minTickGap to prevent repeats
     return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
-  if (spansMultipleDays) {
-    return `${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} ${date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
+  if (spansMultipleDays || range.endsWith('d')) {
+    // Multi-day or short day ranges: include both date and time to avoid duplicates
+    return `${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} ${date.toLocaleTimeString(undefined, { hour: 'numeric' })}`;
   }
   return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
@@ -121,7 +123,7 @@ export function TempChart({ data, range, onRangeChange, loading }: TempChartProp
                 tickLine={false}
                 axisLine={false}
                 interval="preserveStartEnd"
-                minTickGap={50}
+                minTickGap={spansMultipleDays || range.endsWith('d') ? 80 : 50}
               />
               <YAxis
                 tickFormatter={(v: number) => `${v}${unitLabel}`}
