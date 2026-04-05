@@ -13,6 +13,7 @@ const DISMISS_THRESHOLD = 100;
 
 export function BottomSheet({ open, onClose, title, children }: BottomSheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
+  const handleRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef(0);
   const [dragOffset, setDragOffset] = useState(0);
   const isDragging = useRef(false);
@@ -32,25 +33,49 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
     };
   }, [open, handleKeyDown]);
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    dragStartY.current = e.touches[0].clientY;
-    isDragging.current = true;
-  }, []);
+  // Use native event listener for touchmove so we can call preventDefault
+  useEffect(() => {
+    const sheet = sheetRef.current;
+    if (!open || !sheet) return;
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!isDragging.current) return;
-    const dy = e.touches[0].clientY - dragStartY.current;
-    // Only allow dragging downward
-    setDragOffset(Math.max(0, dy));
-  }, []);
-
-  const handleTouchEnd = useCallback(() => {
-    isDragging.current = false;
-    if (dragOffset > DISMISS_THRESHOLD) {
-      onClose();
+    function onTouchStart(e: TouchEvent) {
+      // Only start drag from the handle or header area
+      const target = e.target as HTMLElement;
+      const handle = handleRef.current;
+      if (handle && (handle === target || handle.contains(target))) {
+        dragStartY.current = e.touches[0].clientY;
+        isDragging.current = true;
+      }
     }
-    setDragOffset(0);
-  }, [dragOffset, onClose]);
+
+    function onTouchMove(e: TouchEvent) {
+      if (!isDragging.current) return;
+      e.preventDefault();
+      const dy = e.touches[0].clientY - dragStartY.current;
+      setDragOffset(Math.max(0, dy));
+    }
+
+    function onTouchEnd() {
+      if (!isDragging.current) return;
+      isDragging.current = false;
+      setDragOffset((current) => {
+        if (current > DISMISS_THRESHOLD) {
+          onClose();
+        }
+        return 0;
+      });
+    }
+
+    sheet.addEventListener('touchstart', onTouchStart, { passive: true });
+    sheet.addEventListener('touchmove', onTouchMove, { passive: false });
+    sheet.addEventListener('touchend', onTouchEnd, { passive: true });
+
+    return () => {
+      sheet.removeEventListener('touchstart', onTouchStart);
+      sheet.removeEventListener('touchmove', onTouchMove);
+      sheet.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -76,16 +101,15 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
         role="dialog"
         aria-label={title}
         style={sheetStyle}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
       >
-        <div className={styles.handle} />
-        <div className={styles.header}>
-          <h2 className={styles.title}>{title}</h2>
-          <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">
-            ✕
-          </button>
+        <div className={styles.dragZone} ref={handleRef}>
+          <div className={styles.handle} />
+          <div className={styles.header}>
+            <h2 className={styles.title}>{title}</h2>
+            <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">
+              ✕
+            </button>
+          </div>
         </div>
         <div className={styles.content}>
           {children}
