@@ -20,6 +20,7 @@
   width: 100%;
   max-width: 540px;
   max-height: 85vh;
+  height: fit-content;
   background: var(--color-surface);
   border: var(--border-glow);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
