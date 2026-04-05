@@ -26,8 +26,7 @@ function parseRange(range: string): string {
 
 function fluxQuery(range: string, field: string, aggregation: string, yieldName: string, sensorId?: string): string {
   const sensorFilter = sensorId ? `\n      |> filter(fn: (r) => r.id == "${sensorId}")` : ''
-  // When no sensor selected, group() removes grouping so aggregates span all sensors
-  const groupClause = sensorId ? '|> group(columns: ["id"])' : '|> group()'
+  const groupClause = sensorId ? 'group(columns: ["id"])' : 'group()'
   return `
     from(bucket: "${bucket}")
       |> range(${parseRange(range)})
@@ -40,7 +39,7 @@ function fluxQuery(range: string, field: string, aggregation: string, yieldName:
 
 function fluxQueryAbsolute(start: string, field: string, aggregation: string, yieldName: string, sensorId?: string): string {
   const sensorFilter = sensorId ? `\n      |> filter(fn: (r) => r.id == "${sensorId}")` : ''
-  const groupClause = sensorId ? '|> group(columns: ["id"])' : '|> group()'
+  const groupClause = sensorId ? 'group(columns: ["id"])' : 'group()'
   return `
     from(bucket: "${bucket}")
       |> range(start: ${start})
@@ -137,7 +136,7 @@ export async function queryHistory(range: string, sensorId?: string): Promise<Ar
   const period = windowPeriod(range)
   const sensorFilter = sensorId ? `\n      |> filter(fn: (r) => r.id == "${sensorId}")` : ''
   // When no sensor selected, group() aggregates across all sensors into one line
-  const groupClause = sensorId ? '|> group(columns: ["id"])' : '|> group()'
+  const groupClause = sensorId ? 'group(columns: ["id"])' : 'group()'
 
   const query = `
     from(bucket: "${bucket}")
@@ -188,7 +187,7 @@ export async function querySeasonHistory(sensorId?: string): Promise<
   const currentYear = new Date().getFullYear()
   const years = [currentYear, currentYear - 1, currentYear - 2]
   const sensorFilter = sensorId ? `\n      |> filter(fn: (r) => r.id == "${sensorId}")` : ''
-  const groupClause = sensorId ? '|> group(columns: ["id"])' : '|> group()'
+  const groupClause = sensorId ? 'group(columns: ["id"])' : 'group()'
 
   const results = await Promise.all(
     years.map(async (year) => {
