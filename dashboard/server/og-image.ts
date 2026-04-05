@@ -1,3 +1,4 @@
+import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createCanvas, GlobalFonts } from '@napi-rs/canvas'
@@ -5,9 +6,30 @@ import { queryStats } from './influx.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-// Register Inter fonts
-GlobalFonts.registerFromPath(path.join(__dirname, 'fonts', 'Inter-Bold.ttf'), 'Inter-Bold')
-GlobalFonts.registerFromPath(path.join(__dirname, 'fonts', 'Inter-Regular.ttf'), 'Inter')
+// Try multiple font paths (dev vs compiled vs Docker)
+const fontDirs = [
+  path.join(__dirname, 'fonts'),
+  path.join(__dirname, '..', 'server', 'fonts'),
+  path.join(process.cwd(), 'server', 'fonts'),
+  path.join(process.cwd(), 'dist', 'server', 'fonts'),
+]
+
+let fontsLoaded = false
+for (const dir of fontDirs) {
+  const bold = path.join(dir, 'Inter-Bold.ttf')
+  const regular = path.join(dir, 'Inter-Regular.ttf')
+  if (fs.existsSync(bold) && fs.existsSync(regular)) {
+    GlobalFonts.registerFromPath(bold, 'Inter')
+    GlobalFonts.registerFromPath(regular, 'Inter')
+    fontsLoaded = true
+    console.log(`Fonts loaded from ${dir}`)
+    break
+  }
+}
+
+if (!fontsLoaded) {
+  console.warn('Warning: Inter fonts not found, OG image text may not render')
+}
 
 // Cache: regenerate at most every 5 minutes
 let cachedBuffer: Buffer | null = null
@@ -54,21 +76,23 @@ export async function generateOgImage(): Promise<Buffer> {
     // Keep defaults
   }
 
+  const fontFamily = fontsLoaded ? 'Inter' : 'sans-serif'
+
   // Title
   ctx.fillStyle = '#94a3b8'
-  ctx.font = '32px Inter'
+  ctx.font = `32px "${fontFamily}"`
   ctx.textAlign = 'center'
-  ctx.fillText('🌊 Pool Dashboard', WIDTH / 2, 160)
+  ctx.fillText('Pool Dashboard', WIDTH / 2, 160)
 
   // Temperature (big)
   ctx.fillStyle = '#38bdf8'
-  ctx.font = '120px Inter-Bold'
+  ctx.font = `bold 120px "${fontFamily}"`
   ctx.textAlign = 'center'
   ctx.fillText(tempText, WIDTH / 2, 340)
 
   // Subtitle
   ctx.fillStyle = '#94a3b8'
-  ctx.font = '28px Inter'
+  ctx.font = `28px "${fontFamily}"`
   ctx.textAlign = 'center'
   ctx.fillText('Current Pool Temperature', WIDTH / 2, 410)
 
@@ -81,7 +105,7 @@ export async function generateOgImage(): Promise<Buffer> {
     minute: '2-digit',
   })
   ctx.fillStyle = '#64748b'
-  ctx.font = '24px Inter'
+  ctx.font = `24px "${fontFamily}"`
   ctx.fillText(dateStr, WIDTH / 2, 470)
 
   const buffer = Buffer.from(canvas.toBuffer('image/png'))
@@ -90,4 +114,3 @@ export async function generateOgImage(): Promise<Buffer> {
 
   return buffer
 }
-
