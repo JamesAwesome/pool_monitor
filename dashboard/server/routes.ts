@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { querySensors, queryStats, queryHistory, queryBattery } from './influx.js'
+import { querySensors, queryStats, queryHistory, queryBatteries } from './influx.js'
 
 const router = Router()
 
@@ -39,7 +39,7 @@ router.get('/api/history', async (req, res) => {
 router.get('/api/battery', async (req, res) => {
   try {
     const sensor = typeof req.query.sensor === 'string' ? req.query.sensor : undefined
-    const battery = await queryBattery(sensor)
+    const battery = await queryBatteries(sensor)
     res.json(battery)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'

@@ -16,6 +16,12 @@ export interface BatteryData {
   history: TimeSeriesPoint[];
 }
 
+export interface SensorBattery {
+  id: string;
+  model: string;
+  current: number | null;
+}
+
 export interface SensorInfo {
   id: string;
   model: string;

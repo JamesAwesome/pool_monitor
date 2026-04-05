@@ -1,8 +1,8 @@
-import type { BatteryData } from '../../types';
+import type { SensorBattery } from '../../types';
 import styles from './BatteryStatus.module.css';
 
 interface BatteryStatusProps {
-  data: BatteryData | null;
+  batteries: SensorBattery[];
   loading: boolean;
 }
 
@@ -12,25 +12,15 @@ function getBatteryStatus(level: number): 'ok' | 'warning' | 'low' {
   return 'low';
 }
 
-export function BatteryStatus({ data, loading }: BatteryStatusProps) {
-  if (loading || !data) {
-    return (
-      <div className={styles.wrapper} data-testid="battery-badge">
-        <div className={styles.batteryShell}>
-          <div className={styles.batteryFill} style={{ width: '0%' }} />
-          <div className={styles.batteryTip} />
-        </div>
-        <span className={styles.percentage}>--%</span>
-      </div>
-    );
-  }
+function BatteryItem({ battery }: { battery: SensorBattery }) {
+  if (battery.current === null) return null;
 
-  const level = data.current;
+  const level = battery.current;
   const status = getBatteryStatus(level);
-  const statusText = status === 'ok' ? 'Battery OK' : status === 'warning' ? 'Battery Low' : 'Replace Battery';
+  const statusText = status === 'ok' ? 'OK' : status === 'warning' ? 'Low' : 'Replace';
 
   return (
-    <div className={`${styles.wrapper} ${styles[status]}`} data-testid="battery-badge">
+    <div className={`${styles.item} ${styles[status]}`} data-testid="battery-item">
       <div className={styles.batteryShell}>
         <div
           className={`${styles.batteryFill} ${styles[`fill_${status}`]}`}
@@ -40,6 +30,33 @@ export function BatteryStatus({ data, loading }: BatteryStatusProps) {
       </div>
       <span className={styles.percentage}>{level}%</span>
       <span className={styles.label}>{statusText}</span>
+      <span className={styles.sensorId}>{battery.id}</span>
+    </div>
+  );
+}
+
+export function BatteryStatus({ batteries, loading }: BatteryStatusProps) {
+  if (loading && batteries.length === 0) {
+    return (
+      <div className={styles.wrapper} data-testid="battery-badge">
+        <div className={styles.item}>
+          <div className={styles.batteryShell}>
+            <div className={styles.batteryFill} style={{ width: '0%' }} />
+            <div className={styles.batteryTip} />
+          </div>
+          <span className={styles.percentage}>--%</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (batteries.length === 0) return null;
+
+  return (
+    <div className={styles.wrapper} data-testid="battery-badge">
+      {batteries.map((b) => (
+        <BatteryItem key={b.id} battery={b} />
+      ))}
     </div>
   );
 }

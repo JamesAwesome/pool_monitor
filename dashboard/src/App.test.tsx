@@ -6,7 +6,7 @@ vi.mock('./hooks/usePoolData', () => ({
   usePoolData: () => ({
     stats: { current: 25.0, average: 24.0, peak: 27.0, seasonAvg: 23.0, seasonPeak: 28.0 },
     history: [{ time: '2026-04-04T10:00:00Z', value: 25.0 }],
-    battery: { current: 100, history: [] },
+    batteries: [{ id: '29908', model: 'Inkbird-ITH20R', current: 100 }],
     range: '12h',
     setRange: vi.fn(),
     loading: false,

@@ -10,7 +10,7 @@ import { SensorSelector } from './components/SensorSelector';
 import styles from './App.module.css';
 
 function Dashboard() {
-  const { stats, history, battery, range, setRange, loading, error, sensors, selectedSensor, setSelectedSensor } = usePoolData();
+  const { stats, history, batteries, range, setRange, loading, error, sensors, selectedSensor, setSelectedSensor } = usePoolData();
 
   return (
     <main className={styles.main}>
@@ -20,7 +20,7 @@ function Dashboard() {
         <CurrentTemp value={stats?.current ?? null} loading={loading} />
         <StatsGrid stats={stats} loading={loading} />
         <TempChart data={history} range={range} onRangeChange={setRange} loading={loading} />
-        <BatteryStatus data={battery} loading={loading} />
+        <BatteryStatus batteries={batteries} loading={loading} />
       </div>
     </main>
   );

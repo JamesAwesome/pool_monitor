@@ -15,13 +15,9 @@ const mockHistory = [
   { time: '2026-04-04T11:00:00Z', value: 25.0 },
 ];
 
-const mockBattery = {
-  current: 3.7,
-  history: [
-    { time: '2026-04-04T10:00:00Z', value: 3.8 },
-    { time: '2026-04-04T11:00:00Z', value: 3.7 },
-  ],
-};
+const mockBatteries = [
+  { id: '29908', model: 'Inkbird-ITH20R', current: 100 },
+];
 
 function mockFetchSuccess() {
   globalThis.fetch = vi.fn((url: string | URL | Request) => {
@@ -33,7 +29,7 @@ function mockFetchSuccess() {
     if (urlStr.includes('/api/history'))
       return Promise.resolve({ ok: true, json: () => Promise.resolve(mockHistory) });
     if (urlStr.includes('/api/battery'))
-      return Promise.resolve({ ok: true, json: () => Promise.resolve(mockBattery) });
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(mockBatteries) });
     return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
   }) as unknown as typeof fetch;
 }
@@ -52,7 +48,7 @@ describe('usePoolData', () => {
     expect(result.current.loading).toBe(true);
     expect(result.current.stats).toBeNull();
     expect(result.current.history).toEqual([]);
-    expect(result.current.battery).toBeNull();
+    expect(result.current.batteries).toEqual([]);
     expect(result.current.error).toBeNull();
   });
 
@@ -65,7 +61,7 @@ describe('usePoolData', () => {
 
     expect(result.current.stats).toEqual(mockStats);
     expect(result.current.history).toEqual(mockHistory);
-    expect(result.current.battery).toEqual(mockBattery);
+    expect(result.current.batteries).toEqual(mockBatteries);
     expect(result.current.error).toBeNull();
   });
 
@@ -90,7 +86,7 @@ describe('usePoolData', () => {
       if (urlStr.includes('/api/history'))
         return Promise.resolve({ ok: true, json: () => Promise.resolve(mockHistory) });
       if (urlStr.includes('/api/battery'))
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(mockBattery) });
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(mockBatteries) });
       return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
     }) as unknown as typeof fetch;
 

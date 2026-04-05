@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { PoolStats, TimeSeriesPoint, BatteryData, SensorInfo } from '../types';
+import type { PoolStats, TimeSeriesPoint, SensorBattery, SensorInfo } from '../types';
 
 export interface UsePoolDataReturn {
   stats: PoolStats | null;
   history: TimeSeriesPoint[];
-  battery: BatteryData | null;
+  batteries: SensorBattery[];
   range: string;
   setRange: (range: string) => void;
   loading: boolean;
@@ -17,7 +17,7 @@ export interface UsePoolDataReturn {
 export function usePoolData(refreshInterval = 30000): UsePoolDataReturn {
   const [stats, setStats] = useState<PoolStats | null>(null);
   const [history, setHistory] = useState<TimeSeriesPoint[]>([]);
-  const [battery, setBattery] = useState<BatteryData | null>(null);
+  const [batteries, setBatteries] = useState<SensorBattery[]>([]);
   const [range, setRange] = useState('12h');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,12 +52,12 @@ export function usePoolData(refreshInterval = 30000): UsePoolDataReturn {
       const [statsData, historyData, batteryData] = await Promise.all([
         statsRes.json() as Promise<PoolStats>,
         historyRes.json() as Promise<TimeSeriesPoint[]>,
-        batteryRes.json() as Promise<BatteryData>,
+        batteryRes.json() as Promise<SensorBattery[]>,
       ]);
 
       setStats(statsData);
       setHistory(historyData);
-      setBattery(batteryData);
+      setBatteries(batteryData);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -78,5 +78,5 @@ export function usePoolData(refreshInterval = 30000): UsePoolDataReturn {
     return () => clearInterval(id);
   }, [range, selectedSensor, refreshInterval, fetchData]);
 
-  return { stats, history, battery, range, setRange, loading, error, sensors, selectedSensor, setSelectedSensor };
+  return { stats, history, batteries, range, setRange, loading, error, sensors, selectedSensor, setSelectedSensor };
 }

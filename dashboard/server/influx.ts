@@ -113,18 +113,18 @@ export async function queryHistory(range: string, sensorId?: string): Promise<Ar
 }
 
 interface BatteryRow {
-  _time: string
+  id: string
+  model: string
   _value: number
 }
 
-export async function queryBattery(sensorId?: string): Promise<{
-  current: number | null
-  history: Array<{ time: string; value: number }>
-}> {
+export async function queryBatteries(sensorId?: string): Promise<
+  Array<{ id: string; model: string; current: number | null }>
+> {
   const api = getQueryApi()
   const sensorFilter = sensorId ? `\n      |> filter(fn: (r) => r.id == "${sensorId}")` : ''
 
-  const currentQuery = `
+  const query = `
     from(bucket: "${bucket}")
       |> range(start: -24h)
       |> filter(fn: (r) => r._field == "battery_ok")${sensorFilter}
@@ -133,22 +133,10 @@ export async function queryBattery(sensorId?: string): Promise<{
       |> yield(name: "current")
   `
 
-  const historyQuery = `
-    from(bucket: "${bucket}")
-      |> range(start: -7d)
-      |> filter(fn: (r) => r._field == "battery_ok")${sensorFilter}
-      |> group(columns: ["id"])
-      |> aggregateWindow(every: 1h, fn: last, createEmpty: false)
-      |> yield(name: "history")
-  `
-
-  const [currentRows, historyRows] = await Promise.all([
-    api.collectRows<BatteryRow>(currentQuery),
-    api.collectRows<BatteryRow>(historyQuery),
-  ])
-
-  return {
-    current: currentRows.length > 0 ? currentRows[0]._value * 100 : null,
-    history: historyRows.map((r) => ({ time: r._time, value: r._value * 100 })),
-  }
+  const rows = await api.collectRows<BatteryRow>(query)
+  return rows.map((r) => ({
+    id: r.id,
+    model: r.model,
+    current: r._value * 100,
+  }))
 }
