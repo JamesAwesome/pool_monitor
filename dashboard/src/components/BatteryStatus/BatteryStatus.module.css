@@ -70,7 +70,17 @@
   letter-spacing: 0.05em;
 }
 
+.ok .batteryShell { border-color: #22c55e; }
+.ok .batteryTip { background: #22c55e; }
 .ok .percentage { color: #22c55e; }
+.ok .label { color: #4ade80; }
+
+.warning .batteryShell { border-color: #f59e0b; }
+.warning .batteryTip { background: #f59e0b; }
 .warning .percentage { color: #f59e0b; }
+.warning .label { color: #fbbf24; }
+
+.low .batteryShell { border-color: #ef4444; }
+.low .batteryTip { background: #ef4444; }
 .low .percentage { color: #ef4444; }
 .low .label { color: #ef4444; }

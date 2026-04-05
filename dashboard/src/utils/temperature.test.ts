@@ -57,23 +57,23 @@ describe('formatTemperature', () => {
 });
 
 describe('getTemperatureColor', () => {
-  it('returns hot for >= 26.7°C', () => {
-    expect(getTemperatureColor(26.7)).toBe('hot');
-    expect(getTemperatureColor(30)).toBe('hot');
+  it('returns hot for >= 32.2°C (90°F)', () => {
+    expect(getTemperatureColor(32.2)).toBe('hot');
+    expect(getTemperatureColor(35)).toBe('hot');
   });
 
-  it('returns warm for >= 21.1°C and < 26.7°C', () => {
-    expect(getTemperatureColor(21.1)).toBe('warm');
-    expect(getTemperatureColor(25)).toBe('warm');
+  it('returns warm for >= 26.7°C (80°F) and < 32.2°C', () => {
+    expect(getTemperatureColor(26.7)).toBe('warm');
+    expect(getTemperatureColor(30)).toBe('warm');
   });
 
-  it('returns normal for >= 15.6°C and < 21.1°C', () => {
-    expect(getTemperatureColor(15.6)).toBe('normal');
-    expect(getTemperatureColor(18)).toBe('normal');
+  it('returns normal for >= 21.1°C (70°F) and < 26.7°C', () => {
+    expect(getTemperatureColor(21.1)).toBe('normal');
+    expect(getTemperatureColor(25)).toBe('normal');
   });
 
-  it('returns cool for < 15.6°C', () => {
-    expect(getTemperatureColor(15.5)).toBe('cool');
+  it('returns cool for < 21.1°C (70°F)', () => {
+    expect(getTemperatureColor(21.0)).toBe('cool');
     expect(getTemperatureColor(10)).toBe('cool');
     expect(getTemperatureColor(0)).toBe('cool');
   });
@@ -83,8 +83,8 @@ describe('getTemperatureColor', () => {
   });
 
   it('handles boundary values precisely', () => {
-    expect(getTemperatureColor(26.69)).toBe('warm');
-    expect(getTemperatureColor(21.09)).toBe('normal');
-    expect(getTemperatureColor(15.59)).toBe('cool');
+    expect(getTemperatureColor(32.19)).toBe('warm');
+    expect(getTemperatureColor(26.69)).toBe('normal');
+    expect(getTemperatureColor(21.09)).toBe('cool');
   });
 });

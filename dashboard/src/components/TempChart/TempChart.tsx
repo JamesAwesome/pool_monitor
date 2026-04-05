@@ -30,7 +30,7 @@ const QUICK_RANGES = [
   { key: '7d', label: '7D' },
   { key: '30d', label: '30D' },
 ];
-const THRESHOLD_C = 26.7;
+const THRESHOLD_C = 32.2;
 
 function formatXTick(time: string, range: string): string {
   const date = new Date(time);

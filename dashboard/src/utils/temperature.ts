@@ -12,8 +12,8 @@ export function formatTemperature(celsius: number, unit: TemperatureUnit): strin
 }
 
 export function getTemperatureColor(celsius: number): TemperatureZone {
-  if (celsius >= 26.7) return 'hot';
-  if (celsius >= 21.1) return 'warm';
-  if (celsius >= 15.6) return 'normal';
+  if (celsius >= 32.2) return 'hot';    // >= 90°F
+  if (celsius >= 26.7) return 'warm';   // >= 80°F
+  if (celsius >= 21.1) return 'normal'; // >= 70°F
   return 'cool';
 }

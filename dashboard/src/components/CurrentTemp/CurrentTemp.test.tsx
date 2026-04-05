@@ -42,17 +42,17 @@ describe('CurrentTemp', () => {
   });
 
   it('applies hot zone color for high temperatures', () => {
-    render(<CurrentTemp value={30} loading={false} />);
+    render(<CurrentTemp value={35} loading={false} />);
     expect(screen.getByTestId('temp-value').dataset.zone).toBe('hot');
   });
 
   it('applies warm zone color for warm temperatures', () => {
-    render(<CurrentTemp value={23} loading={false} />);
+    render(<CurrentTemp value={28} loading={false} />);
     expect(screen.getByTestId('temp-value').dataset.zone).toBe('warm');
   });
 
   it('applies normal zone color for moderate temperatures', () => {
-    render(<CurrentTemp value={18} loading={false} />);
+    render(<CurrentTemp value={23} loading={false} />);
     expect(screen.getByTestId('temp-value').dataset.zone).toBe('normal');
   });
 
