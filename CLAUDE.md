@@ -76,6 +76,22 @@ pnpm typecheck        # TypeScript only
 - **Theming**: CSS custom properties in `src/styles/tokens.css` with `[data-theme="dark"]` overrides. OS detection via `prefers-color-scheme` + manual toggle persisted in localStorage. Light mode uses blue-tinted pool water palette.
 - **Multi-sensor**: `GET /api/sensors` returns available sensors (id + model). `SensorSelector` component shows pill chips; hidden when only 1 sensor exists.
 - **Interactive details**: Tapping battery indicators opens a bottom sheet with 30-day battery history chart and discharge rate. Tapping Season Avg/Peak cards shows year-over-year comparison table.
+- **Multi-sensor "All" view**: When no sensor is selected, stats and history aggregate across all sensors (true average/peak, not one arbitrary sensor). Individual sensor view groups by sensor ID.
+
+### Query aggregation strategy
+All time-series queries use `aggregateWindow` with `fn: mean` (temperature) or `fn: last` (battery), aligned to local timezone via `location: {zone: TIMEZONE}`.
+
+| Range | Window | ~Points | Notes |
+|-------|--------|---------|-------|
+| 6H | 5m | 72 | Zoomed-in, high resolution |
+| 12H | 5m | 144 | |
+| 24H | 5m | 288 | Captures pump cycles |
+| 3D | 30m | 144 | Captures afternoon heating peaks |
+| 7D | 1h | 168 | |
+| 30D | 2h | 360 | |
+| Custom | auto | varies | Scales by date span (5m–6h) |
+
+Battery history uses `6h` windows with `createEmpty: true` + `fill(usePrevious: true)` since battery level is a held state between sparse reports.
 
 ### Temperature color zones
 | Zone | Threshold |
