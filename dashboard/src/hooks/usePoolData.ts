@@ -86,7 +86,11 @@ export function usePoolData(refreshInterval = 30000): UsePoolDataReturn {
       setBatteries(batteryData);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      // If we already have data, silently ignore transient failures
+      // (e.g. network not ready after phone wake). The next interval will retry.
+      if (!hasFetchedOnce.current) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      }
     } finally {
       hasFetchedOnce.current = true;
       setLoading(false);
@@ -101,7 +105,18 @@ export function usePoolData(refreshInterval = 30000): UsePoolDataReturn {
       fetchData(range, selectedSensor);
     }, refreshInterval);
 
-    return () => clearInterval(id);
+    // Re-fetch when tab becomes visible (e.g. phone waking from suspend)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        fetchData(range, selectedSensor);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [range, selectedSensor, refreshInterval, fetchData]);
 
   return { stats, history, batteries, range, setRange, loading, error, sensors, selectedSensor, setSelectedSensor };

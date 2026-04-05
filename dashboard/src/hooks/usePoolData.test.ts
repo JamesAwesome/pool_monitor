@@ -111,7 +111,7 @@ describe('usePoolData', () => {
     expect(result.current.error).toBe('Network error');
   });
 
-  it('keeps stale data on error after successful fetch', async () => {
+  it('silently ignores errors after successful fetch (keeps stale data)', async () => {
     const { result } = renderHook(() => usePoolData(600000));
 
     await waitFor(() => {
@@ -121,15 +121,18 @@ describe('usePoolData', () => {
     // Now make fetch fail for the next call
     globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error')) as unknown as typeof fetch;
 
-    // Change range to trigger a re-fetch (instead of waiting for interval)
+    // Change range to trigger a re-fetch
     act(() => {
       result.current.setRange('24h');
     });
 
+    // Wait for the fetch to complete
     await waitFor(() => {
-      expect(result.current.error).toBe('Network error');
+      expect(fetch).toHaveBeenCalled();
     });
 
+    // Error should NOT be shown (silently ignored after first success)
+    expect(result.current.error).toBeNull();
     // Stale data should remain
     expect(result.current.stats).toEqual(mockStats);
     expect(result.current.history).toEqual(mockHistory);
