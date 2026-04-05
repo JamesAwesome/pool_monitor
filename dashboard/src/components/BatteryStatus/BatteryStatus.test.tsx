@@ -100,7 +100,7 @@ describe('BatteryStatus', () => {
 
     await user.click(screen.getByTestId('battery-item'));
 
-    expect(fetch).toHaveBeenCalledWith('/api/battery-history/29908');
+    expect(fetch).toHaveBeenCalledWith('/api/battery-history?sensor=29908');
   });
 
   it('closes bottom sheet when close button is clicked', async () => {

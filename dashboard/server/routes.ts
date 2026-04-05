@@ -47,9 +47,13 @@ router.get('/api/battery', async (req, res) => {
   }
 })
 
-router.get('/api/battery-history/{sensorId}', async (req, res) => {
+router.get('/api/battery-history', async (req, res) => {
   try {
-    const sensorId = (req.params as Record<string, string>).sensorId
+    const sensorId = typeof req.query.sensor === 'string' ? req.query.sensor : ''
+    if (!sensorId) {
+      res.status(400).json({ error: 'sensor query parameter is required' })
+      return
+    }
     const history = await queryBatteryHistory(sensorId)
     res.json(history)
   } catch (err) {

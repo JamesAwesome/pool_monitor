@@ -18,9 +18,7 @@
   width: 100%;
   max-width: 540px;
   max-height: 85vh;
-  background: var(--gradient-card);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: var(--color-surface);
   border: var(--border-glow);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   box-shadow: var(--shadow-lg), var(--glow-primary);
@@ -86,7 +84,7 @@
   .overlay {
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.25);
+    background: rgba(0, 0, 0, 0.5);
   }
 
   .sheet {
