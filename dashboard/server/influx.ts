@@ -11,11 +11,12 @@ export function getQueryApi() {
   return client.getQueryApi(org)
 }
 
-function fluxQuery(range: string, field: string, aggregation: string, yieldName: string): string {
+function fluxQuery(range: string, field: string, aggregation: string, yieldName: string, sensorId?: string): string {
+  const sensorFilter = sensorId ? `\n      |> filter(fn: (r) => r.id == "${sensorId}")` : ''
   return `
     from(bucket: "${bucket}")
       |> range(start: -${range})
-      |> filter(fn: (r) => r._field == "${field}")
+      |> filter(fn: (r) => r._field == "${field}")${sensorFilter}
       |> group(columns: ["id"])
       |> ${aggregation}
       |> yield(name: "${yieldName}")
@@ -26,7 +27,20 @@ interface StatRow {
   _value: number
 }
 
-export async function queryStats(): Promise<{
+export async function querySensors(): Promise<Array<{ id: string; model: string }>> {
+  const api = getQueryApi()
+  const query = `
+    from(bucket: "${bucket}")
+      |> range(start: -24h)
+      |> filter(fn: (r) => r._field == "temperature_C")
+      |> keep(columns: ["id", "model"])
+      |> distinct(column: "id")
+  `
+  const rows = await api.collectRows<{ id: string; model: string }>(query)
+  return rows.map((r) => ({ id: r.id, model: r.model }))
+}
+
+export async function queryStats(sensorId?: string): Promise<{
   current: number | null
   average: number | null
   peak: number | null
@@ -36,11 +50,11 @@ export async function queryStats(): Promise<{
   const api = getQueryApi()
 
   const queries = {
-    current: fluxQuery('24h', 'temperature_C', 'last()', 'current'),
-    average: fluxQuery('24h', 'temperature_C', 'mean()', 'average'),
-    peak: fluxQuery('24h', 'temperature_C', 'max()', 'peak'),
-    seasonAvg: fluxQuery('180d', 'temperature_C', 'mean()', 'seasonAvg'),
-    seasonPeak: fluxQuery('180d', 'temperature_C', 'max()', 'seasonPeak'),
+    current: fluxQuery('24h', 'temperature_C', 'last()', 'current', sensorId),
+    average: fluxQuery('24h', 'temperature_C', 'mean()', 'average', sensorId),
+    peak: fluxQuery('24h', 'temperature_C', 'max()', 'peak', sensorId),
+    seasonAvg: fluxQuery('180d', 'temperature_C', 'mean()', 'seasonAvg', sensorId),
+    seasonPeak: fluxQuery('180d', 'temperature_C', 'max()', 'seasonPeak', sensorId),
   }
 
   const results = await Promise.all(
@@ -80,14 +94,15 @@ interface HistoryRow {
   _value: number
 }
 
-export async function queryHistory(range: string): Promise<Array<{ time: string; value: number }>> {
+export async function queryHistory(range: string, sensorId?: string): Promise<Array<{ time: string; value: number }>> {
   const api = getQueryApi()
   const period = windowPeriod(range)
+  const sensorFilter = sensorId ? `\n      |> filter(fn: (r) => r.id == "${sensorId}")` : ''
 
   const query = `
     from(bucket: "${bucket}")
       |> range(start: -${range})
-      |> filter(fn: (r) => r._field == "temperature_C")
+      |> filter(fn: (r) => r._field == "temperature_C")${sensorFilter}
       |> group(columns: ["id"])
       |> aggregateWindow(every: ${period}, fn: mean, createEmpty: false)
       |> yield(name: "history")
@@ -102,16 +117,17 @@ interface BatteryRow {
   _value: number
 }
 
-export async function queryBattery(): Promise<{
+export async function queryBattery(sensorId?: string): Promise<{
   current: number | null
   history: Array<{ time: string; value: number }>
 }> {
   const api = getQueryApi()
+  const sensorFilter = sensorId ? `\n      |> filter(fn: (r) => r.id == "${sensorId}")` : ''
 
   const currentQuery = `
     from(bucket: "${bucket}")
       |> range(start: -24h)
-      |> filter(fn: (r) => r._field == "battery_ok")
+      |> filter(fn: (r) => r._field == "battery_ok")${sensorFilter}
       |> group(columns: ["id"])
       |> last()
       |> yield(name: "current")
@@ -120,7 +136,7 @@ export async function queryBattery(): Promise<{
   const historyQuery = `
     from(bucket: "${bucket}")
       |> range(start: -7d)
-      |> filter(fn: (r) => r._field == "battery_ok")
+      |> filter(fn: (r) => r._field == "battery_ok")${sensorFilter}
       |> group(columns: ["id"])
       |> aggregateWindow(every: 1h, fn: last, createEmpty: false)
       |> yield(name: "history")

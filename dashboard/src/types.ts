@@ -16,6 +16,11 @@ export interface BatteryData {
   history: TimeSeriesPoint[];
 }
 
+export interface SensorInfo {
+  id: string;
+  model: string;
+}
+
 export type TemperatureUnit = 'C' | 'F';
 export type Theme = 'light' | 'dark';
 export type TemperatureZone = 'hot' | 'warm' | 'normal' | 'cool';

@@ -6,15 +6,17 @@ import { CurrentTemp } from './components/CurrentTemp';
 import { StatsGrid } from './components/StatsGrid';
 import { TempChart } from './components/TempChart';
 import { BatteryStatus } from './components/BatteryStatus';
+import { SensorSelector } from './components/SensorSelector';
 import styles from './App.module.css';
 
 function Dashboard() {
-  const { stats, history, battery, range, setRange, loading, error } = usePoolData();
+  const { stats, history, battery, range, setRange, loading, error, sensors, selectedSensor, setSelectedSensor } = usePoolData();
 
   return (
     <main className={styles.main}>
       <div className="container">
         {error && !loading && stats && <p className={styles.error}>{error}</p>}
+        <SensorSelector sensors={sensors} selected={selectedSensor} onSelect={setSelectedSensor} />
         <CurrentTemp value={stats?.current ?? null} loading={loading} />
         <StatsGrid stats={stats} loading={loading} />
         <TempChart data={history} range={range} onRangeChange={setRange} loading={loading} />

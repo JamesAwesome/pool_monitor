@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { PoolStats, TimeSeriesPoint, BatteryData } from '../types';
+import type { PoolStats, TimeSeriesPoint, BatteryData, SensorInfo } from '../types';
 
 export interface UsePoolDataReturn {
   stats: PoolStats | null;
@@ -9,6 +9,9 @@ export interface UsePoolDataReturn {
   setRange: (range: string) => void;
   loading: boolean;
   error: string | null;
+  sensors: SensorInfo[];
+  selectedSensor: string | null;
+  setSelectedSensor: (id: string | null) => void;
 }
 
 export function usePoolData(refreshInterval = 30000): UsePoolDataReturn {
@@ -18,18 +21,28 @@ export function usePoolData(refreshInterval = 30000): UsePoolDataReturn {
   const [range, setRange] = useState('12h');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sensors, setSensors] = useState<SensorInfo[]>([]);
+  const [selectedSensor, setSelectedSensor] = useState<string | null>(null);
   const hasFetchedOnce = useRef(false);
 
-  const fetchData = useCallback(async (currentRange: string) => {
+  useEffect(() => {
+    fetch('/api/sensors')
+      .then((res) => res.ok ? res.json() : [])
+      .then((data: SensorInfo[]) => setSensors(data))
+      .catch(() => {});
+  }, []);
+
+  const fetchData = useCallback(async (currentRange: string, currentSensor: string | null) => {
     if (!hasFetchedOnce.current) {
       setLoading(true);
     }
 
     try {
+      const sensorParam = currentSensor ? `&sensor=${currentSensor}` : '';
       const [statsRes, historyRes, batteryRes] = await Promise.all([
-        fetch('/api/stats'),
-        fetch(`/api/history?range=${currentRange}`),
-        fetch('/api/battery'),
+        fetch(`/api/stats${currentSensor ? `?sensor=${currentSensor}` : ''}`),
+        fetch(`/api/history?range=${currentRange}${sensorParam}`),
+        fetch(`/api/battery${currentSensor ? `?sensor=${currentSensor}` : ''}`),
       ]);
 
       if (!statsRes.ok || !historyRes.ok || !batteryRes.ok) {
@@ -54,16 +67,16 @@ export function usePoolData(refreshInterval = 30000): UsePoolDataReturn {
     }
   }, []);
 
-  // Fetch on mount and when range changes
+  // Fetch on mount and when range or sensor changes
   useEffect(() => {
-    fetchData(range);
+    fetchData(range, selectedSensor);
 
     const id = setInterval(() => {
-      fetchData(range);
+      fetchData(range, selectedSensor);
     }, refreshInterval);
 
     return () => clearInterval(id);
-  }, [range, refreshInterval, fetchData]);
+  }, [range, selectedSensor, refreshInterval, fetchData]);
 
-  return { stats, history, battery, range, setRange, loading, error };
+  return { stats, history, battery, range, setRange, loading, error, sensors, selectedSensor, setSelectedSensor };
 }

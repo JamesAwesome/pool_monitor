@@ -26,6 +26,8 @@ const mockBattery = {
 function mockFetchSuccess() {
   globalThis.fetch = vi.fn((url: string | URL | Request) => {
     const urlStr = String(url);
+    if (urlStr.includes('/api/sensors'))
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([{ id: '29908', model: 'Inkbird-ITH20R' }]) });
     if (urlStr.includes('/api/stats'))
       return Promise.resolve({ ok: true, json: () => Promise.resolve(mockStats) });
     if (urlStr.includes('/api/history'))
@@ -152,6 +154,48 @@ describe('usePoolData', () => {
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith('/api/history?range=24h');
+    });
+  });
+
+  it('fetches sensors on mount', async () => {
+    renderHook(() => usePoolData(60000));
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith('/api/sensors');
+    });
+  });
+
+  it('defaults to no sensor selected (All)', () => {
+    const { result } = renderHook(() => usePoolData(60000));
+    expect(result.current.selectedSensor).toBeNull();
+    expect(result.current.sensors).toEqual([]);
+  });
+
+  it('passes sensor param when sensor is selected', async () => {
+    const { result } = renderHook(() => usePoolData(60000));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    (fetch as ReturnType<typeof vi.fn>).mockClear();
+    act(() => { result.current.setSelectedSensor('29908'); });
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith('/api/stats?sensor=29908');
+      expect(fetch).toHaveBeenCalledWith('/api/history?range=12h&sensor=29908');
+      expect(fetch).toHaveBeenCalledWith('/api/battery?sensor=29908');
+    });
+  });
+
+  it('omits sensor param when All is selected', async () => {
+    const { result } = renderHook(() => usePoolData(60000));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => { result.current.setSelectedSensor('29908'); });
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/stats?sensor=29908'));
+
+    (fetch as ReturnType<typeof vi.fn>).mockClear();
+    act(() => { result.current.setSelectedSensor(null); });
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith('/api/stats');
     });
   });
 

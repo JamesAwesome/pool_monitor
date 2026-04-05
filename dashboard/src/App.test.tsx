@@ -11,6 +11,9 @@ vi.mock('./hooks/usePoolData', () => ({
     setRange: vi.fn(),
     loading: false,
     error: null,
+    sensors: [{ id: '29908', model: 'Inkbird-ITH20R' }],
+    selectedSensor: null,
+    setSelectedSensor: vi.fn(),
   }),
 }));
 
