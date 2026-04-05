@@ -224,11 +224,11 @@ export async function queryBatteryHistory(sensorId: string): Promise<Array<{ tim
 
   const query = `
     from(bucket: "${bucket}")
-      |> range(start: -30d)
+      |> range(start: -7d)
       |> filter(fn: (r) => r._field == "battery_ok")
       |> filter(fn: (r) => r.id == "${sensorId}")
       |> group(columns: ["id"])
-      |> aggregateWindow(every: 6h, fn: last, createEmpty: true)
+      |> aggregateWindow(every: 1h, fn: last, createEmpty: true)
       |> fill(usePrevious: true)
       |> yield(name: "history")
   `
