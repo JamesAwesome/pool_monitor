@@ -12,6 +12,8 @@
 
 [data-theme="dark"] .header {
   background-color: rgba(26, 39, 68, 0.8);
+  border-bottom-color: rgba(56, 189, 248, 0.1);
+  box-shadow: 0 1px 20px rgba(0, 0, 0, 0.3);
 }
 
 .nav {

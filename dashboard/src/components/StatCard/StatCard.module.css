@@ -1,11 +1,31 @@
 .card {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
   padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--color-surface);
+  background: var(--gradient-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: var(--border-glow);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), var(--glow-primary);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md), var(--glow-accent);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.icon {
+  font-size: var(--font-size-lg);
+  line-height: 1;
 }
 
 .label {
@@ -13,10 +33,12 @@
   color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  font-weight: 500;
 }
 
 .value {
   font-size: var(--font-size-2xl);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   color: var(--color-text);
 }

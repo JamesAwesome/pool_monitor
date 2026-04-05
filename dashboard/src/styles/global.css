@@ -13,6 +13,21 @@ body {
   max-width: 1024px;
   margin-inline: auto;
   padding-inline: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+@media (min-width: 768px) {
+  .container {
+    gap: 2.5rem;
+    padding-inline: var(--spacing-lg);
+  }
+}
+
+[data-theme="dark"] body {
+  background: linear-gradient(180deg, #0f1729 0%, #0c1220 50%, #0a0f1a 100%);
+  background-attachment: fixed;
 }
 
 .sr-only {

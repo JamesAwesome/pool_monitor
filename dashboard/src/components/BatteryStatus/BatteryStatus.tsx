@@ -6,19 +6,40 @@ interface BatteryStatusProps {
   loading: boolean;
 }
 
+function getBatteryStatus(level: number): 'ok' | 'warning' | 'low' {
+  if (level > 50) return 'ok';
+  if (level > 20) return 'warning';
+  return 'low';
+}
+
 export function BatteryStatus({ data, loading }: BatteryStatusProps) {
   if (loading || !data) {
-    return <span className={styles.badge} data-testid="battery-badge">--</span>;
+    return (
+      <div className={styles.wrapper} data-testid="battery-badge">
+        <div className={styles.batteryShell}>
+          <div className={styles.batteryFill} style={{ width: '0%' }} />
+          <div className={styles.batteryTip} />
+        </div>
+        <span className={styles.percentage}>--%</span>
+      </div>
+    );
   }
 
-  const isOk = data.current === 100;
+  const level = data.current;
+  const status = getBatteryStatus(level);
+  const statusText = status === 'ok' ? 'Battery OK' : status === 'warning' ? 'Battery Low' : 'Replace Battery';
 
   return (
-    <span
-      className={`${styles.badge} ${isOk ? styles.ok : styles.low}`}
-      data-testid="battery-badge"
-    >
-      {isOk ? 'Battery OK' : 'Battery Low'}
-    </span>
+    <div className={`${styles.wrapper} ${styles[status]}`} data-testid="battery-badge">
+      <div className={styles.batteryShell}>
+        <div
+          className={`${styles.batteryFill} ${styles[`fill_${status}`]}`}
+          style={{ width: `${level}%` }}
+        />
+        <div className={styles.batteryTip} />
+      </div>
+      <span className={styles.percentage}>{level}%</span>
+      <span className={styles.label}>{statusText}</span>
+    </div>
   );
 }

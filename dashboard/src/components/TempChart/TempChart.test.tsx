@@ -8,8 +8,8 @@ vi.mock('../../context/ThemeContext', () => ({
 
 vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="chart-container">{children}</div>,
-  LineChart: ({ children }: { children: React.ReactNode }) => <div data-testid="line-chart">{children}</div>,
-  Line: () => <div data-testid="chart-line" />,
+  AreaChart: ({ children }: { children: React.ReactNode }) => <div data-testid="line-chart">{children}</div>,
+  Area: () => <div data-testid="chart-line" />,
   XAxis: () => null,
   YAxis: () => null,
   Tooltip: () => null,
@@ -32,18 +32,21 @@ describe('TempChart', () => {
 
   it('renders range buttons', () => {
     render(<TempChart data={sampleData} range="24h" onRangeChange={vi.fn()} loading={false} />);
-    expect(screen.getByText('6h')).toBeTruthy();
-    expect(screen.getByText('12h')).toBeTruthy();
-    expect(screen.getByText('24h')).toBeTruthy();
-    expect(screen.getByText('7d')).toBeTruthy();
+    expect(screen.getByText('6H')).toBeTruthy();
+    expect(screen.getByText('12H')).toBeTruthy();
+    expect(screen.getByText('24H')).toBeTruthy();
+    expect(screen.getByText('3D')).toBeTruthy();
+    expect(screen.getByText('7D')).toBeTruthy();
+    expect(screen.getByText('30D')).toBeTruthy();
+    expect(screen.getByText('Custom')).toBeTruthy();
   });
 
   it('calls onRangeChange when a range button is clicked', () => {
     const handleChange = vi.fn();
     render(<TempChart data={sampleData} range="24h" onRangeChange={handleChange} loading={false} />);
-    fireEvent.click(screen.getByText('6h'));
+    fireEvent.click(screen.getByText('6H'));
     expect(handleChange).toHaveBeenCalledWith('6h');
-    fireEvent.click(screen.getByText('7d'));
+    fireEvent.click(screen.getByText('7D'));
     expect(handleChange).toHaveBeenCalledWith('7d');
   });
 

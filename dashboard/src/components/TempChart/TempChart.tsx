@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ResponsiveContainer,
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   Tooltip,
@@ -21,7 +21,14 @@ interface TempChartProps {
   loading: boolean;
 }
 
-const RANGES = ['6h', '12h', '24h', '7d'];
+const QUICK_RANGES = [
+  { key: '6h', label: '6H' },
+  { key: '12h', label: '12H' },
+  { key: '24h', label: '24H' },
+  { key: '3d', label: '3D' },
+  { key: '7d', label: '7D' },
+  { key: '30d', label: '30D' },
+];
 const THRESHOLD_C = 26.7;
 
 function formatXTick(time: string, range: string): string {
@@ -35,6 +42,10 @@ function formatXTick(time: string, range: string): string {
 export function TempChart({ data, range, onRangeChange, loading }: TempChartProps) {
   const { unit } = useTheme();
   const isFahrenheit = unit === 'F';
+
+  const [showCustom, setShowCustom] = useState(false);
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
 
   const chartData = useMemo(
     () =>
@@ -51,56 +62,104 @@ export function TempChart({ data, range, onRangeChange, loading }: TempChartProp
   return (
     <div className={styles.card}>
       <div className={styles.controls}>
-        {RANGES.map((r) => (
+        {QUICK_RANGES.map((r) => (
           <button
-            key={r}
-            className={`${styles.rangeBtn} ${r === range ? styles.active : ''}`}
-            onClick={() => onRangeChange(r)}
+            key={r.key}
+            className={`${styles.rangeBtn} ${r.key === range ? styles.active : ''}`}
+            onClick={() => { onRangeChange(r.key); setShowCustom(false); }}
             type="button"
           >
-            {r}
+            {r.label}
           </button>
         ))}
+        <button
+          className={`${styles.rangeBtn} ${showCustom ? styles.active : ''}`}
+          onClick={() => setShowCustom(!showCustom)}
+          type="button"
+        >
+          Custom
+        </button>
       </div>
+
+      {showCustom && (
+        <div className={styles.customPanel}>
+          <label className={styles.dateLabel}>
+            From
+            <input type="datetime-local" value={customFrom}
+              onChange={(e) => setCustomFrom(e.target.value)} className={styles.dateInput} />
+          </label>
+          <label className={styles.dateLabel}>
+            To
+            <input type="datetime-local" value={customTo}
+              onChange={(e) => setCustomTo(e.target.value)} className={styles.dateInput} />
+          </label>
+          <button className={styles.applyBtn}
+            onClick={() => { if (customFrom && customTo) onRangeChange(`custom:${customFrom}:${customTo}`); }}
+            type="button">
+            Apply
+          </button>
+        </div>
+      )}
 
       <div className={styles.chartWrap}>
         {loading ? (
           <div className={styles.loading}>Loading chart...</div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+            <AreaChart data={chartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
+              <defs>
+                <linearGradient id="tempGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.4} />
+                  <stop offset="50%" stopColor="#0ea5e9" stopOpacity={0.15} />
+                  <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0.0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" strokeOpacity={0.5} vertical={false} />
               <XAxis
                 dataKey="time"
                 tickFormatter={(t: string) => formatXTick(t, range)}
-                tick={{ fontSize: 12 }}
-                stroke="var(--color-text-secondary)"
+                tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }}
+                stroke="transparent"
+                tickLine={false}
+                axisLine={false}
+                interval="preserveStartEnd"
+                minTickGap={50}
               />
               <YAxis
                 tickFormatter={(v: number) => `${v}${unitLabel}`}
-                tick={{ fontSize: 12 }}
-                stroke="var(--color-text-secondary)"
+                tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }}
+                stroke="transparent"
+                tickLine={false}
+                axisLine={false}
                 width={56}
+                domain={['auto', 'auto']}
               />
               <Tooltip
                 formatter={(v: number) => [`${v.toFixed(1)}${unitLabel}`, 'Temperature']}
                 labelFormatter={(t: string) => new Date(t).toLocaleString()}
+                contentStyle={{
+                  background: 'rgba(15, 23, 42, 0.9)',
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  borderRadius: '12px',
+                  backdropFilter: 'blur(12px)',
+                  color: '#e2e8f0',
+                  fontSize: '13px',
+                  padding: '10px 14px',
+                }}
+                cursor={{ stroke: 'rgba(56, 189, 248, 0.3)', strokeWidth: 1 }}
               />
-              <ReferenceLine
-                y={thresholdValue}
-                stroke="var(--color-danger)"
-                strokeDasharray="6 4"
-                label={{ value: `${thresholdValue.toFixed(1)}${unitLabel}`, position: 'right', fontSize: 11 }}
-              />
-              <Line
+              <ReferenceLine y={thresholdValue} stroke="#f87171" strokeDasharray="6 4" strokeOpacity={0.7}
+                label={{ value: `${thresholdValue.toFixed(1)}${unitLabel}`, position: 'right', fontSize: 11, fill: '#f87171' }} />
+              <Area
                 type="monotone"
                 dataKey="value"
-                stroke="#1a6fc4"
-                strokeWidth={2}
+                stroke="#38bdf8"
+                strokeWidth={2.5}
+                fill="url(#tempGradient)"
                 dot={false}
-                activeDot={{ r: 4 }}
+                activeDot={{ r: 5, fill: '#38bdf8', stroke: '#fff', strokeWidth: 2 }}
               />
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
         )}
       </div>
