@@ -54,6 +54,7 @@ CLOUDFLARE_TUNNEL_TOKEN=<your-token>
 # Optional — customize the dashboard
 DASHBOARD_TITLE=Pool Dashboard
 PUBLIC_URL=https://pool.yourdomain.com
+TIMEZONE=America/New_York
 ```
 
 Do **not** quote the sensor ID value — the TOML string quotes are already in
@@ -135,24 +136,41 @@ Look for:
 
 ### 5. Set up Cloudflare Tunnel (optional)
 
-A Cloudflare Tunnel lets you access Grafana over the internet at a public URL without opening any ports on your router.
+A Cloudflare Tunnel lets you access the dashboard over the internet at a public URL without opening any ports on your router.
 
 1. Log in to the [Cloudflare Zero Trust dashboard](https://one.dash.cloudflare.com/)
 2. Go to **Networks → Tunnels** and create a new tunnel (choose "Cloudflared" connector)
-3. Add a **public hostname** (e.g. `pool.yourdomain.com`) pointing to service `http://grafana:3000`
+3. Add a **public hostname** (e.g. `pool.yourdomain.com`) pointing to service `http://dashboard:8080`
 4. Copy the tunnel token and set it in `.env`:
    ```
    CLOUDFLARE_TUNNEL_TOKEN=eyJ...
    ```
-5. Restart the stack: `docker compose up -d`
+5. Set `PUBLIC_URL` so link previews (iMessage, Slack) use the correct URL:
+   ```
+   PUBLIC_URL=https://pool.yourdomain.com
+   ```
+6. Restart the stack: `docker compose up -d`
 
-Grafana uses a request-based root URL, so it works on both the local network (`http://pi-ip:3000`) and the public tunnel URL without extra configuration.
+The dashboard works on both the local network (`http://pi-ip:8080`) and the public tunnel URL.
 
-To prevent logins from the public internet, add a **Cloudflare WAF custom rule** for your domain that blocks requests where URI path starts with `/login` or `/api`. Local network access bypasses Cloudflare, so you can still log in at `http://pi-ip:3000`.
+Ports 8080 (dashboard) and 3000 (Grafana) are exposed locally for direct access on your network.
 
-Port 3000 is still exposed locally for direct access on your network. Remove the `ports` mapping from the `grafana` service in `docker-compose.yml` if you only want access through the tunnel.
+### 6. Access the dashboard
 
-### 6. Access the dashboards
+### Pool Dashboard Features
+
+- **Current temperature** with color-coded zones (cool/normal/warm/hot)
+- **Average and peak stats** that follow the selected time range
+- **Season (YTD) averages and peaks** — tap to see year-over-year comparison
+- **Interactive time-series chart** with gradient fill (6H, 12H, 24H, 3D, 7D, 30D, Custom range)
+- **Battery monitoring** — per-sensor battery levels with tap-to-expand history chart and discharge rate
+- **Dark/light mode** — auto-detects OS preference, manual toggle persisted in localStorage
+- **F/C toggle** — switch temperature units on the fly
+- **Multi-sensor support** — selector appears when multiple sensors are detected
+- **Mobile-first** — responsive design, swipe-to-dismiss bottom sheets, touch-friendly controls
+- **Social link previews** — dynamic OG image with current temperature for iMessage, Slack, etc.
+
+### 7. Access the dashboards
 
 - **Pool Dashboard**: http://localhost:8080 — mobile-friendly temperature dashboard (no login required)
 - **Grafana**: http://localhost:3000 or your tunnel's public URL (login with `admin` / your `GRAFANA_ADMIN_PASSWORD`)

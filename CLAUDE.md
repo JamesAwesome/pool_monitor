@@ -94,7 +94,14 @@ pnpm typecheck        # TypeScript only
 | `INFLUXDB_BUCKET` | Yes | InfluxDB bucket |
 | `DASHBOARD_TITLE` | No | Header title (default: "Pool Dashboard"), build-time via `VITE_APP_TITLE` |
 | `PUBLIC_URL` | No | Absolute URL for OG image (default: request Host header) |
-| `TIMEZONE` | No | IANA timezone for OG image timestamp (default: America/New_York) |
+| `TIMEZONE` | No | IANA timezone for OG image and server-side dates (default: America/New_York). Also sets `TZ` in the container. |
+
+### Rebuilding the dashboard
+```bash
+docker compose build dashboard && docker compose up -d dashboard        # normal rebuild
+docker compose build --no-cache dashboard && docker compose up -d dashboard  # force full rebuild
+```
+Runtime env vars (`INFLUXDB_*`, `PUBLIC_URL`, `TIMEZONE`) take effect on restart. Build-time vars (`DASHBOARD_TITLE`) require a rebuild.
 
 ## Grafana Dashboard
 
