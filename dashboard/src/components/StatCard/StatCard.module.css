@@ -42,3 +42,20 @@
   font-variant-numeric: tabular-nums;
   color: var(--color-text);
 }
+
+.clickable {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.clickable:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.chevron {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+  opacity: 0.5;
+  margin-left: auto;
+  line-height: 1;
+}

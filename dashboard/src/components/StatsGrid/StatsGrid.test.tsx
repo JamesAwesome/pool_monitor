@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import { StatsGrid } from './StatsGrid';
 
@@ -13,6 +14,19 @@ const mockStats = {
   seasonAvg: 23,
   seasonPeak: 32,
 };
+
+beforeEach(() => {
+  globalThis.fetch = vi.fn(() =>
+    Promise.resolve({ ok: true, json: () => Promise.resolve([
+      { year: 2026, average: 22.5, peak: 30.0 },
+      { year: 2025, average: null, peak: null },
+    ]) })
+  ) as unknown as typeof fetch;
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe('StatsGrid', () => {
   it('renders all 4 stat cards with data', () => {
@@ -37,5 +51,17 @@ describe('StatsGrid', () => {
     render(<StatsGrid stats={null} loading={false} />);
     const cards = screen.getAllByTestId('stat-card');
     expect(cards).toHaveLength(4);
+  });
+
+  it('opens season history sheet when season card is clicked', async () => {
+    const user = userEvent.setup();
+    render(<StatsGrid stats={mockStats} loading={false} />);
+
+    // Click the Season Avg card (3rd card)
+    const cards = screen.getAllByTestId('stat-card');
+    await user.click(cards[2]);
+
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(screen.getByText('Season History')).toBeTruthy();
   });
 });

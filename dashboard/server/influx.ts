@@ -153,6 +153,52 @@ export async function queryBatteries(sensorId?: string): Promise<
   }))
 }
 
+export async function querySeasonHistory(sensorId?: string): Promise<
+  Array<{ year: number; average: number | null; peak: number | null }>
+> {
+  const api = getQueryApi()
+  const currentYear = new Date().getFullYear()
+  const years = [currentYear, currentYear - 1, currentYear - 2]
+  const sensorFilter = sensorId ? `\n      |> filter(fn: (r) => r.id == "${sensorId}")` : ''
+
+  const results = await Promise.all(
+    years.map(async (year) => {
+      const start = `${year}-01-01T00:00:00Z`
+      const stop = `${year + 1}-01-01T00:00:00Z`
+
+      const avgQuery = `
+        from(bucket: "${bucket}")
+          |> range(start: ${start}, stop: ${stop})
+          |> filter(fn: (r) => r._field == "temperature_C")${sensorFilter}
+          |> group(columns: ["id"])
+          |> mean()
+          |> yield(name: "avg")
+      `
+      const peakQuery = `
+        from(bucket: "${bucket}")
+          |> range(start: ${start}, stop: ${stop})
+          |> filter(fn: (r) => r._field == "temperature_C")${sensorFilter}
+          |> group(columns: ["id"])
+          |> max()
+          |> yield(name: "peak")
+      `
+
+      const [avgRows, peakRows] = await Promise.all([
+        api.collectRows<{ _value: number }>(avgQuery),
+        api.collectRows<{ _value: number }>(peakQuery),
+      ])
+
+      return {
+        year,
+        average: avgRows.length > 0 ? avgRows[0]._value : null,
+        peak: peakRows.length > 0 ? peakRows[0]._value : null,
+      }
+    })
+  )
+
+  return results
+}
+
 export async function queryBatteryHistory(sensorId: string): Promise<Array<{ time: string; value: number }>> {
   const api = getQueryApi()
 

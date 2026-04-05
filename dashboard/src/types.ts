@@ -27,6 +27,12 @@ export interface SensorInfo {
   model: string;
 }
 
+export interface SeasonYear {
+  year: number;
+  average: number | null;
+  peak: number | null;
+}
+
 export type TemperatureUnit = 'C' | 'F';
 export type Theme = 'light' | 'dark';
 export type TemperatureZone = 'hot' | 'warm' | 'normal' | 'cool';

@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import { StatCard } from './StatCard';
 
@@ -33,5 +34,19 @@ describe('StatCard', () => {
   it('renders "--" when value is null', () => {
     render(<StatCard label="Average" value={null} loading={false} />);
     expect(screen.getByText('--')).toBeTruthy();
+  });
+
+  it('renders chevron and calls onClick when provided', async () => {
+    const onClick = vi.fn();
+    const user = userEvent.setup();
+    render(<StatCard label="Test" value={25} loading={false} onClick={onClick} />);
+    expect(screen.getByText('›')).toBeTruthy();
+    await user.click(screen.getByTestId('stat-card'));
+    expect(onClick).toHaveBeenCalledOnce();
+  });
+
+  it('does not render chevron without onClick', () => {
+    render(<StatCard label="Test" value={25} loading={false} />);
+    expect(screen.queryByText('›')).toBeNull();
   });
 });
