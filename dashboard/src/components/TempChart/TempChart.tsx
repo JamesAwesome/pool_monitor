@@ -32,10 +32,13 @@ const QUICK_RANGES = [
 ];
 const THRESHOLD_C = 32.2;
 
-function formatXTick(time: string, range: string): string {
+function formatXTick(time: string, range: string, spansMultipleDays: boolean): string {
   const date = new Date(time);
-  if (range === '7d') {
+  if (range.endsWith('d') || range.startsWith('custom:')) {
     return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+  if (spansMultipleDays) {
+    return `${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} ${date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
   }
   return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
@@ -54,6 +57,13 @@ export function TempChart({ data, range, onRangeChange, loading }: TempChartProp
       })),
     [data, isFahrenheit],
   );
+
+  const spansMultipleDays = useMemo(() => {
+    if (data.length < 2) return false;
+    const first = new Date(data[0].time);
+    const last = new Date(data[data.length - 1].time);
+    return first.toDateString() !== last.toDateString();
+  }, [data]);
 
   const thresholdValue = isFahrenheit ? celsiusToFahrenheit(THRESHOLD_C) : THRESHOLD_C;
   const unitLabel = isFahrenheit ? '°F' : '°C';
@@ -105,7 +115,7 @@ export function TempChart({ data, range, onRangeChange, loading }: TempChartProp
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" strokeOpacity={0.5} vertical={false} />
               <XAxis
                 dataKey="time"
-                tickFormatter={(t: string) => formatXTick(t, range)}
+                tickFormatter={(t: string) => formatXTick(t, range, spansMultipleDays)}
                 tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }}
                 stroke="transparent"
                 tickLine={false}
