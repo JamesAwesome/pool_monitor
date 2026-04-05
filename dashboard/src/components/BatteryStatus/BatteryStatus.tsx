@@ -111,8 +111,11 @@ export function BatteryStatus({ batteries, loading }: BatteryStatusProps) {
     setOpenSensor(battery);
     setHistory([]);
     setHistoryLoading(true);
-    fetch(`/api/battery/${battery.id}/history`)
-      .then((res) => res.ok ? res.json() : [])
+    fetch(`/api/battery/${encodeURIComponent(battery.id)}/history`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then((data: TimeSeriesPoint[]) => setHistory(data))
       .catch(() => setHistory([]))
       .finally(() => setHistoryLoading(false));

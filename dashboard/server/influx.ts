@@ -144,13 +144,14 @@ export async function queryBatteries(sensorId?: string): Promise<
 export async function queryBatteryHistory(sensorId: string): Promise<Array<{ time: string; value: number }>> {
   const api = getQueryApi()
 
+  // Use a broad window (6h) so sparse battery reports still show up
   const query = `
     from(bucket: "${bucket}")
       |> range(start: -30d)
       |> filter(fn: (r) => r._field == "battery_ok")
       |> filter(fn: (r) => r.id == "${sensorId}")
       |> group(columns: ["id"])
-      |> aggregateWindow(every: 1h, fn: last, createEmpty: false)
+      |> aggregateWindow(every: 6h, fn: last, createEmpty: false)
       |> yield(name: "history")
   `
 
