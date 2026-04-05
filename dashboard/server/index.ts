@@ -1,7 +1,9 @@
+import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import express from 'express'
 import router from './routes.js'
+import { queryStats } from './influx.js'
 
 const app = express()
 const port = parseInt(process.env.PORT ?? '8080', 10)
@@ -11,11 +13,42 @@ app.use(router)
 if (process.env.NODE_ENV === 'production') {
   const __dirname = path.dirname(fileURLToPath(import.meta.url))
   const clientDir = path.resolve(__dirname, '../client')
+  const htmlTemplate = fs.readFileSync(path.join(clientDir, 'index.html'), 'utf-8')
 
-  app.use(express.static(clientDir))
+  app.use(express.static(clientDir, { index: false }))
 
-  app.get('{*path}', (_req, res) => {
-    res.sendFile(path.join(clientDir, 'index.html'))
+  // Cache current temp for OG tags (5 min)
+  let ogCache: { temp: string; at: number } = { temp: '--', at: 0 }
+
+  async function getCurrentTemp(): Promise<string> {
+    const now = Date.now()
+    if (now - ogCache.at < 300000) return ogCache.temp
+    try {
+      const stats = await queryStats(undefined, '24h')
+      if (stats.current !== null) {
+        const f = Math.round((stats.current * 9) / 5 * 10 + 320) / 10
+        ogCache = { temp: `${f.toFixed(1)}°F`, at: now }
+      }
+    } catch {
+      // keep stale
+    }
+    return ogCache.temp
+  }
+
+  app.get('{*path}', async (req, res) => {
+    const temp = await getCurrentTemp()
+    const publicUrl = process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`
+    const ogTags = `
+    <meta property="og:title" content="Pool Dashboard" />
+    <meta property="og:description" content="Current pool temperature: ${temp}" />
+    <meta property="og:image" content="${publicUrl}/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:type" content="website" />`
+
+    const html = htmlTemplate.replace('</head>', `${ogTags}\n  </head>`)
+    res.setHeader('Content-Type', 'text/html')
+    res.send(html)
   })
 }
 

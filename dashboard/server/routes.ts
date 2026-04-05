@@ -1,7 +1,20 @@
 import { Router } from 'express'
 import { querySensors, queryStats, queryHistory, queryBatteries, queryBatteryHistory, querySeasonHistory } from './influx.js'
+import { generateOgImage } from './og-image.js'
 
 const router = Router()
+
+router.get('/og-image.png', async (_req, res) => {
+  try {
+    const buffer = await generateOgImage()
+    res.setHeader('Content-Type', 'image/png')
+    res.setHeader('Cache-Control', 'public, max-age=300')
+    res.send(buffer)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    res.status(500).json({ error: message })
+  }
+})
 
 router.get('/api/sensors', async (_req, res) => {
   try {

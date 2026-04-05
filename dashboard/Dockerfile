@@ -22,6 +22,7 @@ COPY package.json pnpm-lock.yaml .npmrc ./
 RUN pnpm install --frozen-lockfile --prod
 
 COPY --from=build /app/dist ./dist
+COPY server/fonts ./dist/server/fonts
 
 ENV NODE_ENV=production
 ENV PORT=8080
