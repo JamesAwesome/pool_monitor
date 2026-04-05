@@ -4,7 +4,6 @@ const url = process.env.INFLUXDB_URL ?? 'http://localhost:8086'
 const token = process.env.INFLUXDB_TOKEN ?? ''
 const org = process.env.INFLUXDB_ORG ?? ''
 const bucket = process.env.INFLUXDB_BUCKET ?? ''
-const tz = process.env.TIMEZONE || 'America/New_York'
 
 const client = new InfluxDB({ url, token })
 
@@ -143,7 +142,7 @@ export async function queryHistory(range: string, sensorId?: string): Promise<Ar
       |> range(${parseRange(range)})
       |> filter(fn: (r) => r._field == "temperature_C")${sensorFilter}
       |> ${groupClause}
-      |> aggregateWindow(every: ${period}, fn: mean, createEmpty: false, location: {zone: "${tz}"})
+      |> aggregateWindow(every: ${period}, fn: mean, createEmpty: false)
       |> yield(name: "history")
   `
 
@@ -229,7 +228,7 @@ export async function queryBatteryHistory(sensorId: string): Promise<Array<{ tim
       |> filter(fn: (r) => r._field == "battery_ok")
       |> filter(fn: (r) => r.id == "${sensorId}")
       |> group(columns: ["id"])
-      |> aggregateWindow(every: 6h, fn: last, createEmpty: true, location: {zone: "${tz}"})
+      |> aggregateWindow(every: 6h, fn: last, createEmpty: true)
       |> fill(usePrevious: true)
       |> yield(name: "history")
   `
