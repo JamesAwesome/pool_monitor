@@ -10,10 +10,18 @@
   }
 }
 
+.sheetContent {
+  min-height: 160px;
+}
+
 .tableLoading {
   text-align: center;
   color: var(--color-text-secondary);
   padding: var(--spacing-lg);
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .table {

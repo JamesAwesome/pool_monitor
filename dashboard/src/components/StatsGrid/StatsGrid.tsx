@@ -57,6 +57,7 @@ export function StatsGrid({ stats, loading, selectedSensor, range = '3d' }: Stat
         onClose={() => setSheetOpen(false)}
         title="Season History"
       >
+        <div className={styles.sheetContent}>
         {seasonLoading ? (
           <div className={styles.tableLoading}>Loading...</div>
         ) : (
@@ -86,6 +87,7 @@ export function StatsGrid({ stats, loading, selectedSensor, range = '3d' }: Stat
             </tbody>
           </table>
         )}
+        </div>
       </BottomSheet>
     </>
   );
