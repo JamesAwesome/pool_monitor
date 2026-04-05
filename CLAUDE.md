@@ -17,7 +17,7 @@ Everything runs as Docker containers via `docker-compose.yml`:
 - **rtl_433** (`hertzg/rtl_433`) — decodes protocol 194 (Inkbird), publishes JSON to MQTT
 - **Mosquitto** — MQTT broker on port 1883, anonymous access
 - **Telegraf** (`telegraf/telegraf.conf`) — subscribes to `rtl_433/+/events`, filters by sensor ID, writes to InfluxDB
-- **InfluxDB 2** — time-series store on port 8086, Flux query language
+- **InfluxDB 2** (v2.8.0) — time-series store on port 8086, Flux query language. Uses the v2 write API and Flux queries throughout (Telegraf output, Grafana datasource, dashboard JS client). InfluxDB 3.x exists but uses SQL instead of Flux and has a different write API — migrating would require rewriting all queries and reconfiguring Telegraf/Grafana. Not worth it at this scale. Note: the `aggregateWindow` `location` parameter (timezone-aligned windows) is only available in InfluxDB Cloud, not OSS 2.x.
 - **Grafana** — dashboards on port 3000, provisioned datasource and dashboards from `grafana/provisioning/`
 - **dashboard** (`dashboard/`) — React/Express SPA on port 8080, queries InfluxDB directly (see below)
 - **cloudflared** — Cloudflare Tunnel for public HTTPS access
