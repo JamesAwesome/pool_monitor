@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import { useTheme } from '../../context/ThemeContext';
 import { celsiusToFahrenheit } from '../../utils/temperature';
+import { DateRangePicker } from '../DateRangePicker';
 import type { TimeSeriesPoint } from '../../types';
 import styles from './TempChart.module.css';
 
@@ -44,9 +45,6 @@ export function TempChart({ data, range, onRangeChange, loading }: TempChartProp
   const isFahrenheit = unit === 'F';
 
   const [showCustom, setShowCustom] = useState(false);
-  const [customFrom, setCustomFrom] = useState('');
-  const [customTo, setCustomTo] = useState('');
-  const toRef = useRef<HTMLInputElement>(null);
 
   const chartData = useMemo(
     () =>
@@ -83,35 +81,12 @@ export function TempChart({ data, range, onRangeChange, loading }: TempChartProp
       </div>
 
       {showCustom && (
-        <div className={styles.customPanel}>
-          <input
-            type="date"
-            value={customFrom}
-            onChange={(e) => {
-              setCustomFrom(e.target.value);
-              if (toRef.current) toRef.current.showPicker();
-            }}
-            className={styles.dateInput}
-            aria-label="Start date"
-          />
-          <span className={styles.dateSep}>to</span>
-          <input
-            type="date"
-            ref={toRef}
-            value={customTo}
-            min={customFrom}
-            onChange={(e) => setCustomTo(e.target.value)}
-            className={styles.dateInput}
-            aria-label="End date"
-          />
-          <button className={styles.applyBtn}
-            onClick={() => { if (customFrom && customTo) onRangeChange(`custom:${customFrom}:${customTo}`); }}
-            type="button"
-            disabled={!customFrom || !customTo}
-          >
-            Go
-          </button>
-        </div>
+        <DateRangePicker
+          onApply={(from, to) => {
+            onRangeChange(`custom:${from}:${to}`);
+            setShowCustom(false);
+          }}
+        />
       )}
 
       <div className={styles.chartWrap}>
