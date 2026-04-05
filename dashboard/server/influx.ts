@@ -85,7 +85,7 @@ function windowPeriod(range: string): string {
   if (unit === 'h' && value <= 12) return '5m'
   if (unit === 'h' && value <= 24) return '10m'
   if (unit === 'd' && value <= 7) return '1h'
-  if (unit === 'd' && value <= 30) return '4h'
+  if (unit === 'd' && value <= 30) return '2h'
   return '12h'
 }
 
