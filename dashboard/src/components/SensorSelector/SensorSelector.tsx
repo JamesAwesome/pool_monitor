@@ -8,7 +8,7 @@ interface SensorSelectorProps {
 }
 
 export function SensorSelector({ sensors, selected, onSelect }: SensorSelectorProps) {
-  if (sensors.length <= 1) return null;
+  if (sensors.length === 0) return null;
 
   return (
     <div className={styles.wrapper}>

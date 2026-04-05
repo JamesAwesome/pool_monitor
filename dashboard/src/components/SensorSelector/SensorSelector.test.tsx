@@ -9,11 +9,12 @@ const sensors = [
 ];
 
 describe('SensorSelector', () => {
-  it('renders nothing with single sensor', () => {
-    const { container } = render(
+  it('renders with single sensor', () => {
+    render(
       <SensorSelector sensors={[sensors[0]]} selected={null} onSelect={vi.fn()} />
     );
-    expect(container.innerHTML).toBe('');
+    expect(screen.getByText('All')).toBeTruthy();
+    expect(screen.getByText('29908 · Inkbird-ITH20R')).toBeTruthy();
   });
 
   it('renders All button and sensor chips', () => {
