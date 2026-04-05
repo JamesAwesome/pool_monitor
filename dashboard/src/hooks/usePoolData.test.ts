@@ -67,14 +67,14 @@ describe('usePoolData', () => {
 
   it('defaults range to 12h', () => {
     const { result } = renderHook(() => usePoolData(60000));
-    expect(result.current.range).toBe('12h');
+    expect(result.current.range).toBe('3d');
   });
 
   it('fetches with correct range parameter', async () => {
     renderHook(() => usePoolData(60000));
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith('/api/history?range=12h');
+      expect(fetch).toHaveBeenCalledWith('/api/history?range=3d');
     });
   });
 
@@ -175,7 +175,7 @@ describe('usePoolData', () => {
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith('/api/stats?sensor=29908');
-      expect(fetch).toHaveBeenCalledWith('/api/history?range=12h&sensor=29908');
+      expect(fetch).toHaveBeenCalledWith('/api/history?range=3d&sensor=29908');
       expect(fetch).toHaveBeenCalledWith('/api/battery?sensor=29908');
     });
   });
