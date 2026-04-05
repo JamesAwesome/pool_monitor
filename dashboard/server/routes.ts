@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { querySensors, queryStats, queryHistory, queryBatteries, queryBatteryHistory, querySeasonHistory } from './influx.js'
+import { querySensors, queryStats, queryHistory, queryBatteries, queryBatteryHistory, querySeasonHistory, queryStatDetail } from './influx.js'
 import { generateOgImage } from './og-image.js'
 
 function isValidSensorId(id: string): boolean {
@@ -105,6 +105,27 @@ router.get('/api/season-history', async (req, res) => {
     }
     const history = await querySeasonHistory(sensor)
     res.json(history)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    res.status(500).json({ error: message })
+  }
+})
+
+router.get('/api/stat-detail', async (req, res) => {
+  try {
+    const range = typeof req.query.range === 'string' ? req.query.range : '3d'
+    const stat = typeof req.query.stat === 'string' ? req.query.stat : ''
+    if (stat !== 'average' && stat !== 'peak') {
+      res.status(400).json({ error: 'stat must be "average" or "peak"' })
+      return
+    }
+    const sensor = typeof req.query.sensor === 'string' ? req.query.sensor : undefined
+    if (sensor && !isValidSensorId(sensor)) {
+      res.status(400).json({ error: 'Invalid sensor ID' })
+      return
+    }
+    const detail = await queryStatDetail(range, stat, sensor)
+    res.json(detail)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     res.status(500).json({ error: message })

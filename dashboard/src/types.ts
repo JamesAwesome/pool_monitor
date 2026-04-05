@@ -27,10 +27,19 @@ export interface SensorInfo {
   model: string;
 }
 
+export interface StatDetailPeriod {
+  start: string;
+  stop: string;
+  average?: number | null;
+  high?: number | null;
+  low?: number | null;
+}
+
 export interface SeasonYear {
   year: number;
   average: number | null;
   peak: number | null;
+  low: number | null;
 }
 
 export type TemperatureUnit = 'C' | 'F';

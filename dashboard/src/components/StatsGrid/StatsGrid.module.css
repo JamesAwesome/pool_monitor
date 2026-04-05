@@ -55,3 +55,19 @@
 .currentYear .td {
   color: var(--color-primary);
 }
+
+.currentRow {
+  font-weight: 600;
+}
+
+.currentRow .td {
+  color: var(--color-primary);
+}
+
+.thRight {
+  text-align: right;
+}
+
+.tdRight {
+  text-align: right;
+}
