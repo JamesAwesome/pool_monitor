@@ -7,17 +7,17 @@
 */
 
 :root {
-  /* Colors — Light mode (default) */
-  --color-bg: #f0f4f8;
-  --color-surface: #ffffff;
-  --color-text: #1a2332;
-  --color-text-secondary: #5a6a7a;
+  /* Colors — Light mode (default) — Pool water tints */
+  --color-bg: #e8f0f8;
+  --color-surface: #f0f6fc;
+  --color-text: #0f1d2e;
+  --color-text-secondary: #475b72;
   --color-primary: #1a6fc4;
   --color-accent: #0ea5e9;
-  --color-danger: #ef4444;
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-border: #e2e8f0;
+  --color-danger: #dc2626;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-border: #c5d5e8;
   --color-focus: #1a6fc4;
 
   /* Typography */
@@ -44,20 +44,20 @@
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
 
-  /* Shadows — Light mode */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  /* Shadows — Light mode (blue-tinted for pool cohesion) */
+  --shadow-sm: 0 1px 3px 0 rgba(15, 50, 100, 0.08);
+  --shadow-md: 0 4px 8px -1px rgba(15, 50, 100, 0.12), 0 2px 4px -2px rgba(15, 50, 100, 0.08);
+  --shadow-lg: 0 10px 20px -3px rgba(15, 50, 100, 0.14), 0 4px 8px -4px rgba(15, 50, 100, 0.1);
 
   /* Transitions */
   --transition-fast: 150ms ease;
   --transition-base: 250ms ease;
 
-  /* Glow / Gradient */
-  --glow-primary: 0 0 20px rgba(26, 111, 196, 0.08);
-  --glow-accent: 0 0 30px rgba(14, 165, 233, 0.1);
-  --gradient-card: linear-gradient(135deg, rgba(26, 111, 196, 0.04) 0%, rgba(139, 92, 246, 0.02) 100%);
-  --border-glow: 1px solid var(--color-border);
+  /* Glow / Gradient — visible on tinted surfaces */
+  --glow-primary: 0 0 24px rgba(26, 111, 196, 0.15);
+  --glow-accent: 0 0 32px rgba(14, 165, 233, 0.18);
+  --gradient-card: linear-gradient(135deg, rgba(26, 111, 196, 0.07) 0%, rgba(139, 92, 246, 0.04) 100%);
+  --border-glow: 1px solid rgba(26, 111, 196, 0.12);
 }
 
 /* Dark mode */
