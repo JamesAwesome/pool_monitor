@@ -66,8 +66,9 @@ pnpm typecheck        # TypeScript only
   - `/api/stats?range=3d&sensor=X` — current, average, peak, season avg/peak. Average and peak follow the selected time range.
   - `/api/history?range=3d&sensor=X` — time-series temperature data
   - `/api/battery?sensor=X` — per-sensor battery levels
-  - `/api/battery-history?sensor=X` — 30-day battery history for a sensor
-  - `/api/season-history?sensor=X` — year-over-year avg/peak comparison
+  - `/api/battery-history?sensor=X` — 7-day battery history for a sensor
+  - `/api/season-history?sensor=X` — year-over-year avg/peak/low comparison
+  - `/api/stat-detail?range=3d&stat=average|peak&sensor=X` — period-over-period breakdown (current + 2 previous equal-length periods)
   - `/api/health` — health check
   - `/og-image.png` — dynamically generated 1200x630 PNG with current temp (for iMessage/social previews, cached 5 min)
   - All data endpoints accept optional `?sensor=<id>` to filter by sensor; omit for averaged "all sensors" view.
@@ -75,11 +76,16 @@ pnpm typecheck        # TypeScript only
 - **Data flow**: All API data is in Celsius. F/C conversion happens client-side via `src/utils/temperature.ts`.
 - **Theming**: CSS custom properties in `src/styles/tokens.css` with `[data-theme="dark"]` overrides. OS detection via `prefers-color-scheme` + manual toggle persisted in localStorage. Light mode uses blue-tinted pool water palette.
 - **Multi-sensor**: `GET /api/sensors` returns available sensors (id + model). `SensorSelector` component shows pill chips; hidden when only 1 sensor exists.
-- **Interactive details**: Tapping battery indicators opens a bottom sheet with 30-day battery history chart and discharge rate. Tapping Season Avg/Peak cards shows year-over-year comparison table.
+- **Interactive details**: All 4 stat cards and battery indicators are tappable:
+  - **Average** → period breakdown table (current + 2 previous periods)
+  - **Peak** → "Temperature Extremes" table with High and Low per period
+  - **Season Avg/Peak** → year-over-year table with Avg, Peak, and Low columns
+  - **Battery** → 7-day battery history chart with discharge rate and estimated days remaining
+- **Input validation**: All sensor ID params validated against `[a-zA-Z0-9_-]` regex to prevent Flux injection.
 - **Multi-sensor "All" view**: When no sensor is selected, stats and history aggregate across all sensors (true average/peak, not one arbitrary sensor). Individual sensor view groups by sensor ID.
 
 ### Query aggregation strategy
-All time-series queries use `aggregateWindow` with `fn: mean` (temperature) or `fn: last` (battery), aligned to local timezone via `location: {zone: TIMEZONE}`.
+All time-series queries use `aggregateWindow` with `fn: mean` (temperature) or `fn: last` (battery). Note: `aggregateWindow` `location` parameter is not available in InfluxDB OSS 2.x (Cloud only), so windows align to UTC.
 
 | Range | Window | ~Points | Notes |
 |-------|--------|---------|-------|

@@ -160,10 +160,11 @@ Ports 8080 (dashboard) and 3000 (Grafana) are exposed locally for direct access 
 ### Pool Dashboard Features
 
 - **Current temperature** with color-coded zones (cool/normal/warm/hot)
-- **Average and peak stats** that follow the selected time range
-- **Season (YTD) averages and peaks** — tap to see year-over-year comparison
+- **Average and peak stats** that follow the selected time range — tap to see period-over-period breakdown
+- **Temperature extremes** — tap Peak to see high and low values across comparable time periods
+- **Season (YTD) averages, peaks, and lows** — tap to see year-over-year comparison table
 - **Interactive time-series chart** with gradient fill (6H, 12H, 24H, 3D, 7D, 30D, Custom range)
-- **Battery monitoring** — per-sensor battery levels with tap-to-expand history chart and discharge rate
+- **Battery monitoring** — per-sensor battery levels with tap-to-expand history chart, discharge rate, and estimated days remaining
 - **Dark/light mode** — auto-detects OS preference, manual toggle persisted in localStorage
 - **F/C toggle** — switch temperature units on the fly
 - **Multi-sensor support** — selector appears when multiple sensors are detected
