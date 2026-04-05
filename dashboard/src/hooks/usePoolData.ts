@@ -1,6 +1,24 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { PoolStats, TimeSeriesPoint, SensorBattery, SensorInfo } from '../types';
 
+function timeSeriesChanged(prev: TimeSeriesPoint[], next: TimeSeriesPoint[]): boolean {
+  if (prev.length !== next.length) return true;
+  if (prev.length === 0) return false;
+  return prev[0].time !== next[0].time
+    || prev[prev.length - 1].time !== next[prev.length - 1].time
+    || prev[0].value !== next[0].value
+    || prev[prev.length - 1].value !== next[prev.length - 1].value;
+}
+
+function statsChanged(prev: PoolStats | null, next: PoolStats): boolean {
+  if (!prev) return true;
+  return prev.current !== next.current
+    || prev.average !== next.average
+    || prev.peak !== next.peak
+    || prev.seasonAvg !== next.seasonAvg
+    || prev.seasonPeak !== next.seasonPeak;
+}
+
 export interface UsePoolDataReturn {
   stats: PoolStats | null;
   history: TimeSeriesPoint[];
@@ -24,6 +42,8 @@ export function usePoolData(refreshInterval = 30000): UsePoolDataReturn {
   const [sensors, setSensors] = useState<SensorInfo[]>([]);
   const [selectedSensor, setSelectedSensor] = useState<string | null>(null);
   const hasFetchedOnce = useRef(false);
+  const statsRef = useRef<PoolStats | null>(null);
+  const historyRef = useRef<TimeSeriesPoint[]>([]);
 
   useEffect(() => {
     fetch('/api/sensors')
@@ -55,8 +75,14 @@ export function usePoolData(refreshInterval = 30000): UsePoolDataReturn {
         batteryRes.json() as Promise<SensorBattery[]>,
       ]);
 
-      setStats(statsData);
-      setHistory(historyData);
+      if (statsChanged(statsRef.current, statsData)) {
+        statsRef.current = statsData;
+        setStats(statsData);
+      }
+      if (timeSeriesChanged(historyRef.current, historyData)) {
+        historyRef.current = historyData;
+        setHistory(historyData);
+      }
       setBatteries(batteryData);
       setError(null);
     } catch (err) {
