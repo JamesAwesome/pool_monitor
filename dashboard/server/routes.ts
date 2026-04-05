@@ -47,7 +47,7 @@ router.get('/api/battery', async (req, res) => {
   }
 })
 
-router.get('/api/battery/{sensorId}/history', async (req, res) => {
+router.get('/api/battery-history/{sensorId}', async (req, res) => {
   try {
     const sensorId = (req.params as Record<string, string>).sensorId
     const history = await queryBatteryHistory(sensorId)
