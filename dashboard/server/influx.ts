@@ -11,11 +11,19 @@ export function getQueryApi() {
   return client.getQueryApi(org)
 }
 
+function parseRange(range: string): string {
+  if (range.startsWith('custom:')) {
+    const [, from, to] = range.split(':')
+    return `start: ${from}T00:00:00Z, stop: ${to}T23:59:59Z`
+  }
+  return `start: -${range}`
+}
+
 function fluxQuery(range: string, field: string, aggregation: string, yieldName: string, sensorId?: string): string {
   const sensorFilter = sensorId ? `\n      |> filter(fn: (r) => r.id == "${sensorId}")` : ''
   return `
     from(bucket: "${bucket}")
-      |> range(start: -${range})
+      |> range(${parseRange(range)})
       |> filter(fn: (r) => r._field == "${field}")${sensorFilter}
       |> group(columns: ["id"])
       |> ${aggregation}
@@ -87,6 +95,15 @@ export async function queryStats(sensorId?: string, range = '24h'): Promise<{
 }
 
 function windowPeriod(range: string): string {
+  if (range.startsWith('custom:')) {
+    const [, from, to] = range.split(':')
+    const days = (new Date(to).getTime() - new Date(from).getTime()) / 86400000
+    if (days <= 3) return '30m'
+    if (days <= 7) return '1h'
+    if (days <= 30) return '2h'
+    return '6h'
+  }
+
   const match = range.match(/^(\d+)([hdwm])$/)
   if (!match) return '5m'
 
@@ -113,7 +130,7 @@ export async function queryHistory(range: string, sensorId?: string): Promise<Ar
 
   const query = `
     from(bucket: "${bucket}")
-      |> range(start: -${range})
+      |> range(${parseRange(range)})
       |> filter(fn: (r) => r._field == "temperature_C")${sensorFilter}
       |> group(columns: ["id"])
       |> aggregateWindow(every: ${period}, fn: mean, createEmpty: false)

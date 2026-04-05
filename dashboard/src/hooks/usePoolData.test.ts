@@ -153,6 +153,25 @@ describe('usePoolData', () => {
     });
   });
 
+  it('fetches with custom date range when set', async () => {
+    const { result } = renderHook(() => usePoolData(600000));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    (fetch as ReturnType<typeof vi.fn>).mockClear();
+
+    act(() => {
+      result.current.setRange('custom:2026-04-01:2026-04-04');
+    });
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith('/api/stats?range=custom:2026-04-01:2026-04-04');
+      expect(fetch).toHaveBeenCalledWith('/api/history?range=custom:2026-04-01:2026-04-04');
+    });
+  });
+
   it('fetches sensors on mount', async () => {
     renderHook(() => usePoolData(60000));
     await waitFor(() => {
