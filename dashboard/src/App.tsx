@@ -14,7 +14,7 @@ function Dashboard() {
   return (
     <main className={styles.main}>
       <div className="container">
-        {error && <p className={styles.error}>{error}</p>}
+        {error && !loading && stats && <p className={styles.error}>{error}</p>}
         <CurrentTemp value={stats?.current ?? null} loading={loading} />
         <StatsGrid stats={stats} loading={loading} />
         <TempChart data={history} range={range} onRangeChange={setRange} loading={loading} />
