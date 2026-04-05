@@ -98,6 +98,7 @@ export async function generateOgImage(): Promise<Buffer> {
 
   // Date/time
   const dateStr = new Date().toLocaleDateString('en-US', {
+    timeZone: 'America/New_York',
     month: 'long',
     day: 'numeric',
     year: 'numeric',
