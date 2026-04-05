@@ -97,8 +97,9 @@ export async function generateOgImage(): Promise<Buffer> {
   ctx.fillText('Current Pool Temperature', WIDTH / 2, 410)
 
   // Date/time
+  const tz = process.env.TIMEZONE || 'America/New_York'
   const dateStr = new Date().toLocaleString('en-US', {
-    timeZone: 'America/New_York',
+    timeZone: tz,
     month: 'long',
     day: 'numeric',
     year: 'numeric',

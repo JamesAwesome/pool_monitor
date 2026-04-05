@@ -94,6 +94,7 @@ pnpm typecheck        # TypeScript only
 | `INFLUXDB_BUCKET` | Yes | InfluxDB bucket |
 | `DASHBOARD_TITLE` | No | Header title (default: "Pool Dashboard"), build-time via `VITE_APP_TITLE` |
 | `PUBLIC_URL` | No | Absolute URL for OG image (default: request Host header) |
+| `TIMEZONE` | No | IANA timezone for OG image timestamp (default: America/New_York) |
 
 ## Grafana Dashboard
 
