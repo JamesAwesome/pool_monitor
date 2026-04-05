@@ -97,13 +97,14 @@ export async function generateOgImage(): Promise<Buffer> {
   ctx.fillText('Current Pool Temperature', WIDTH / 2, 410)
 
   // Date/time
-  const dateStr = new Date().toLocaleDateString('en-US', {
+  const dateStr = new Date().toLocaleString('en-US', {
     timeZone: 'America/New_York',
     month: 'long',
     day: 'numeric',
     year: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
+    timeZoneName: 'short',
   })
   ctx.fillStyle = '#64748b'
   ctx.font = `24px "${fontFamily}"`
