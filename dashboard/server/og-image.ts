@@ -3,6 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createCanvas, GlobalFonts } from '@napi-rs/canvas'
 import { queryStats } from './influx.js'
+import { celsiusToFahrenheit } from './utils.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -35,10 +36,6 @@ if (!fontsLoaded) {
 let cachedBuffer: Buffer | null = null
 let cachedAt = 0
 const CACHE_TTL = 5 * 60 * 1000
-
-function celsiusToFahrenheit(c: number): number {
-  return Math.round((c * 9) / 5 * 10 + 320) / 10
-}
 
 export async function generateOgImage(): Promise<Buffer> {
   const now = Date.now()

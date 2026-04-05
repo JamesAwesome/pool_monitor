@@ -1,9 +1,9 @@
 export interface PoolStats {
-  current: number;
-  average: number;
-  peak: number;
-  seasonAvg: number;
-  seasonPeak: number;
+  current: number | null;
+  average: number | null;
+  peak: number | null;
+  seasonAvg: number | null;
+  seasonPeak: number | null;
 }
 
 export interface TimeSeriesPoint {

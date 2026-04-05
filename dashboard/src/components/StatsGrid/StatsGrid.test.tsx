@@ -53,6 +53,12 @@ describe('StatsGrid', () => {
     expect(cards).toHaveLength(4);
   });
 
+  it('shows "Custom" label when range is a custom range', () => {
+    render(<StatsGrid stats={mockStats} loading={false} range="custom:2026-04-01:2026-04-04" />);
+    expect(screen.getByText('Average (Custom)')).toBeTruthy();
+    expect(screen.getByText('Peak (Custom)')).toBeTruthy();
+  });
+
   it('opens season history sheet when season card is clicked', async () => {
     const user = userEvent.setup();
     render(<StatsGrid stats={mockStats} loading={false} />);

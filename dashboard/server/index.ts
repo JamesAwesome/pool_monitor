@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import express from 'express'
 import router from './routes.js'
 import { queryStats } from './influx.js'
+import { celsiusToFahrenheit } from './utils.js'
 
 const app = express()
 const port = parseInt(process.env.PORT ?? '8080', 10)
@@ -26,7 +27,7 @@ if (process.env.NODE_ENV === 'production') {
     try {
       const stats = await queryStats(undefined, '24h')
       if (stats.current !== null) {
-        const f = Math.round((stats.current * 9) / 5 * 10 + 320) / 10
+        const f = celsiusToFahrenheit(stats.current)
         ogCache = { temp: `${f.toFixed(1)}°F`, at: now }
       }
     } catch {

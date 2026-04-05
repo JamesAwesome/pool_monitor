@@ -2,6 +2,10 @@ import { Router } from 'express'
 import { querySensors, queryStats, queryHistory, queryBatteries, queryBatteryHistory, querySeasonHistory } from './influx.js'
 import { generateOgImage } from './og-image.js'
 
+function isValidSensorId(id: string): boolean {
+  return /^[a-zA-Z0-9_-]+$/.test(id);
+}
+
 const router = Router()
 
 router.get('/og-image.png', async (_req, res) => {
@@ -29,6 +33,10 @@ router.get('/api/sensors', async (_req, res) => {
 router.get('/api/stats', async (req, res) => {
   try {
     const sensor = typeof req.query.sensor === 'string' ? req.query.sensor : undefined
+    if (sensor && !isValidSensorId(sensor)) {
+      res.status(400).json({ error: 'Invalid sensor ID' })
+      return
+    }
     const range = typeof req.query.range === 'string' ? req.query.range : '24h'
     const stats = await queryStats(sensor, range)
     res.json(stats)
@@ -42,6 +50,10 @@ router.get('/api/history', async (req, res) => {
   try {
     const range = typeof req.query.range === 'string' ? req.query.range : '12h'
     const sensor = typeof req.query.sensor === 'string' ? req.query.sensor : undefined
+    if (sensor && !isValidSensorId(sensor)) {
+      res.status(400).json({ error: 'Invalid sensor ID' })
+      return
+    }
     const history = await queryHistory(range, sensor)
     res.json(history)
   } catch (err) {
@@ -53,6 +65,10 @@ router.get('/api/history', async (req, res) => {
 router.get('/api/battery', async (req, res) => {
   try {
     const sensor = typeof req.query.sensor === 'string' ? req.query.sensor : undefined
+    if (sensor && !isValidSensorId(sensor)) {
+      res.status(400).json({ error: 'Invalid sensor ID' })
+      return
+    }
     const battery = await queryBatteries(sensor)
     res.json(battery)
   } catch (err) {
@@ -68,6 +84,10 @@ router.get('/api/battery-history', async (req, res) => {
       res.status(400).json({ error: 'sensor query parameter is required' })
       return
     }
+    if (!isValidSensorId(sensorId)) {
+      res.status(400).json({ error: 'Invalid sensor ID' })
+      return
+    }
     const history = await queryBatteryHistory(sensorId)
     res.json(history)
   } catch (err) {
@@ -79,6 +99,10 @@ router.get('/api/battery-history', async (req, res) => {
 router.get('/api/season-history', async (req, res) => {
   try {
     const sensor = typeof req.query.sensor === 'string' ? req.query.sensor : undefined
+    if (sensor && !isValidSensorId(sensor)) {
+      res.status(400).json({ error: 'Invalid sensor ID' })
+      return
+    }
     const history = await querySeasonHistory(sensor)
     res.json(history)
   } catch (err) {

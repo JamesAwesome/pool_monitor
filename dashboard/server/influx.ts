@@ -11,7 +11,7 @@ export function getQueryApi() {
   return client.getQueryApi(org)
 }
 
-function parseRange(range: string): string {
+export function parseRange(range: string): string {
   if (range.startsWith('custom:')) {
     const [, from, to] = range.split(':')
     // Use next day at midnight for inclusive stop (range is [start, stop))
@@ -100,7 +100,7 @@ export async function queryStats(sensorId?: string, range = '24h'): Promise<{
   }
 }
 
-function windowPeriod(range: string): string {
+export function windowPeriod(range: string): string {
   if (range.startsWith('custom:')) {
     const [, from, to] = range.split(':')
     const days = (new Date(to).getTime() - new Date(from).getTime()) / 86400000 + 1

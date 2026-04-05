@@ -54,6 +54,32 @@ describe('DateRangePicker', () => {
     expect(applyBtn).toBeDisabled();
   });
 
+  it('swaps dates when end date is before start date', async () => {
+    const user = userEvent.setup();
+    const onApply = vi.fn();
+    render(<DateRangePicker onApply={onApply} />);
+
+    // Navigate to previous month so all days are in the past
+    await user.click(screen.getByLabelText('Previous month'));
+    await user.click(screen.getByLabelText('Previous month'));
+
+    const dayButtons = screen.getAllByRole('button').filter(
+      (b) => !b.hasAttribute('aria-label') && b.textContent !== 'Apply' && !b.hasAttribute('disabled')
+    );
+
+    if (dayButtons.length >= 2) {
+      // Click a later date first, then an earlier date
+      await user.click(dayButtons[dayButtons.length - 1]); // last day
+      await user.click(dayButtons[0]); // first day
+      await user.click(screen.getByText('Apply'));
+
+      expect(onApply).toHaveBeenCalledOnce();
+      const [from, to] = onApply.mock.calls[0];
+      // from should be the earlier date, to should be the later date
+      expect(new Date(from).getTime()).toBeLessThan(new Date(to).getTime());
+    }
+  });
+
   it('calls onApply with date strings when range selected', async () => {
     const user = userEvent.setup();
     const onApply = vi.fn();
