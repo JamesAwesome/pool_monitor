@@ -4,6 +4,7 @@ const url = process.env.INFLUXDB_URL ?? 'http://localhost:8086'
 const token = process.env.INFLUXDB_TOKEN ?? ''
 const org = process.env.INFLUXDB_ORG ?? ''
 const bucket = process.env.INFLUXDB_BUCKET ?? ''
+const tz = process.env.TIMEZONE || 'America/New_York'
 
 const client = new InfluxDB({ url, token })
 
@@ -14,18 +15,24 @@ export function getQueryApi() {
 function parseRange(range: string): string {
   if (range.startsWith('custom:')) {
     const [, from, to] = range.split(':')
-    return `start: ${from}T00:00:00Z, stop: ${to}T23:59:59Z`
+    // Use next day at midnight for inclusive stop (range is [start, stop))
+    const stopDate = new Date(to)
+    stopDate.setUTCDate(stopDate.getUTCDate() + 1)
+    const stop = stopDate.toISOString().split('T')[0]
+    return `start: ${from}T00:00:00Z, stop: ${stop}T00:00:00Z`
   }
   return `start: -${range}`
 }
 
 function fluxQuery(range: string, field: string, aggregation: string, yieldName: string, sensorId?: string): string {
   const sensorFilter = sensorId ? `\n      |> filter(fn: (r) => r.id == "${sensorId}")` : ''
+  // When no sensor selected, group() removes grouping so aggregates span all sensors
+  const groupClause = sensorId ? '|> group(columns: ["id"])' : '|> group()'
   return `
     from(bucket: "${bucket}")
       |> range(${parseRange(range)})
       |> filter(fn: (r) => r._field == "${field}")${sensorFilter}
-      |> group(columns: ["id"])
+      |> ${groupClause}
       |> ${aggregation}
       |> yield(name: "${yieldName}")
   `
@@ -33,11 +40,12 @@ function fluxQuery(range: string, field: string, aggregation: string, yieldName:
 
 function fluxQueryAbsolute(start: string, field: string, aggregation: string, yieldName: string, sensorId?: string): string {
   const sensorFilter = sensorId ? `\n      |> filter(fn: (r) => r.id == "${sensorId}")` : ''
+  const groupClause = sensorId ? '|> group(columns: ["id"])' : '|> group()'
   return `
     from(bucket: "${bucket}")
       |> range(start: ${start})
       |> filter(fn: (r) => r._field == "${field}")${sensorFilter}
-      |> group(columns: ["id"])
+      |> ${groupClause}
       |> ${aggregation}
       |> yield(name: "${yieldName}")
   `
@@ -97,7 +105,8 @@ export async function queryStats(sensorId?: string, range = '24h'): Promise<{
 function windowPeriod(range: string): string {
   if (range.startsWith('custom:')) {
     const [, from, to] = range.split(':')
-    const days = (new Date(to).getTime() - new Date(from).getTime()) / 86400000
+    const days = (new Date(to).getTime() - new Date(from).getTime()) / 86400000 + 1
+    if (days <= 1) return '5m'
     if (days <= 3) return '30m'
     if (days <= 7) return '1h'
     if (days <= 30) return '2h'
@@ -110,9 +119,9 @@ function windowPeriod(range: string): string {
   const value = parseInt(match[1], 10)
   const unit = match[2]
 
-  // Pick a window period that yields ~200-300 data points
   if (unit === 'h' && value <= 12) return '5m'
-  if (unit === 'h' && value <= 24) return '10m'
+  if (unit === 'h' && value <= 24) return '5m'
+  if (unit === 'd' && value <= 3) return '30m'
   if (unit === 'd' && value <= 7) return '1h'
   if (unit === 'd' && value <= 30) return '2h'
   return '12h'
@@ -127,13 +136,15 @@ export async function queryHistory(range: string, sensorId?: string): Promise<Ar
   const api = getQueryApi()
   const period = windowPeriod(range)
   const sensorFilter = sensorId ? `\n      |> filter(fn: (r) => r.id == "${sensorId}")` : ''
+  // When no sensor selected, group() aggregates across all sensors into one line
+  const groupClause = sensorId ? '|> group(columns: ["id"])' : '|> group()'
 
   const query = `
     from(bucket: "${bucket}")
       |> range(${parseRange(range)})
       |> filter(fn: (r) => r._field == "temperature_C")${sensorFilter}
-      |> group(columns: ["id"])
-      |> aggregateWindow(every: ${period}, fn: mean, createEmpty: false)
+      |> ${groupClause}
+      |> aggregateWindow(every: ${period}, fn: mean, createEmpty: false, location: {zone: "${tz}"})
       |> yield(name: "history")
   `
 
@@ -177,38 +188,32 @@ export async function querySeasonHistory(sensorId?: string): Promise<
   const currentYear = new Date().getFullYear()
   const years = [currentYear, currentYear - 1, currentYear - 2]
   const sensorFilter = sensorId ? `\n      |> filter(fn: (r) => r.id == "${sensorId}")` : ''
+  const groupClause = sensorId ? '|> group(columns: ["id"])' : '|> group()'
 
   const results = await Promise.all(
     years.map(async (year) => {
       const start = `${year}-01-01T00:00:00Z`
       const stop = `${year + 1}-01-01T00:00:00Z`
 
-      const avgQuery = `
-        from(bucket: "${bucket}")
+      // Combine avg and peak into one query per year
+      const query = `
+        base = from(bucket: "${bucket}")
           |> range(start: ${start}, stop: ${stop})
           |> filter(fn: (r) => r._field == "temperature_C")${sensorFilter}
-          |> group(columns: ["id"])
-          |> mean()
-          |> yield(name: "avg")
-      `
-      const peakQuery = `
-        from(bucket: "${bucket}")
-          |> range(start: ${start}, stop: ${stop})
-          |> filter(fn: (r) => r._field == "temperature_C")${sensorFilter}
-          |> group(columns: ["id"])
-          |> max()
-          |> yield(name: "peak")
+          |> ${groupClause}
+
+        base |> mean() |> yield(name: "avg")
+        base |> max() |> yield(name: "peak")
       `
 
-      const [avgRows, peakRows] = await Promise.all([
-        api.collectRows<{ _value: number }>(avgQuery),
-        api.collectRows<{ _value: number }>(peakQuery),
-      ])
+      const rows = await api.collectRows<{ _value: number; result: string }>(query)
+      const avgRow = rows.find((r) => r.result === 'avg')
+      const peakRow = rows.find((r) => r.result === 'peak')
 
       return {
         year,
-        average: avgRows.length > 0 ? avgRows[0]._value : null,
-        peak: peakRows.length > 0 ? peakRows[0]._value : null,
+        average: avgRow ? avgRow._value : null,
+        peak: peakRow ? peakRow._value : null,
       }
     })
   )
@@ -219,14 +224,14 @@ export async function querySeasonHistory(sensorId?: string): Promise<
 export async function queryBatteryHistory(sensorId: string): Promise<Array<{ time: string; value: number }>> {
   const api = getQueryApi()
 
-  // Use a broad window (6h) so sparse battery reports still show up
   const query = `
     from(bucket: "${bucket}")
       |> range(start: -30d)
       |> filter(fn: (r) => r._field == "battery_ok")
       |> filter(fn: (r) => r.id == "${sensorId}")
       |> group(columns: ["id"])
-      |> aggregateWindow(every: 6h, fn: last, createEmpty: false)
+      |> aggregateWindow(every: 6h, fn: last, createEmpty: true, location: {zone: "${tz}"})
+      |> fill(usePrevious: true)
       |> yield(name: "history")
   `
 
