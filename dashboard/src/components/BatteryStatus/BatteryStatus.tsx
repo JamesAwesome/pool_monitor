@@ -176,11 +176,11 @@ export function BatteryStatus({ batteries, loading }: BatteryStatusProps) {
               <div className={styles.batteryShell}>
                 <div
                   className={`${styles.batteryFill} ${styles[`fill_${status}`]}`}
-                  style={{ width: `${level}%` }}
+                  style={{ width: `${Math.round(level)}%` }}
                 />
                 <div className={styles.batteryTip} />
               </div>
-              <span className={styles.percentage}>{level}%</span>
+              <span className={styles.percentage}>{Math.round(level)}%</span>
               <span className={styles.label}>{statusText}</span>
               <span className={styles.sensorId}>{b.id}</span>
               <span className={styles.chevron}>›</span>
@@ -216,7 +216,7 @@ export function BatteryStatus({ batteries, loading }: BatteryStatusProps) {
               </div>
               {openSensor.current !== null && (
                 <span className={`${styles.sheetPct} ${styles[getBatteryStatus(openSensor.current)]}`}>
-                  {openSensor.current}%
+                  {Math.round(openSensor.current)}%
                 </span>
               )}
             </div>
