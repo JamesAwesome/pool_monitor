@@ -85,8 +85,8 @@ if [ "$DEPLOY_MODE" = "server" ]; then
     exit 1
   fi
 
-  read -rp "MQTT port [1883]: " mqtt_port
-  mqtt_port="${mqtt_port:-1883}"
+  read -rp "MQTT port [1884]: " mqtt_port
+  mqtt_port="${mqtt_port:-1884}"
 
   # Update .env
   sed -i.bak "s/^MQTT_HOST=.*/MQTT_HOST=$pi_host/" "$PROJECT_DIR/.env"
