@@ -35,10 +35,14 @@ else
   echo "Created password file with user '$USERNAME'."
 fi
 
-# Fix permissions — mosquitto_passwd runs as root, but the mosquitto
-# container runs as user mosquitto (UID 1883). The file only contains
-# hashed passwords so world-readable is fine.
-chmod 644 "$PWFILE"
+# Fix permissions — mosquitto_passwd runs as root inside Docker, creating
+# a root-owned file. The Mosquitto container runs as user mosquitto (UID
+# 1883) and needs to read it. May require sudo if Docker runs as root.
+if [ -w "$PWFILE" ]; then
+  chmod 644 "$PWFILE"
+else
+  sudo chmod 644 "$PWFILE"
+fi
 
 echo ""
 echo "Remember to:"

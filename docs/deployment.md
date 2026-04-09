@@ -39,10 +39,12 @@ The two machines communicate over MQTT on your local network.
 
 ```bash
 git clone <repo> && cd pool_monitor
-./scripts/setup.sh          # select "edge", enable MQTT auth
+sudo ./scripts/setup.sh     # select "edge", enable MQTT auth
 ./scripts/start.sh
 ./scripts/verify.sh
 ```
+
+> **Note:** `setup.sh` needs `sudo` on the Pi because Docker creates files as root. The script will use `sudo` automatically when fixing file permissions.
 
 The setup wizard will:
 - Ask for an MQTT username and password
