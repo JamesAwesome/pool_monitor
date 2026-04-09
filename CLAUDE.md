@@ -25,12 +25,34 @@ Everything runs as Docker containers via `docker-compose.yml`:
 ## Common Commands
 
 ```bash
-docker compose up -d          # Start all services
-docker compose down            # Stop all services
+./scripts/start.sh            # Start services for configured DEPLOY_MODE
+./scripts/stop.sh             # Stop services
+./scripts/verify.sh           # Health check
+docker compose --profile standalone up -d   # Or use profiles directly
+docker compose --profile standalone down
 docker compose logs -f         # Tail all logs
 docker compose logs -f telegraf  # Debug a specific service
-docker compose restart telegraf  # Restart a single service after config change
 ```
+
+## Deployment Modes
+
+The project supports three Docker Compose profiles:
+
+| Profile | Services | Use Case |
+|---------|----------|----------|
+| `standalone` | All 7 services | Single machine (default, e.g., Raspberry Pi) |
+| `edge` | mosquitto, rtl_433 | Pi as lightweight data collector |
+| `server` | telegraf, influxdb, grafana, dashboard, cloudflared | Remote server for storage and dashboards |
+
+`DEPLOY_MODE` in `.env` controls which profile the helper scripts use. The split boundary is MQTT — Telegraf on the server connects to Mosquitto on the Pi via `MQTT_HOST`.
+
+Helper scripts in `scripts/`:
+- `setup.sh` — interactive setup wizard (mode, .env, MQTT auth)
+- `start.sh` / `stop.sh` — profile-aware docker compose up/down
+- `verify.sh` — health checks per mode
+- `mqtt-password.sh` — Mosquitto password management
+
+See `docs/deployment.md` for full setup guides.
 
 ## Configuration
 
