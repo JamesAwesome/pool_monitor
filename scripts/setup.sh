@@ -97,9 +97,9 @@ if [ "$DEPLOY_MODE" = "server" ]; then
   if [ -n "$mqtt_user" ]; then
     read -rsp "MQTT password: " mqtt_pass
     echo ""
-    # Uncomment and set MQTT credentials in .env
-    sed -i.bak "s/^# MQTT_USER=.*/MQTT_USER=$mqtt_user/" "$PROJECT_DIR/.env"
-    sed -i.bak "s/^# MQTT_PASSWORD=.*/MQTT_PASSWORD=$mqtt_pass/" "$PROJECT_DIR/.env"
+    # Set MQTT credentials in .env (handles both commented and uncommented lines)
+    sed -i.bak "s/^#\{0,1\} \{0,1\}MQTT_USER=.*/MQTT_USER=$mqtt_user/" "$PROJECT_DIR/.env"
+    sed -i.bak "s/^#\{0,1\} \{0,1\}MQTT_PASSWORD=.*/MQTT_PASSWORD=$mqtt_pass/" "$PROJECT_DIR/.env"
     rm -f "$PROJECT_DIR/.env.bak"
   fi
 
