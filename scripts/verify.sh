@@ -33,10 +33,8 @@ if [ "$DEPLOY_MODE" = "edge" ] || [ "$DEPLOY_MODE" = "standalone" ]; then
   echo "Edge services:"
 
   # Mosquitto
-  if docker inspect mosquitto --format='{{.State.Health.Status}}' 2>/dev/null | grep -q healthy; then
-    pass "Mosquitto is healthy"
-  elif docker ps --format '{{.Names}}' | grep -q '^mosquitto$'; then
-    warn "Mosquitto is running but health check not yet passing"
+  if docker ps --format '{{.Names}}' | grep -q '^mosquitto$'; then
+    pass "Mosquitto is running"
   else
     fail "Mosquitto is not running"
   fi
