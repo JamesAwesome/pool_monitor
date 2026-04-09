@@ -49,6 +49,7 @@ sudo ./scripts/setup.sh     # select "edge", enable MQTT auth
 The setup wizard will:
 - Ask for an MQTT username and password
 - Generate the Mosquitto password file
+- Set the MQTT credentials in `.env` (rtl_433 uses them to authenticate with Mosquitto)
 - Switch to the auth-enabled Mosquitto config
 - Print the MQTT credentials you'll need for the server
 
@@ -112,7 +113,7 @@ In split mode, network interruptions between the Pi and server are handled autom
 
 ## Security
 
-In split mode, the MQTT port (1883) is exposed on the Pi's network interface. The setup wizard enables password authentication by default.
+In split mode, the MQTT port (1883) is exposed on the Pi's network interface. The setup wizard enables password authentication by default. Both rtl_433 (on the Pi) and Telegraf (on the server) authenticate with the same MQTT credentials.
 
 **Recommendations:**
 - Always enable MQTT authentication in split mode
@@ -126,9 +127,10 @@ In split mode, the MQTT port (1883) is exposed on the Pi's network interface. Th
 - Check the port is open: `nc -zv <pi-ip> 1883`
 - Check firewall: `sudo ufw status` (if using ufw)
 
-**"Not authorized" in Telegraf logs**
-- MQTT credentials don't match. Verify `MQTT_USER` and `MQTT_PASSWORD` in the server's `.env` match what was set during Pi setup
+**"Not authorized" in Telegraf or rtl_433 logs**
+- MQTT credentials don't match. Verify `MQTT_USER` and `MQTT_PASSWORD` in `.env` match the Mosquitto password file on both machines
 - Re-run `./scripts/mqtt-password.sh <user> <password>` on the Pi if needed
+- rtl_433 reads credentials from `MQTT_USERNAME`/`MQTT_PASSWORD` env vars (mapped from `MQTT_USER`/`MQTT_PASSWORD` in docker-compose.yml)
 
 **No data in dashboard after setup**
 - Check Telegraf logs: `docker logs --since 5m telegraf`

@@ -57,6 +57,11 @@ if [ "$DEPLOY_MODE" = "edge" ]; then
     # Generate password file
     "$SCRIPT_DIR/mqtt-password.sh" "$mqtt_user" "$mqtt_pass"
 
+    # Set MQTT credentials in the Pi's .env (rtl_433 reads MQTT_USERNAME/MQTT_PASSWORD from env)
+    sed -i.bak "s/^#\{0,1\} \{0,1\}MQTT_USER=.*/MQTT_USER=$mqtt_user/" "$PROJECT_DIR/.env"
+    sed -i.bak "s/^#\{0,1\} \{0,1\}MQTT_PASSWORD=.*/MQTT_PASSWORD=$mqtt_pass/" "$PROJECT_DIR/.env"
+    rm -f "$PROJECT_DIR/.env.bak"
+
     # Switch to distributed Mosquitto config
     cp "$PROJECT_DIR/mosquitto/mosquitto-distributed.conf" "$PROJECT_DIR/mosquitto/mosquitto.conf"
     echo "Switched to distributed Mosquitto config (auth enabled)."
