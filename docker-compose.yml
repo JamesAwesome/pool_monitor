@@ -3,20 +3,32 @@ services:
     image: eclipse-mosquitto:2
     container_name: mosquitto
     restart: unless-stopped
+    profiles: ["standalone", "edge"]
     ports:
-      - "1883:1883"
+      - "${MQTT_PORT:-1883}:1883"
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto/password_file:/mosquitto/config/password_file:ro
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-log:/mosquitto/log
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 1883"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   rtl_433:
     image: hertzg/rtl_433:latest
     container_name: rtl_433
     restart: unless-stopped
+    profiles: ["standalone", "edge"]
     privileged: true
     devices:
       - /dev/bus/usb:/dev/bus/usb
     depends_on:
-      - mosquitto
+      mosquitto:
+        condition: service_healthy
     command: >
       -f 433.92M
       -R 194
@@ -26,6 +38,7 @@ services:
     image: influxdb:2
     container_name: influxdb
     restart: unless-stopped
+    profiles: ["standalone", "server"]
     ports:
       - "8086:8086"
     environment:
@@ -38,15 +51,26 @@ services:
     volumes:
       - influxdb-data:/var/lib/influxdb2
       - influxdb-config:/etc/influxdb2
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   telegraf:
     image: telegraf:latest
     container_name: telegraf
     restart: unless-stopped
+    profiles: ["standalone", "server"]
     depends_on:
-      - mosquitto
-      - influxdb
+      influxdb:
+        condition: service_healthy
     environment:
+      MQTT_HOST: ${MQTT_HOST:-mosquitto}
+      MQTT_PORT: ${MQTT_PORT:-1883}
+      MQTT_USER: ${MQTT_USER:-}
+      MQTT_PASSWORD: ${MQTT_PASSWORD:-}
       INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
       INFLUXDB_ORG: ${INFLUXDB_ORG}
       INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
@@ -58,6 +82,7 @@ services:
     image: grafana/grafana:latest
     container_name: grafana
     restart: unless-stopped
+    profiles: ["standalone", "server"]
     ports:
       - "3000:3000"
     environment:
@@ -67,7 +92,8 @@ services:
       GF_SECURITY_COOKIE_SAMESITE: lax
       INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
     depends_on:
-      - influxdb
+      influxdb:
+        condition: service_healthy
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
@@ -79,6 +105,7 @@ services:
         - VITE_APP_TITLE=${DASHBOARD_TITLE:-Pool Dashboard}
     container_name: pool-dashboard
     restart: unless-stopped
+    profiles: ["standalone", "server"]
     ports:
       - "8080:8080"
     environment:
@@ -90,19 +117,23 @@ services:
       TIMEZONE: ${TIMEZONE:-America/New_York}
       TZ: ${TIMEZONE:-America/New_York}
     depends_on:
-      - influxdb
+      influxdb:
+        condition: service_healthy
 
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared
     restart: unless-stopped
+    profiles: ["standalone", "server"]
     command: tunnel run
     environment:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
     depends_on:
-      - grafana
+      - dashboard
 
 volumes:
   influxdb-data:
   influxdb-config:
   grafana-data:
+  mosquitto-data:
+  mosquitto-log:
