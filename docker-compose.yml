@@ -10,12 +10,6 @@ services:
       - ./mosquitto:/mosquitto/config
       - mosquitto-data:/mosquitto/data
       - mosquitto-log:/mosquitto/log
-    healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost 1883"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
 
   rtl_433:
     image: hertzg/rtl_433:latest
@@ -26,8 +20,7 @@ services:
     devices:
       - /dev/bus/usb:/dev/bus/usb
     depends_on:
-      mosquitto:
-        condition: service_healthy
+      - mosquitto
     command: >
       -f 433.92M
       -R 194
