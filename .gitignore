@@ -2,3 +2,4 @@
 node_modules
 mosquitto/password_file
 .superpowers/
+docs/superpowers/

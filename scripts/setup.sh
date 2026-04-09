@@ -110,11 +110,6 @@ if [ "$DEPLOY_MODE" = "server" ]; then
   echo "  CLOUDFLARE_TUNNEL_TOKEN (if using Cloudflare Tunnel)"
 fi
 
-# Standalone: ensure password_file exists (empty) so volume mount doesn't fail
-if [ "$DEPLOY_MODE" = "standalone" ]; then
-  touch "$PROJECT_DIR/mosquitto/password_file"
-fi
-
 echo ""
 echo "Setup complete! Next steps:"
 echo "  1. Review and edit .env with your values"

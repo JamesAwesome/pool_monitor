@@ -14,8 +14,5 @@ fi
 
 DEPLOY_MODE="${DEPLOY_MODE:-standalone}"
 
-# Ensure password_file exists (empty is fine for anonymous mode)
-touch "$PROJECT_DIR/mosquitto/password_file"
-
 echo "Starting pool monitor in '$DEPLOY_MODE' mode..."
 docker compose --project-directory "$PROJECT_DIR" --profile "$DEPLOY_MODE" up -d "$@"
