@@ -35,6 +35,11 @@ else
   echo "Created password file with user '$USERNAME'."
 fi
 
+# Fix permissions — mosquitto_passwd runs as root, but the mosquitto
+# container runs as user mosquitto (UID 1883). The file only contains
+# hashed passwords so world-readable is fine.
+chmod 644 "$PWFILE"
+
 echo ""
 echo "Remember to:"
 echo "  1. Set MQTT_USER=$USERNAME and MQTT_PASSWORD=<password> in the server's .env"
