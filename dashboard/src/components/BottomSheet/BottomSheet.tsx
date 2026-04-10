@@ -25,13 +25,31 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
   useEffect(() => {
     if (open) {
       document.addEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'hidden';
     }
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
     };
   }, [open, handleKeyDown]);
+
+  // Separate scroll lock effect — iOS Safari ignores overflow:hidden on body,
+  // so we pin the body with position:fixed and restore scroll on close.
+  useEffect(() => {
+    if (!open) return;
+    const scrollY = window.scrollY;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.overflow = '';
+      window.scrollTo(0, scrollY);
+    };
+  }, [open]);
 
   // Use native event listener for touchmove so we can call preventDefault
   useEffect(() => {

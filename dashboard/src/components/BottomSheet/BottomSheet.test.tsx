@@ -47,4 +47,43 @@ describe('BottomSheet', () => {
     await user.keyboard('{Escape}');
     expect(onClose).toHaveBeenCalledOnce();
   });
+
+  it('locks body scroll when open', () => {
+    render(<BottomSheet open={true} onClose={vi.fn()} title="Test">Content</BottomSheet>);
+    expect(document.body.style.position).toBe('fixed');
+    expect(document.body.style.overflow).toBe('hidden');
+    expect(document.body.style.left).toBe('0px');
+    expect(document.body.style.right).toBe('0px');
+  });
+
+  it('restores body styles when closed after being open', () => {
+    const { rerender } = render(
+      <BottomSheet open={true} onClose={vi.fn()} title="Test">Content</BottomSheet>
+    );
+    expect(document.body.style.position).toBe('fixed');
+
+    rerender(<BottomSheet open={false} onClose={vi.fn()} title="Test">Content</BottomSheet>);
+
+    expect(document.body.style.position).toBe('');
+    expect(document.body.style.overflow).toBe('');
+    expect(document.body.style.top).toBe('');
+    expect(document.body.style.left).toBe('');
+    expect(document.body.style.right).toBe('');
+  });
+
+  it('preserves scroll position through open/close cycle', () => {
+    Object.defineProperty(window, 'scrollY', { value: 150, writable: true });
+    const scrollToSpy = vi.fn();
+    window.scrollTo = scrollToSpy as unknown as typeof window.scrollTo;
+
+    const { rerender } = render(
+      <BottomSheet open={true} onClose={vi.fn()} title="Test">Content</BottomSheet>
+    );
+    expect(document.body.style.top).toBe('-150px');
+
+    rerender(<BottomSheet open={false} onClose={vi.fn()} title="Test">Content</BottomSheet>);
+    expect(scrollToSpy).toHaveBeenCalledWith(0, 150);
+
+    Object.defineProperty(window, 'scrollY', { value: 0, writable: true });
+  });
 });
