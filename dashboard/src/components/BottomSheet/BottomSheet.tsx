@@ -17,6 +17,8 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
   const dragStartY = useRef(0);
   const [dragOffset, setDragOffset] = useState(0);
   const isDragging = useRef(false);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose();
@@ -39,6 +41,8 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
   const savedScrollY = useRef(0);
   useEffect(() => {
     if (!open) return;
+    // Another BottomSheet already owns the scroll lock
+    if (document.body.style.position === 'fixed') return;
     savedScrollY.current = window.scrollY;
     document.body.style.position = 'fixed';
     document.body.style.top = `-${savedScrollY.current}px`;
@@ -89,7 +93,7 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
       isDragging.current = false;
       setDragOffset((current) => {
         if (current > DISMISS_THRESHOLD) {
-          onClose();
+          onCloseRef.current();
         }
         return 0;
       });
@@ -104,7 +108,7 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
       sheet.removeEventListener('touchmove', onTouchMove);
       sheet.removeEventListener('touchend', onTouchEnd);
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 

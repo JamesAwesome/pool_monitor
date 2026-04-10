@@ -1,7 +1,5 @@
 .card {
   background: var(--gradient-card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: var(--border-glow);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md), var(--glow-primary);

@@ -37,7 +37,6 @@ body {
 
 [data-theme="dark"] body {
   background: linear-gradient(180deg, #0f1729 0%, #0c1220 50%, #0a0f1a 100%);
-  background-attachment: fixed;
 }
 
 .sr-only {

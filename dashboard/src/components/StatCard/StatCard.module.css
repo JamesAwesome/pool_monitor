@@ -4,17 +4,17 @@
   gap: var(--spacing-sm);
   padding: var(--spacing-md) var(--spacing-lg);
   background: var(--gradient-card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: var(--border-glow);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm), var(--glow-primary);
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md), var(--glow-accent);
+@media (hover: hover) {
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md), var(--glow-accent);
+  }
 }
 
 .header {

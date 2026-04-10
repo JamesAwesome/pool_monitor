@@ -110,8 +110,10 @@
   transform: scale(0.96);
 }
 
-.clickable:hover {
-  box-shadow: var(--shadow-md), var(--glow-accent);
+@media (hover: hover) {
+  .clickable:hover {
+    box-shadow: var(--shadow-md), var(--glow-accent);
+  }
 }
 
 .chevron {
