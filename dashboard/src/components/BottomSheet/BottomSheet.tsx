@@ -33,21 +33,32 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
 
   // Separate scroll lock effect — iOS Safari ignores overflow:hidden on body,
   // so we pin the body with position:fixed and restore scroll on close.
+  // We store scrollY in a ref so cleanup always reads the freshest value,
+  // and we use requestAnimationFrame to let the browser finish layout reflow
+  // before restoring scroll position (prevents ghost whitespace on iOS Safari).
+  const savedScrollY = useRef(0);
   useEffect(() => {
     if (!open) return;
-    const scrollY = window.scrollY;
+    savedScrollY.current = window.scrollY;
     document.body.style.position = 'fixed';
-    document.body.style.top = `-${scrollY}px`;
+    document.body.style.top = `-${savedScrollY.current}px`;
     document.body.style.left = '0';
     document.body.style.right = '0';
+    document.body.style.width = '100%';
     document.body.style.overflow = 'hidden';
     return () => {
+      const y = savedScrollY.current;
       document.body.style.position = '';
       document.body.style.top = '';
       document.body.style.left = '';
       document.body.style.right = '';
+      document.body.style.width = '';
       document.body.style.overflow = '';
-      window.scrollTo(0, scrollY);
+      // Let the browser recalculate layout before restoring scroll.
+      // This prevents iOS Safari from retaining a stale document height.
+      requestAnimationFrame(() => {
+        window.scrollTo(0, y);
+      });
     };
   }, [open]);
 

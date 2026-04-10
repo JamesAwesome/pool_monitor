@@ -20,6 +20,7 @@
   width: 100%;
   max-width: 540px;
   max-height: 85vh;
+  max-height: 85dvh;
   height: fit-content;
   background: var(--color-surface);
   border: var(--border-glow);
@@ -99,6 +100,7 @@
   .sheet {
     width: 480px;
     max-height: 70vh;
+    max-height: 70dvh;
     border-radius: var(--radius-lg);
     animation: popIn 200ms cubic-bezier(0.32, 0.72, 0, 1);
     padding-bottom: 0;

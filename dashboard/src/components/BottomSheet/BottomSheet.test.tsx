@@ -1,9 +1,20 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { vi } from 'vitest';
+import { vi, beforeEach, afterEach } from 'vitest';
 import { BottomSheet } from './BottomSheet';
 
 describe('BottomSheet', () => {
+  // Mock requestAnimationFrame so scroll restoration fires synchronously in tests
+  let rafSpy: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => {
+    rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      cb(0);
+      return 0;
+    });
+  });
+  afterEach(() => {
+    rafSpy.mockRestore();
+  });
   it('renders nothing when closed', () => {
     render(<BottomSheet open={false} onClose={vi.fn()} title="Test">Content</BottomSheet>);
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -54,6 +65,7 @@ describe('BottomSheet', () => {
     expect(document.body.style.overflow).toBe('hidden');
     expect(document.body.style.left).toBe('0px');
     expect(document.body.style.right).toBe('0px');
+    expect(document.body.style.width).toBe('100%');
   });
 
   it('restores body styles when closed after being open', () => {
@@ -69,6 +81,7 @@ describe('BottomSheet', () => {
     expect(document.body.style.top).toBe('');
     expect(document.body.style.left).toBe('');
     expect(document.body.style.right).toBe('');
+    expect(document.body.style.width).toBe('');
   });
 
   it('preserves scroll position through open/close cycle', () => {
