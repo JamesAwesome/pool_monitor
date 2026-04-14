@@ -184,10 +184,10 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
                   type="monotone"
                   dataKey="airValue"
                   stroke="var(--color-air-temp)"
-                  strokeWidth={3}
+                  strokeWidth={2}
                   strokeDasharray="6 4"
-                  dot={{ r: 5, fill: 'var(--color-air-temp)', stroke: '#fff', strokeWidth: 2 }}
-                  activeDot={{ r: 7, fill: 'var(--color-air-temp)', stroke: '#fff', strokeWidth: 2 }}
+                  dot={false}
+                  activeDot={{ r: 4, fill: 'var(--color-air-temp)', stroke: '#fff', strokeWidth: 1.5 }}
                   name="Air"
                   connectNulls={true}
                   isAnimationActive={false}
