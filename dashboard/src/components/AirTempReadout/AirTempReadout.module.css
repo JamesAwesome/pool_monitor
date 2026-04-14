@@ -1,0 +1,19 @@
+.readout {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.label {
+  font-weight: 600;
+}
+
+.value {
+  color: var(--color-text);
+}
+
+.condition {
+  opacity: 0.8;
+}

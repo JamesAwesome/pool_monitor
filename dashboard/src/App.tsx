@@ -10,14 +10,14 @@ import { SensorSelector } from './components/SensorSelector';
 import styles from './App.module.css';
 
 function Dashboard() {
-  const { stats, history, batteries, range, setRange, loading, error, sensors, selectedSensor, setSelectedSensor } = usePoolData();
+  const { stats, history, batteries, range, setRange, loading, error, sensors, selectedSensor, setSelectedSensor, airCurrent } = usePoolData();
 
   return (
     <main className={styles.main}>
       <div className="container">
         {error && !loading && stats && <p className={styles.error}>{error}</p>}
         <SensorSelector sensors={sensors} selected={selectedSensor} onSelect={setSelectedSensor} />
-        <CurrentTemp value={stats?.current ?? null} loading={loading} />
+        <CurrentTemp value={stats?.current ?? null} loading={loading} airCurrent={airCurrent} />
         <StatsGrid stats={stats} loading={loading} selectedSensor={selectedSensor} range={range} />
         <TempChart data={history} range={range} onRangeChange={setRange} loading={loading} />
         <BatteryStatus batteries={batteries} loading={loading} />
