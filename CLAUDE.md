@@ -122,7 +122,9 @@ All time-series queries use `aggregateWindow` with `fn: mean` (temperature) or `
 | 30D | 2h | 360 | |
 | Custom | auto | varies | Scales by date span (5m–6h) |
 
-Battery history uses `6h` windows with `createEmpty: true` + `fill(usePrevious: true)` since battery level is a held state between sparse reports.
+Battery history uses `6h` windows with `createEmpty: true` + `fill(usePrevious: true)` since battery level is a held state between sparse reports. Pool history also uses `fill(usePrevious)` to hold readings across sensor dropouts, then applies a client-side EMA (alpha=0.25) in `TempChart` to smooth the stair-stepping caused by 0.1°C sensor resolution.
+
+**Measurement filtering:** All pool Flux queries must include `filter(fn: (r) => r._measurement == "mqtt_consumer")` because the `weather` sidecar writes a `temperature_C` field too and would otherwise leak into pool stats, history, sensor list, and season queries. The weather queries filter on `_measurement == "weather"`.
 
 ### Temperature color zones
 | Zone | Threshold |
@@ -143,7 +145,7 @@ Battery history uses `6h` windows with `createEmpty: true` + `fill(usePrevious: 
 | `PUBLIC_URL` | No | Absolute URL for OG image (default: request Host header) |
 | `TIMEZONE` | No | IANA timezone for OG image and server-side dates (default: America/New_York). Also sets `TZ` in the container. |
 | `WEATHERAPI_KEY` | Yes (for weather) | weatherapi.com API key |
-| `WEATHER_LOCATION` | Yes (for weather) | Location string passed to weatherapi |
+| `WEATHER_LOCATION` | Yes (for weather) | Location passed to weatherapi `q` param. Use a zip code or `City, State, Country` — bare city names like `Cheltenham, PA` resolve to the wrong place (e.g. Cheltenham UK). The worker stores the API-resolved `name, region, country` as the `location` tag so mismatches are visible. |
 
 ### Rebuilding the dashboard
 ```bash
