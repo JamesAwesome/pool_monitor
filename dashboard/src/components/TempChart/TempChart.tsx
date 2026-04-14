@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -53,15 +53,6 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
   const [showCustom, setShowCustom] = useState(false);
   const [airVisible, setAirVisible] = useState(true);
   const hasAir = !!airHistory && airHistory.length > 0;
-
-  // Animate only on first render after a (re)mount. Combined with `key={range}`
-  // below, this gives us the recharts intro animation on page load and on range
-  // switch, but not on live polling refreshes inside the same range.
-  const firstRenderRef = useRef(true);
-  useEffect(() => {
-    firstRenderRef.current = false;
-  }, []);
-  const animate = firstRenderRef.current;
 
   const smoothedPool = useMemo(() => {
     if (data.length === 0) return data;
@@ -147,7 +138,7 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
           <div className={styles.loading}>Loading chart...</div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart key={range} data={chartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
+            <ComposedChart data={chartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
               <defs>
                 <linearGradient id="tempGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.4} />
@@ -213,9 +204,7 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
                 fill="url(#tempGradient)"
                 dot={false}
                 activeDot={{ r: 5, fill: '#38bdf8', stroke: '#fff', strokeWidth: 2 }}
-                isAnimationActive={animate}
-                animationDuration={700}
-                animationEasing="ease-out"
+                isAnimationActive={false}
               />
               {hasAir && (
                 <Line
@@ -228,9 +217,7 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
                   activeDot={{ r: 4, fill: 'var(--color-air-temp)', stroke: '#fff', strokeWidth: 1.5 }}
                   name="Air"
                   connectNulls={true}
-                  isAnimationActive={animate}
-                  animationDuration={700}
-                  animationEasing="ease-out"
+                  isAnimationActive={false}
                   hide={!airVisible}
                   legendType={airVisible ? 'plainline' : 'line'}
                 />
