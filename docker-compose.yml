@@ -123,7 +123,7 @@ services:
     profiles: ["standalone", "server"]
     environment:
       WEATHERAPI_KEY: ${WEATHERAPI_KEY}
-      WEATHER_LOCATION: ${WEATHER_LOCATION:-Cheltenham, PA}
+      WEATHER_LOCATION: ${WEATHER_LOCATION:-19012}
       WEATHER_INTERVAL_MINUTES: ${WEATHER_INTERVAL_MINUTES:-30}
       INFLUXDB_URL: http://influxdb:8086
       INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}

@@ -1,10 +1,15 @@
 import { Point } from '@influxdata/influxdb-client'
 import type { WeatherResponse } from './weatherapi.js'
 
-export function buildWeatherPoint(res: WeatherResponse, location: string): Point {
+export function resolvedLocation(res: WeatherResponse): string {
+  const { name, region, country } = res.location
+  return [name, region, country].filter((s) => s && s.trim() !== '').join(', ')
+}
+
+export function buildWeatherPoint(res: WeatherResponse, _queryLocation: string): Point {
   const c = res.current
   return new Point('weather')
-    .tag('location', location)
+    .tag('location', resolvedLocation(res))
     .tag('condition', c.condition.text)
     .tag('source', 'weatherapi')
     .floatField('temperature_C', c.temp_c)

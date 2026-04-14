@@ -7,7 +7,7 @@ describe('buildWeatherPoint', () => {
     const point = buildWeatherPoint(fixture, 'Cheltenham, PA')
     const line = point.toLineProtocol({ defaultTags: {} })!
     expect(line).toContain('weather,')
-    expect(line).toContain('location=Cheltenham\\,\\ PA')
+    expect(line).toContain('location=Cheltenham\\,\\ Pennsylvania\\,\\ United\\ States\\ of\\ America')
     expect(line).toContain('condition=Sunny')
     expect(line).toContain('source=weatherapi')
     expect(line).toContain('temperature_C=17.2')

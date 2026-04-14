@@ -20,7 +20,7 @@ export interface WeatherCurrent {
 }
 
 export interface WeatherResponse {
-  location: { name: string }
+  location: { name: string; region?: string; country?: string }
   current: WeatherCurrent
 }
 

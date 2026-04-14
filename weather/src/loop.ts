@@ -1,5 +1,5 @@
 import type { Point } from '@influxdata/influxdb-client'
-import { buildWeatherPoint } from './point.js'
+import { buildWeatherPoint, resolvedLocation } from './point.js'
 import type { WeatherResponse } from './weatherapi.js'
 
 export interface TickerDeps {
@@ -31,7 +31,7 @@ export function createTicker(deps: TickerDeps): () => Promise<void> {
     try {
       await deps.writer.write(point)
       lastEpoch = epoch
-      deps.log(`wrote: temperature_C=${res.current.temp_c} epoch=${epoch}`)
+      deps.log(`wrote: resolved="${resolvedLocation(res)}" temperature_C=${res.current.temp_c} epoch=${epoch}`)
     } catch (err) {
       deps.log(`error: influx write failed: ${err instanceof Error ? err.message : String(err)}`)
     }

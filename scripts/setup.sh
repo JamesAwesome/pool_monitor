@@ -118,9 +118,10 @@ fi
 echo ""
 echo "--- Weather sidecar (optional) ---"
 echo "Leave the API key blank to skip the weather sidecar."
+echo "Use a zip code or 'City, State, Country' — bare city names are ambiguous."
 read -rp "weatherapi.com API key: " WEATHERAPI_KEY
-read -rp "Weather location [Cheltenham, PA]: " WEATHER_LOCATION
-WEATHER_LOCATION="${WEATHER_LOCATION:-Cheltenham, PA}"
+read -rp "Weather location [19012]: " WEATHER_LOCATION
+WEATHER_LOCATION="${WEATHER_LOCATION:-19012}"
 
 # Append weather config to .env
 echo "WEATHERAPI_KEY=${WEATHERAPI_KEY}" >> "$PROJECT_DIR/.env"
