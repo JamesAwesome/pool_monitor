@@ -125,6 +125,27 @@ if [ "$DEPLOY_MODE" = "server" ] || [ "$DEPLOY_MODE" = "standalone" ]; then
       warn "No data in InfluxDB from the last hour"
     fi
   fi
+
+  # Weather checks (only when WEATHERAPI_KEY is configured)
+  if [ -n "${WEATHERAPI_KEY:-}" ]; then
+    echo ""
+    echo "  Weather sidecar:"
+    if docker ps --format '{{.Names}}' | grep -q '^weather$'; then
+      pass "weather container is running"
+    else
+      fail "weather container is not running"
+    fi
+
+    if [ -n "${INFLUXDB_TOKEN:-}" ] && docker ps --format '{{.Names}}' | grep -q '^influxdb$'; then
+      FLUX='from(bucket: "'"${INFLUXDB_BUCKET:-pool_temps}"'") |> range(start: -2h) |> filter(fn: (r) => r._measurement == "weather") |> filter(fn: (r) => r._field == "temperature_C") |> last()'
+      RESULT=$(docker exec influxdb influx query --org "${INFLUXDB_ORG:-pool}" --token "${INFLUXDB_TOKEN}" "${FLUX}" 2>/dev/null || true)
+      if echo "${RESULT}" | grep -q temperature_C; then
+        pass "Recent weather data in InfluxDB (within last 2h)"
+      else
+        warn "No recent weather data in InfluxDB (expected within last 2h)"
+      fi
+    fi
+  fi
   echo ""
 fi
 
