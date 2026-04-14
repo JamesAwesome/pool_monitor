@@ -56,8 +56,8 @@ export function usePoolData(refreshInterval = 30000): UsePoolDataReturn {
       .catch(() => {});
   }, []);
 
-  const fetchData = useCallback(async (currentRange: string, currentSensor: string | null) => {
-    if (!hasFetchedOnce.current) {
+  const fetchData = useCallback(async (currentRange: string, currentSensor: string | null, showLoading = false) => {
+    if (!hasFetchedOnce.current || showLoading) {
       setLoading(true);
     }
 
@@ -114,7 +114,10 @@ export function usePoolData(refreshInterval = 30000): UsePoolDataReturn {
 
   // Fetch on mount and when range or sensor changes
   useEffect(() => {
-    fetchData(range, selectedSensor);
+    // Show loading on the initial fetch and whenever range or sensor changes,
+    // so the chart unmounts and cleanly re-animates on the new data. Interval
+    // and visibility refreshes stay silent.
+    fetchData(range, selectedSensor, true);
 
     const id = setInterval(() => {
       fetchData(range, selectedSensor);
