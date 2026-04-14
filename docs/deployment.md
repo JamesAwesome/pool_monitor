@@ -119,6 +119,18 @@ In split mode, the MQTT port (1883) is exposed on the Pi's network interface. Th
 - Always enable MQTT authentication in split mode
 - If the server is not on the same LAN as the Pi, connect them with a VPN (e.g., Tailscale or WireGuard) rather than exposing MQTT to the internet
 
+## Weather sidecar (optional)
+
+A small Node sidecar can pull outdoor air temperature from [weatherapi.com](https://www.weatherapi.com/) every 30 minutes and write it to InfluxDB, so the dashboard can show air temperature alongside pool temperature.
+
+To enable:
+
+1. Get a free API key at https://www.weatherapi.com/
+2. Set `WEATHERAPI_KEY` and `WEATHER_LOCATION` in `.env` (or re-run `./scripts/setup.sh`)
+3. Run `./scripts/start.sh` — the `weather` container starts automatically on the `standalone` and `server` profiles
+
+If `WEATHERAPI_KEY` is empty, `start.sh` skips the weather container. Data appears in the dashboard within ~30 minutes of the first successful fetch.
+
 ## Troubleshooting
 
 **"Connection refused" in Telegraf logs**
