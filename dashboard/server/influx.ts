@@ -146,7 +146,9 @@ export async function queryHistory(range: string, sensorId?: string): Promise<Ar
       |> filter(fn: (r) => r._measurement == "mqtt_consumer")
       |> filter(fn: (r) => r._field == "temperature_C")${sensorFilter}
       |> ${groupClause}
-      |> aggregateWindow(every: ${period}, fn: mean, createEmpty: false)
+      |> aggregateWindow(every: ${period}, fn: mean, createEmpty: true)
+      |> fill(column: "_value", usePrevious: true)
+      |> filter(fn: (r) => exists r._value)
       |> yield(name: "history")
   `
 
