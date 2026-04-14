@@ -29,6 +29,7 @@ function fluxQuery(range: string, field: string, aggregation: string, yieldName:
   return `
     from(bucket: "${bucket}")
       |> range(${parseRange(range)})
+      |> filter(fn: (r) => r._measurement == "mqtt_consumer")
       |> filter(fn: (r) => r._field == "${field}")${sensorFilter}
       |> ${groupClause}
       |> ${aggregation}
@@ -42,6 +43,7 @@ function fluxQueryAbsolute(start: string, field: string, aggregation: string, yi
   return `
     from(bucket: "${bucket}")
       |> range(start: ${start})
+      |> filter(fn: (r) => r._measurement == "mqtt_consumer")
       |> filter(fn: (r) => r._field == "${field}")${sensorFilter}
       |> ${groupClause}
       |> ${aggregation}
@@ -58,6 +60,7 @@ export async function querySensors(): Promise<Array<{ id: string; model: string 
   const query = `
     from(bucket: "${bucket}")
       |> range(start: -24h)
+      |> filter(fn: (r) => r._measurement == "mqtt_consumer")
       |> filter(fn: (r) => r._field == "temperature_C")
       |> keep(columns: ["id", "model"])
       |> distinct(column: "id")
@@ -140,9 +143,12 @@ export async function queryHistory(range: string, sensorId?: string): Promise<Ar
   const query = `
     from(bucket: "${bucket}")
       |> range(${parseRange(range)})
+      |> filter(fn: (r) => r._measurement == "mqtt_consumer")
       |> filter(fn: (r) => r._field == "temperature_C")${sensorFilter}
       |> ${groupClause}
-      |> aggregateWindow(every: ${period}, fn: mean, createEmpty: false)
+      |> aggregateWindow(every: ${period}, fn: mean, createEmpty: true)
+      |> fill(column: "_value", usePrevious: true)
+      |> filter(fn: (r) => exists r._value)
       |> yield(name: "history")
   `
 
@@ -197,6 +203,7 @@ export async function querySeasonHistory(sensorId?: string): Promise<
       const query = `
         base = from(bucket: "${bucket}")
           |> range(start: ${start}, stop: ${stop})
+          |> filter(fn: (r) => r._measurement == "mqtt_consumer")
           |> filter(fn: (r) => r._field == "temperature_C")${sensorFilter}
           |> ${groupClause}
 
@@ -287,6 +294,7 @@ export async function queryStatDetail(
       const query = `
         base = from(bucket: "${bucket}")
           |> range(start: ${period.start}, stop: ${period.stop})
+          |> filter(fn: (r) => r._measurement == "mqtt_consumer")
           |> filter(fn: (r) => r._field == "temperature_C")${sensorFilter}
           |> ${groupClause}
 
@@ -333,4 +341,62 @@ export async function queryBatteryHistory(sensorId: string): Promise<Array<{ tim
 
   const rows = await api.collectRows<{ _time: string; _value: number }>(query)
   return rows.map((r) => ({ time: r._time, value: r._value * 100 }))
+}
+
+export interface WeatherCurrent {
+  temperature_C: number
+  feelslike_C: number
+  humidity: number
+  condition: string
+  location: string
+  timestamp: string
+}
+
+interface WeatherCurrentRow {
+  _time: string
+  temperature_C: number
+  feelslike_C: number
+  humidity: number
+  condition: string
+  location: string
+}
+
+export async function queryWeatherCurrent(): Promise<WeatherCurrent | null> {
+  const api = getQueryApi()
+  const query = `
+    from(bucket: "${bucket}")
+      |> range(start: -6h)
+      |> filter(fn: (r) => r._measurement == "weather")
+      |> filter(fn: (r) => r._field == "temperature_C" or r._field == "feelslike_C" or r._field == "humidity")
+      |> last()
+      |> pivot(rowKey: ["_time", "location", "condition"], columnKey: ["_field"], valueColumn: "_value")
+      |> keep(columns: ["_time", "temperature_C", "feelslike_C", "humidity", "location", "condition"])
+  `
+  const rows = await api.collectRows<WeatherCurrentRow>(query)
+  if (rows.length === 0) return null
+  const r = rows[0]
+  return {
+    temperature_C: r.temperature_C,
+    feelslike_C: r.feelslike_C,
+    humidity: r.humidity,
+    condition: r.condition,
+    location: r.location,
+    timestamp: r._time,
+  }
+}
+
+export async function queryWeatherHistory(range: string): Promise<Array<{ time: string; value: number }>> {
+  const api = getQueryApi()
+  const period = windowPeriod(range)
+  const query = `
+    from(bucket: "${bucket}")
+      |> range(${parseRange(range)})
+      |> filter(fn: (r) => r._measurement == "weather")
+      |> filter(fn: (r) => r._field == "temperature_C")
+      |> group()
+      |> aggregateWindow(every: ${period}, fn: mean, createEmpty: false)
+      |> yield(name: "weather_history")
+  `
+  const rows = await api.collectRows<HistoryRow>(query)
+  return rows.map((r) => ({ time: r._time, value: r._value }))
 }

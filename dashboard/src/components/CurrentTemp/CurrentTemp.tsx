@@ -1,11 +1,13 @@
 import { useTheme } from '../../context/ThemeContext';
 import { formatTemperature, getTemperatureColor } from '../../utils/temperature';
-import type { TemperatureZone } from '../../types';
+import type { TemperatureZone, WeatherCurrent } from '../../types';
+import { AirTempReadout } from '../AirTempReadout/AirTempReadout';
 import styles from './CurrentTemp.module.css';
 
 interface CurrentTempProps {
   value: number | null;
   loading: boolean;
+  airCurrent?: WeatherCurrent | null;
 }
 
 const zoneColorVar: Record<TemperatureZone, string> = {
@@ -15,7 +17,7 @@ const zoneColorVar: Record<TemperatureZone, string> = {
   cool: 'var(--color-primary)',
 };
 
-export function CurrentTemp({ value, loading }: CurrentTempProps) {
+export function CurrentTemp({ value, loading, airCurrent }: CurrentTempProps) {
   const { unit } = useTheme();
 
   const hasValue = !loading && value !== null;
@@ -45,6 +47,7 @@ export function CurrentTemp({ value, loading }: CurrentTempProps) {
           </span>
         </div>
       )}
+      <AirTempReadout data={airCurrent ?? null} unit={unit} />
       <p className={styles.label}>Current Pool Temperature</p>
     </div>
   );

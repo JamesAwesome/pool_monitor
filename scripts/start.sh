@@ -15,4 +15,8 @@ fi
 DEPLOY_MODE="${DEPLOY_MODE:-standalone}"
 
 echo "Starting pool monitor in '$DEPLOY_MODE' mode..."
-docker compose --project-directory "$PROJECT_DIR" --profile "$DEPLOY_MODE" up -d "$@"
+if [ -z "${WEATHERAPI_KEY:-}" ]; then
+  docker compose --project-directory "$PROJECT_DIR" --profile "$DEPLOY_MODE" up -d --scale weather=0 "$@"
+else
+  docker compose --project-directory "$PROJECT_DIR" --profile "$DEPLOY_MODE" up -d "$@"
+fi

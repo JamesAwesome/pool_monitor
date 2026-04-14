@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { parseRange, windowPeriod, computePeriods } from './influx';
 
 describe('parseRange', () => {
@@ -135,3 +135,79 @@ describe('computePeriods', () => {
     expect(duration).toBe(24 * 3600 * 1000)
   })
 });
+
+// ---------------------------------------------------------------------------
+// queryWeatherCurrent and queryWeatherHistory — need to mock getQueryApi
+// ---------------------------------------------------------------------------
+
+// vi.mock is hoisted, so we hold the spy in a shared object reference that
+// is closed over by the factory (plain object, not a const binding).
+const queryApiStub = { collectRows: vi.fn() }
+
+vi.mock('@influxdata/influxdb-client', () => {
+  function InfluxDB(this: { getQueryApi: () => typeof queryApiStub }) {
+    this.getQueryApi = () => queryApiStub
+  }
+  return { InfluxDB }
+})
+
+// Re-import after mock is set up
+const { queryWeatherCurrent, queryWeatherHistory } = await import('./influx')
+
+beforeEach(() => {
+  queryApiStub.collectRows.mockReset()
+})
+
+describe('queryWeatherCurrent', () => {
+  it('returns mapped object with timestamp when rows are returned', async () => {
+    const row = {
+      _time: '2026-04-14T12:00:00Z',
+      temperature_C: 21.5,
+      feelslike_C: 20.0,
+      humidity: 55,
+      condition: 'Sunny',
+      location: 'My Pool',
+    }
+    queryApiStub.collectRows.mockResolvedValueOnce([row])
+
+    const result = await queryWeatherCurrent()
+
+    expect(result).toEqual({
+      temperature_C: 21.5,
+      feelslike_C: 20.0,
+      humidity: 55,
+      condition: 'Sunny',
+      location: 'My Pool',
+      timestamp: '2026-04-14T12:00:00Z',
+    })
+  })
+
+  it('returns null when no rows', async () => {
+    queryApiStub.collectRows.mockResolvedValueOnce([])
+    const result = await queryWeatherCurrent()
+    expect(result).toBeNull()
+  })
+})
+
+describe('queryWeatherHistory', () => {
+  it('returns time/value pairs from rows', async () => {
+    const rows = [
+      { _time: '2026-04-14T10:00:00Z', _value: 19.5 },
+      { _time: '2026-04-14T11:00:00Z', _value: 20.1 },
+    ]
+    queryApiStub.collectRows.mockResolvedValueOnce(rows)
+
+    const result = await queryWeatherHistory('24h')
+
+    expect(result).toEqual([
+      { time: '2026-04-14T10:00:00Z', value: 19.5 },
+      { time: '2026-04-14T11:00:00Z', value: 20.1 },
+    ])
+  })
+
+  it('returns empty array when no rows', async () => {
+    queryApiStub.collectRows.mockResolvedValueOnce([])
+    const result = await queryWeatherHistory('3d')
+    expect(result).toEqual([])
+  })
+})

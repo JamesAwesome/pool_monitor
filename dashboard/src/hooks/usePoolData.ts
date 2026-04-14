@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { PoolStats, TimeSeriesPoint, SensorBattery, SensorInfo } from '../types';
+import type { PoolStats, TimeSeriesPoint, SensorBattery, SensorInfo, WeatherCurrent } from '../types';
 
 function timeSeriesChanged(prev: TimeSeriesPoint[], next: TimeSeriesPoint[]): boolean {
   if (prev.length !== next.length) return true;
@@ -30,6 +30,8 @@ export interface UsePoolDataReturn {
   sensors: SensorInfo[];
   selectedSensor: string | null;
   setSelectedSensor: (id: string | null) => void;
+  airCurrent: WeatherCurrent | null;
+  airHistory: TimeSeriesPoint[];
 }
 
 export function usePoolData(refreshInterval = 30000): UsePoolDataReturn {
@@ -41,6 +43,8 @@ export function usePoolData(refreshInterval = 30000): UsePoolDataReturn {
   const [error, setError] = useState<string | null>(null);
   const [sensors, setSensors] = useState<SensorInfo[]>([]);
   const [selectedSensor, setSelectedSensor] = useState<string | null>(null);
+  const [airCurrent, setAirCurrent] = useState<WeatherCurrent | null>(null);
+  const [airHistory, setAirHistory] = useState<TimeSeriesPoint[]>([]);
   const hasFetchedOnce = useRef(false);
   const statsRef = useRef<PoolStats | null>(null);
   const historyRef = useRef<TimeSeriesPoint[]>([]);
@@ -74,6 +78,17 @@ export function usePoolData(refreshInterval = 30000): UsePoolDataReturn {
         historyRes.json() as Promise<TimeSeriesPoint[]>,
         batteryRes.json() as Promise<SensorBattery[]>,
       ]);
+
+      // Fetch weather data in parallel; failures must not break the rest of the dashboard
+      fetch('/api/weather/current')
+        .then((res) => res.ok ? res.json() as Promise<WeatherCurrent> : null)
+        .then((data) => setAirCurrent(data))
+        .catch(() => setAirCurrent(null));
+
+      fetch(`/api/weather/history?range=${encodeURIComponent(currentRange)}`)
+        .then((res) => res.ok ? res.json() as Promise<TimeSeriesPoint[]> : [])
+        .then((data) => setAirHistory(data ?? []))
+        .catch(() => setAirHistory([]));
 
       if (statsChanged(statsRef.current, statsData)) {
         statsRef.current = statsData;
@@ -119,5 +134,5 @@ export function usePoolData(refreshInterval = 30000): UsePoolDataReturn {
     };
   }, [range, selectedSensor, refreshInterval, fetchData]);
 
-  return { stats, history, batteries, range, setRange, loading, error, sensors, selectedSensor, setSelectedSensor };
+  return { stats, history, batteries, range, setRange, loading, error, sensors, selectedSensor, setSelectedSensor, airCurrent, airHistory };
 }

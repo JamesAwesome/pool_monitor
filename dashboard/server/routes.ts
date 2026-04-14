@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { querySensors, queryStats, queryHistory, queryBatteries, queryBatteryHistory, querySeasonHistory, queryStatDetail } from './influx.js'
+import { querySensors, queryStats, queryHistory, queryBatteries, queryBatteryHistory, querySeasonHistory, queryStatDetail, queryWeatherCurrent, queryWeatherHistory } from './influx.js'
 import { generateOgImage } from './og-image.js'
 
 function isValidSensorId(id: string): boolean {
@@ -126,6 +126,27 @@ router.get('/api/stat-detail', async (req, res) => {
     }
     const detail = await queryStatDetail(range, stat, sensor)
     res.json(detail)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    res.status(500).json({ error: message })
+  }
+})
+
+router.get('/api/weather/current', async (_req, res) => {
+  try {
+    const data = await queryWeatherCurrent()
+    res.json(data)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    res.status(500).json({ error: message })
+  }
+})
+
+router.get('/api/weather/history', async (req, res) => {
+  try {
+    const range = typeof req.query.range === 'string' ? req.query.range : '24h'
+    const history = await queryWeatherHistory(range)
+    res.json(history)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     res.status(500).json({ error: message })

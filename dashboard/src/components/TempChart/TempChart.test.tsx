@@ -8,8 +8,9 @@ vi.mock('../../context/ThemeContext', () => ({
 
 vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="chart-container">{children}</div>,
-  AreaChart: ({ children }: { children: React.ReactNode }) => <div data-testid="line-chart">{children}</div>,
+  ComposedChart: ({ children }: { children: React.ReactNode }) => <div data-testid="line-chart">{children}</div>,
   Area: () => <div data-testid="chart-line" />,
+  Line: () => <div data-testid="chart-air-line" />,
   XAxis: () => null,
   YAxis: () => null,
   Tooltip: () => null,

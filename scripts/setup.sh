@@ -116,6 +116,22 @@ if [ "$DEPLOY_MODE" = "server" ]; then
 fi
 
 echo ""
+echo "--- Weather sidecar (optional) ---"
+echo "Leave the API key blank to skip the weather sidecar."
+echo "Use a zip code or 'City, State, Country' — bare city names are ambiguous."
+read -rp "weatherapi.com API key: " WEATHERAPI_KEY
+read -rp "Weather location [19012]: " WEATHER_LOCATION
+WEATHER_LOCATION="${WEATHER_LOCATION:-19012}"
+
+# Append weather config to .env
+echo "WEATHERAPI_KEY=${WEATHERAPI_KEY}" >> "$PROJECT_DIR/.env"
+echo "WEATHER_LOCATION=${WEATHER_LOCATION}" >> "$PROJECT_DIR/.env"
+
+if [ -z "${WEATHERAPI_KEY}" ]; then
+  echo "Weather sidecar disabled (no API key). Add WEATHERAPI_KEY to .env later to enable."
+fi
+
+echo ""
 echo "Setup complete! Next steps:"
 echo "  1. Review and edit .env with your values"
 echo "  2. Start:  ./scripts/start.sh"

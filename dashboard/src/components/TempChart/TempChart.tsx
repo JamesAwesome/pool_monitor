@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react';
 import {
   ResponsiveContainer,
-  AreaChart,
+  ComposedChart,
   Area,
+  Line,
   XAxis,
   YAxis,
   Tooltip,
   CartesianGrid,
-  ReferenceLine,
+  Legend,
 } from 'recharts';
 import { useTheme } from '../../context/ThemeContext';
 import { celsiusToFahrenheit } from '../../utils/temperature';
@@ -20,6 +21,7 @@ interface TempChartProps {
   range: string;
   onRangeChange: (range: string) => void;
   loading: boolean;
+  airHistory?: TimeSeriesPoint[];
 }
 
 const QUICK_RANGES = [
@@ -30,7 +32,6 @@ const QUICK_RANGES = [
   { key: '7d', label: '7D' },
   { key: '30d', label: '30D' },
 ];
-const THRESHOLD_C = 32.2;
 
 function formatXTick(time: string, range: string, spansMultipleDays: boolean): string {
   const date = new Date(time);
@@ -45,20 +46,52 @@ function formatXTick(time: string, range: string, spansMultipleDays: boolean): s
   return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
-export function TempChart({ data, range, onRangeChange, loading }: TempChartProps) {
+export function TempChart({ data, range, onRangeChange, loading, airHistory }: TempChartProps) {
   const { unit } = useTheme();
   const isFahrenheit = unit === 'F';
 
   const [showCustom, setShowCustom] = useState(false);
+  const [airVisible, setAirVisible] = useState(true);
+  const hasAir = !!airHistory && airHistory.length > 0;
 
-  const chartData = useMemo(
-    () =>
-      data.map((pt) => ({
-        time: pt.time,
-        value: isFahrenheit ? celsiusToFahrenheit(pt.value) : pt.value,
-      })),
-    [data, isFahrenheit],
-  );
+  const smoothedPool = useMemo(() => {
+    if (data.length === 0) return data;
+    const alpha = 0.25;
+    const out: TimeSeriesPoint[] = [];
+    let ema = data[0].value;
+    for (const pt of data) {
+      ema = alpha * pt.value + (1 - alpha) * ema;
+      out.push({ time: pt.time, value: ema });
+    }
+    return out;
+  }, [data]);
+
+  const chartData = useMemo(() => {
+    const poolMap = new Map(
+      smoothedPool.map((pt) => [
+        pt.time,
+        { time: pt.time, value: isFahrenheit ? celsiusToFahrenheit(pt.value) : pt.value } as {
+          time: string;
+          value: number;
+          airValue?: number;
+        },
+      ]),
+    );
+
+    if (airHistory && airHistory.length > 0) {
+      for (const pt of airHistory) {
+        const airVal = isFahrenheit ? celsiusToFahrenheit(pt.value) : pt.value;
+        const existing = poolMap.get(pt.time);
+        if (existing) {
+          existing.airValue = airVal;
+        } else {
+          poolMap.set(pt.time, { time: pt.time, value: undefined as unknown as number, airValue: airVal });
+        }
+      }
+    }
+
+    return Array.from(poolMap.values()).sort((a, b) => a.time.localeCompare(b.time));
+  }, [smoothedPool, airHistory, isFahrenheit]);
 
   const spansMultipleDays = useMemo(() => {
     if (data.length < 2) return false;
@@ -67,7 +100,6 @@ export function TempChart({ data, range, onRangeChange, loading }: TempChartProp
     return first.toDateString() !== last.toDateString();
   }, [data]);
 
-  const thresholdValue = isFahrenheit ? celsiusToFahrenheit(THRESHOLD_C) : THRESHOLD_C;
   const unitLabel = isFahrenheit ? '°F' : '°C';
 
   return (
@@ -106,7 +138,7 @@ export function TempChart({ data, range, onRangeChange, loading }: TempChartProp
           <div className={styles.loading}>Loading chart...</div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
+            <ComposedChart data={chartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
               <defs>
                 <linearGradient id="tempGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.4} />
@@ -135,7 +167,7 @@ export function TempChart({ data, range, onRangeChange, loading }: TempChartProp
                 domain={['auto', 'auto']}
               />
               <Tooltip
-                formatter={(v: number) => [`${v.toFixed(1)}${unitLabel}`, 'Temperature']}
+                formatter={(v: number, name: string) => [`${v.toFixed(1)}${unitLabel}`, name === 'Air' ? 'Air temp' : 'Pool temp']}
                 labelFormatter={(t: string) => new Date(t).toLocaleString()}
                 contentStyle={{
                   background: 'rgba(15, 23, 42, 0.9)',
@@ -148,18 +180,48 @@ export function TempChart({ data, range, onRangeChange, loading }: TempChartProp
                 }}
                 cursor={{ stroke: 'rgba(56, 189, 248, 0.3)', strokeWidth: 1 }}
               />
-              <ReferenceLine y={thresholdValue} stroke="#f87171" strokeDasharray="6 4" strokeOpacity={0.7}
-                label={{ value: `${thresholdValue.toFixed(1)}${unitLabel}`, position: 'right', fontSize: 11, fill: '#f87171' }} />
+              {hasAir && (
+                <Legend
+                  verticalAlign="top"
+                  height={28}
+                  iconType="plainline"
+                  wrapperStyle={{ fontSize: 12, cursor: 'pointer' }}
+                  onClick={(entry) => {
+                    if (entry.dataKey === 'airValue') setAirVisible((v) => !v);
+                  }}
+                  formatter={(value, entry) => {
+                    const dimmed = entry.dataKey === 'airValue' && !airVisible;
+                    return <span style={{ color: dimmed ? 'var(--color-text-secondary)' : 'var(--color-text)', opacity: dimmed ? 0.5 : 1 }}>{value}</span>;
+                  }}
+                />
+              )}
               <Area
-                type="monotone"
+                type="basis"
                 dataKey="value"
+                name="Pool"
                 stroke="#38bdf8"
                 strokeWidth={2.5}
                 fill="url(#tempGradient)"
                 dot={false}
                 activeDot={{ r: 5, fill: '#38bdf8', stroke: '#fff', strokeWidth: 2 }}
               />
-            </AreaChart>
+              {hasAir && (
+                <Line
+                  type="monotone"
+                  dataKey="airValue"
+                  stroke="var(--color-air-temp)"
+                  strokeWidth={2}
+                  strokeDasharray="6 4"
+                  dot={false}
+                  activeDot={{ r: 4, fill: 'var(--color-air-temp)', stroke: '#fff', strokeWidth: 1.5 }}
+                  name="Air"
+                  connectNulls={true}
+                  isAnimationActive={false}
+                  hide={!airVisible}
+                  legendType={airVisible ? 'plainline' : 'line'}
+                />
+              )}
+            </ComposedChart>
           </ResponsiveContainer>
         )}
       </div>

@@ -20,6 +20,7 @@ Everything runs as Docker containers via `docker-compose.yml`:
 - **InfluxDB 2** (v2.8.0) — time-series store on port 8086, Flux query language. Uses the v2 write API and Flux queries throughout (Telegraf output, Grafana datasource, dashboard JS client). InfluxDB 3.x exists but uses SQL instead of Flux and has a different write API — migrating would require rewriting all queries and reconfiguring Telegraf/Grafana. Not worth it at this scale. Note: the `aggregateWindow` `location` parameter (timezone-aligned windows) is only available in InfluxDB Cloud, not OSS 2.x.
 - **Grafana** — dashboards on port 3000, provisioned datasource and dashboards from `grafana/provisioning/`
 - **dashboard** (`dashboard/`) — React/Express SPA on port 8080, queries InfluxDB directly (see below)
+- **weather** (`weather/`) — Node/TS sidecar, polls weatherapi.com every 30 min, writes `weather` measurement to InfluxDB
 - **cloudflared** — Cloudflare Tunnel for public HTTPS access
 
 ## Common Commands
@@ -40,9 +41,9 @@ The project supports three Docker Compose profiles:
 
 | Profile | Services | Use Case |
 |---------|----------|----------|
-| `standalone` | All 7 services | Single machine (default, e.g., Raspberry Pi) |
+| `standalone` | All 7 services + weather | Single machine (default, e.g., Raspberry Pi) |
 | `edge` | mosquitto, rtl_433 | Pi as lightweight data collector |
-| `server` | telegraf, influxdb, grafana, dashboard, cloudflared | Remote server for storage and dashboards |
+| `server` | telegraf, influxdb, grafana, dashboard, weather, cloudflared | Remote server for storage and dashboards |
 
 `DEPLOY_MODE` in `.env` controls which profile the helper scripts use. The split boundary is MQTT — Telegraf on the server connects to Mosquitto on the Pi via `MQTT_HOST`.
 
@@ -91,6 +92,8 @@ pnpm typecheck        # TypeScript only
   - `/api/battery-history?sensor=X` — 7-day battery history for a sensor
   - `/api/season-history?sensor=X` — year-over-year avg/peak/low comparison
   - `/api/stat-detail?range=3d&stat=average|peak&sensor=X` — period-over-period breakdown (current + 2 previous equal-length periods)
+  - `/api/weather/current` — latest air temperature, feels-like, humidity, condition
+  - `/api/weather/history?range=...` — aggregated air temperature time series
   - `/api/health` — health check
   - `/og-image.png` — dynamically generated 1200x630 PNG with current temp (for iMessage/social previews, cached 5 min)
   - All data endpoints accept optional `?sensor=<id>` to filter by sensor; omit for averaged "all sensors" view.
@@ -119,7 +122,9 @@ All time-series queries use `aggregateWindow` with `fn: mean` (temperature) or `
 | 30D | 2h | 360 | |
 | Custom | auto | varies | Scales by date span (5m–6h) |
 
-Battery history uses `6h` windows with `createEmpty: true` + `fill(usePrevious: true)` since battery level is a held state between sparse reports.
+Battery history uses `6h` windows with `createEmpty: true` + `fill(usePrevious: true)` since battery level is a held state between sparse reports. Pool history also uses `fill(usePrevious)` to hold readings across sensor dropouts, then applies a client-side EMA (alpha=0.25) in `TempChart` to smooth the stair-stepping caused by 0.1°C sensor resolution.
+
+**Measurement filtering:** All pool Flux queries must include `filter(fn: (r) => r._measurement == "mqtt_consumer")` because the `weather` sidecar writes a `temperature_C` field too and would otherwise leak into pool stats, history, sensor list, and season queries. The weather queries filter on `_measurement == "weather"`.
 
 ### Temperature color zones
 | Zone | Threshold |
@@ -139,6 +144,8 @@ Battery history uses `6h` windows with `createEmpty: true` + `fill(usePrevious: 
 | `DASHBOARD_TITLE` | No | Header title (default: "Pool Dashboard"), build-time via `VITE_APP_TITLE` |
 | `PUBLIC_URL` | No | Absolute URL for OG image (default: request Host header) |
 | `TIMEZONE` | No | IANA timezone for OG image and server-side dates (default: America/New_York). Also sets `TZ` in the container. |
+| `WEATHERAPI_KEY` | Yes (for weather) | weatherapi.com API key |
+| `WEATHER_LOCATION` | Yes (for weather) | Location passed to weatherapi `q` param. Use a zip code or `City, State, Country` — bare city names like `Cheltenham, PA` resolve to the wrong place (e.g. Cheltenham UK). The worker stores the API-resolved `name, region, country` as the `location` tag so mismatches are visible. |
 
 ### Rebuilding the dashboard
 ```bash

@@ -45,3 +45,12 @@ export interface SeasonYear {
 export type TemperatureUnit = 'C' | 'F';
 export type Theme = 'light' | 'dark';
 export type TemperatureZone = 'hot' | 'warm' | 'normal' | 'cool';
+
+export interface WeatherCurrent {
+  temperature_C: number;
+  feelslike_C: number;
+  humidity: number;
+  condition: string;
+  location: string;
+  timestamp: string;
+}

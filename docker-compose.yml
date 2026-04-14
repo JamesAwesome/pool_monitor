@@ -115,6 +115,24 @@ services:
       influxdb:
         condition: service_healthy
 
+  weather:
+    build:
+      context: ./weather
+    container_name: weather
+    restart: unless-stopped
+    profiles: ["standalone", "server"]
+    environment:
+      WEATHERAPI_KEY: ${WEATHERAPI_KEY}
+      WEATHER_LOCATION: ${WEATHER_LOCATION:-19012}
+      WEATHER_INTERVAL_MINUTES: ${WEATHER_INTERVAL_MINUTES:-30}
+      INFLUXDB_URL: http://influxdb:8086
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
+      INFLUXDB_ORG: ${INFLUXDB_ORG}
+      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
+    depends_on:
+      influxdb:
+        condition: service_healthy
+
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared

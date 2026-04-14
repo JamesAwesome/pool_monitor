@@ -340,8 +340,8 @@ describe('usePoolData', () => {
       await vi.advanceTimersByTimeAsync(30000);
     });
 
-    // Should have made 3 more calls (stats, history, battery)
-    expect((fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(callCountAfterInit + 3);
+    // Should have made 5 more calls (stats, history, battery, weather/current, weather/history)
+    expect((fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(callCountAfterInit + 5);
 
     vi.useRealTimers();
   });
