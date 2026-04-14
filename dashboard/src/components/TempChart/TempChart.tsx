@@ -188,7 +188,7 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
                   strokeDasharray="4 4"
                   dot={false}
                   name="Air"
-                  connectNulls={false}
+                  connectNulls={true}
                 />
               )}
             </AreaChart>
