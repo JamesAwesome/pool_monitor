@@ -8,7 +8,6 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
-  ReferenceLine,
   Legend,
 } from 'recharts';
 import { useTheme } from '../../context/ThemeContext';
@@ -33,7 +32,6 @@ const QUICK_RANGES = [
   { key: '7d', label: '7D' },
   { key: '30d', label: '30D' },
 ];
-const THRESHOLD_C = 32.2;
 
 function formatXTick(time: string, range: string, spansMultipleDays: boolean): string {
   const date = new Date(time);
@@ -90,7 +88,6 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
     return first.toDateString() !== last.toDateString();
   }, [data]);
 
-  const thresholdValue = isFahrenheit ? celsiusToFahrenheit(THRESHOLD_C) : THRESHOLD_C;
   const unitLabel = isFahrenheit ? '°F' : '°C';
 
   return (
@@ -171,8 +168,6 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
                 }}
                 cursor={{ stroke: 'rgba(56, 189, 248, 0.3)', strokeWidth: 1 }}
               />
-              <ReferenceLine y={thresholdValue} stroke="#f87171" strokeDasharray="6 4" strokeOpacity={0.7}
-                label={{ value: `${thresholdValue.toFixed(1)}${unitLabel}`, position: 'right', fontSize: 11, fill: '#f87171' }} />
               {hasAir && (
                 <Legend
                   verticalAlign="top"
