@@ -334,3 +334,61 @@ export async function queryBatteryHistory(sensorId: string): Promise<Array<{ tim
   const rows = await api.collectRows<{ _time: string; _value: number }>(query)
   return rows.map((r) => ({ time: r._time, value: r._value * 100 }))
 }
+
+export interface WeatherCurrent {
+  temperature_C: number
+  feelslike_C: number
+  humidity: number
+  condition: string
+  location: string
+  timestamp: string
+}
+
+interface WeatherCurrentRow {
+  _time: string
+  temperature_C: number
+  feelslike_C: number
+  humidity: number
+  condition: string
+  location: string
+}
+
+export async function queryWeatherCurrent(): Promise<WeatherCurrent | null> {
+  const api = getQueryApi()
+  const query = `
+    from(bucket: "${bucket}")
+      |> range(start: -6h)
+      |> filter(fn: (r) => r._measurement == "weather")
+      |> filter(fn: (r) => r._field == "temperature_C" or r._field == "feelslike_C" or r._field == "humidity")
+      |> last()
+      |> pivot(rowKey: ["_time", "location", "condition"], columnKey: ["_field"], valueColumn: "_value")
+      |> keep(columns: ["_time", "temperature_C", "feelslike_C", "humidity", "location", "condition"])
+  `
+  const rows = await api.collectRows<WeatherCurrentRow>(query)
+  if (rows.length === 0) return null
+  const r = rows[0]
+  return {
+    temperature_C: r.temperature_C,
+    feelslike_C: r.feelslike_C,
+    humidity: r.humidity,
+    condition: r.condition,
+    location: r.location,
+    timestamp: r._time,
+  }
+}
+
+export async function queryWeatherHistory(range: string): Promise<Array<{ time: string; value: number }>> {
+  const api = getQueryApi()
+  const period = windowPeriod(range)
+  const query = `
+    from(bucket: "${bucket}")
+      |> range(${parseRange(range)})
+      |> filter(fn: (r) => r._measurement == "weather")
+      |> filter(fn: (r) => r._field == "temperature_C")
+      |> group()
+      |> aggregateWindow(every: ${period}, fn: mean, createEmpty: false)
+      |> yield(name: "weather_history")
+  `
+  const rows = await api.collectRows<HistoryRow>(query)
+  return rows.map((r) => ({ time: r._time, value: r._value }))
+}
