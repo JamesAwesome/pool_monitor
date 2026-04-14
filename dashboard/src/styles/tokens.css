@@ -19,7 +19,7 @@
   --color-warning: #d97706;
   --color-border: #c5d5e8;
   --color-focus: #1a6fc4;
-  --color-air-temp: #8a8f99;
+  --color-air-temp: #ea580c;
 
   /* Typography */
   --font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -74,7 +74,7 @@
   --color-warning: #fbbf24;
   --color-border: #2a3a54;
   --color-focus: #38bdf8;
-  --color-air-temp: #b0b4bd;
+  --color-air-temp: #fb923c;
 
   /* Shadows — Dark mode (subtle) */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);

@@ -184,11 +184,12 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
                   type="monotone"
                   dataKey="airValue"
                   stroke="var(--color-air-temp)"
-                  strokeWidth={1.5}
-                  strokeDasharray="4 4"
-                  dot={false}
+                  strokeWidth={2.5}
+                  strokeDasharray="5 4"
+                  dot={{ r: 3, fill: 'var(--color-air-temp)', stroke: 'var(--color-air-temp)' }}
                   name="Air"
                   connectNulls={true}
+                  isAnimationActive={false}
                 />
               )}
             </AreaChart>
