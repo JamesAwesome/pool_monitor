@@ -9,6 +9,7 @@ import {
   Tooltip,
   CartesianGrid,
   ReferenceLine,
+  Legend,
 } from 'recharts';
 import { useTheme } from '../../context/ThemeContext';
 import { celsiusToFahrenheit } from '../../utils/temperature';
@@ -52,6 +53,8 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
   const isFahrenheit = unit === 'F';
 
   const [showCustom, setShowCustom] = useState(false);
+  const [airVisible, setAirVisible] = useState(true);
+  const hasAir = !!airHistory && airHistory.length > 0;
 
   const chartData = useMemo(() => {
     const poolMap = new Map(
@@ -155,7 +158,7 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
                 domain={['auto', 'auto']}
               />
               <Tooltip
-                formatter={(v: number) => [`${v.toFixed(1)}${unitLabel}`, 'Temperature']}
+                formatter={(v: number, name: string) => [`${v.toFixed(1)}${unitLabel}`, name === 'Air' ? 'Air temp' : 'Pool temp']}
                 labelFormatter={(t: string) => new Date(t).toLocaleString()}
                 contentStyle={{
                   background: 'rgba(15, 23, 42, 0.9)',
@@ -170,16 +173,32 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
               />
               <ReferenceLine y={thresholdValue} stroke="#f87171" strokeDasharray="6 4" strokeOpacity={0.7}
                 label={{ value: `${thresholdValue.toFixed(1)}${unitLabel}`, position: 'right', fontSize: 11, fill: '#f87171' }} />
+              {hasAir && (
+                <Legend
+                  verticalAlign="top"
+                  height={28}
+                  iconType="plainline"
+                  wrapperStyle={{ fontSize: 12, cursor: 'pointer' }}
+                  onClick={(entry) => {
+                    if (entry.dataKey === 'airValue') setAirVisible((v) => !v);
+                  }}
+                  formatter={(value, entry) => {
+                    const dimmed = entry.dataKey === 'airValue' && !airVisible;
+                    return <span style={{ color: dimmed ? 'var(--color-text-secondary)' : 'var(--color-text)', opacity: dimmed ? 0.5 : 1 }}>{value}</span>;
+                  }}
+                />
+              )}
               <Area
                 type="monotone"
                 dataKey="value"
+                name="Pool"
                 stroke="#38bdf8"
                 strokeWidth={2.5}
                 fill="url(#tempGradient)"
                 dot={false}
                 activeDot={{ r: 5, fill: '#38bdf8', stroke: '#fff', strokeWidth: 2 }}
               />
-              {airHistory && airHistory.length > 0 && (
+              {hasAir && (
                 <Line
                   type="monotone"
                   dataKey="airValue"
@@ -191,6 +210,8 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
                   name="Air"
                   connectNulls={true}
                   isAnimationActive={false}
+                  hide={!airVisible}
+                  legendType={airVisible ? 'plainline' : 'line'}
                 />
               )}
             </ComposedChart>
