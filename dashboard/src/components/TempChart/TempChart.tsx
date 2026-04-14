@@ -204,8 +204,7 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
                 fill="url(#tempGradient)"
                 dot={false}
                 activeDot={{ r: 5, fill: '#38bdf8', stroke: '#fff', strokeWidth: 2 }}
-                animationDuration={600}
-                animationEasing="ease-out"
+                isAnimationActive={false}
               />
               {hasAir && (
                 <Line
@@ -218,8 +217,7 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
                   activeDot={{ r: 4, fill: 'var(--color-air-temp)', stroke: '#fff', strokeWidth: 1.5 }}
                   name="Air"
                   connectNulls={true}
-                  animationDuration={600}
-                  animationEasing="ease-out"
+                  isAnimationActive={false}
                   hide={!airVisible}
                   legendType={airVisible ? 'plainline' : 'line'}
                 />
