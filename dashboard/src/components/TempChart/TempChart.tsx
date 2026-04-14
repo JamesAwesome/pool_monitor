@@ -3,6 +3,7 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
+  Line,
   XAxis,
   YAxis,
   Tooltip,
@@ -20,6 +21,7 @@ interface TempChartProps {
   range: string;
   onRangeChange: (range: string) => void;
   loading: boolean;
+  airHistory?: TimeSeriesPoint[];
 }
 
 const QUICK_RANGES = [
@@ -45,20 +47,38 @@ function formatXTick(time: string, range: string, spansMultipleDays: boolean): s
   return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
-export function TempChart({ data, range, onRangeChange, loading }: TempChartProps) {
+export function TempChart({ data, range, onRangeChange, loading, airHistory }: TempChartProps) {
   const { unit } = useTheme();
   const isFahrenheit = unit === 'F';
 
   const [showCustom, setShowCustom] = useState(false);
 
-  const chartData = useMemo(
-    () =>
-      data.map((pt) => ({
-        time: pt.time,
-        value: isFahrenheit ? celsiusToFahrenheit(pt.value) : pt.value,
-      })),
-    [data, isFahrenheit],
-  );
+  const chartData = useMemo(() => {
+    const poolMap = new Map(
+      data.map((pt) => [
+        pt.time,
+        { time: pt.time, value: isFahrenheit ? celsiusToFahrenheit(pt.value) : pt.value } as {
+          time: string;
+          value: number;
+          airValue?: number;
+        },
+      ]),
+    );
+
+    if (airHistory && airHistory.length > 0) {
+      for (const pt of airHistory) {
+        const airVal = isFahrenheit ? celsiusToFahrenheit(pt.value) : pt.value;
+        const existing = poolMap.get(pt.time);
+        if (existing) {
+          existing.airValue = airVal;
+        } else {
+          poolMap.set(pt.time, { time: pt.time, value: undefined as unknown as number, airValue: airVal });
+        }
+      }
+    }
+
+    return Array.from(poolMap.values()).sort((a, b) => a.time.localeCompare(b.time));
+  }, [data, airHistory, isFahrenheit]);
 
   const spansMultipleDays = useMemo(() => {
     if (data.length < 2) return false;
@@ -159,6 +179,18 @@ export function TempChart({ data, range, onRangeChange, loading }: TempChartProp
                 dot={false}
                 activeDot={{ r: 5, fill: '#38bdf8', stroke: '#fff', strokeWidth: 2 }}
               />
+              {airHistory && airHistory.length > 0 && (
+                <Line
+                  type="monotone"
+                  dataKey="airValue"
+                  stroke="var(--color-air-temp)"
+                  strokeWidth={1.5}
+                  strokeDasharray="4 4"
+                  dot={false}
+                  name="Air"
+                  connectNulls={false}
+                />
+              )}
             </AreaChart>
           </ResponsiveContainer>
         )}
