@@ -1,0 +1,30 @@
+{
+  "location": {
+    "name": "Cheltenham",
+    "region": "Pennsylvania",
+    "country": "United States of America",
+    "localtime_epoch": 1744641600
+  },
+  "current": {
+    "last_updated_epoch": 1744641300,
+    "last_updated": "2026-04-14 12:15",
+    "temp_c": 17.2,
+    "temp_f": 63.0,
+    "is_day": 1,
+    "condition": {
+      "text": "Sunny",
+      "code": 1000
+    },
+    "wind_kph": 10.8,
+    "wind_degree": 210,
+    "pressure_mb": 1015.0,
+    "precip_mm": 0.0,
+    "humidity": 48,
+    "cloud": 5,
+    "feelslike_c": 16.4,
+    "vis_km": 16.0,
+    "uv": 4.0,
+    "gust_kph": 15.6,
+    "dewpoint_c": 6.3
+  }
+}
