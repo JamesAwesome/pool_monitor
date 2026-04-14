@@ -29,6 +29,7 @@ function fluxQuery(range: string, field: string, aggregation: string, yieldName:
   return `
     from(bucket: "${bucket}")
       |> range(${parseRange(range)})
+      |> filter(fn: (r) => r._measurement == "mqtt_consumer")
       |> filter(fn: (r) => r._field == "${field}")${sensorFilter}
       |> ${groupClause}
       |> ${aggregation}
@@ -42,6 +43,7 @@ function fluxQueryAbsolute(start: string, field: string, aggregation: string, yi
   return `
     from(bucket: "${bucket}")
       |> range(start: ${start})
+      |> filter(fn: (r) => r._measurement == "mqtt_consumer")
       |> filter(fn: (r) => r._field == "${field}")${sensorFilter}
       |> ${groupClause}
       |> ${aggregation}
@@ -58,6 +60,7 @@ export async function querySensors(): Promise<Array<{ id: string; model: string 
   const query = `
     from(bucket: "${bucket}")
       |> range(start: -24h)
+      |> filter(fn: (r) => r._measurement == "mqtt_consumer")
       |> filter(fn: (r) => r._field == "temperature_C")
       |> keep(columns: ["id", "model"])
       |> distinct(column: "id")
@@ -140,6 +143,7 @@ export async function queryHistory(range: string, sensorId?: string): Promise<Ar
   const query = `
     from(bucket: "${bucket}")
       |> range(${parseRange(range)})
+      |> filter(fn: (r) => r._measurement == "mqtt_consumer")
       |> filter(fn: (r) => r._field == "temperature_C")${sensorFilter}
       |> ${groupClause}
       |> aggregateWindow(every: ${period}, fn: mean, createEmpty: false)
@@ -197,6 +201,7 @@ export async function querySeasonHistory(sensorId?: string): Promise<
       const query = `
         base = from(bucket: "${bucket}")
           |> range(start: ${start}, stop: ${stop})
+          |> filter(fn: (r) => r._measurement == "mqtt_consumer")
           |> filter(fn: (r) => r._field == "temperature_C")${sensorFilter}
           |> ${groupClause}
 
@@ -287,6 +292,7 @@ export async function queryStatDetail(
       const query = `
         base = from(bucket: "${bucket}")
           |> range(start: ${period.start}, stop: ${period.stop})
+          |> filter(fn: (r) => r._measurement == "mqtt_consumer")
           |> filter(fn: (r) => r._field == "temperature_C")${sensorFilter}
           |> ${groupClause}
 
