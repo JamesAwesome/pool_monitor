@@ -145,7 +145,7 @@ describe('computePeriods', () => {
 const queryApiStub = { collectRows: vi.fn() }
 
 vi.mock('@influxdata/influxdb-client', () => {
-  function InfluxDB() {
+  function InfluxDB(this: { getQueryApi: () => typeof queryApiStub }) {
     this.getQueryApi = () => queryApiStub
   }
   return { InfluxDB }
