@@ -54,9 +54,21 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
   const [airVisible, setAirVisible] = useState(true);
   const hasAir = !!airHistory && airHistory.length > 0;
 
+  const smoothedPool = useMemo(() => {
+    if (data.length === 0) return data;
+    const alpha = 0.25;
+    const out: TimeSeriesPoint[] = [];
+    let ema = data[0].value;
+    for (const pt of data) {
+      ema = alpha * pt.value + (1 - alpha) * ema;
+      out.push({ time: pt.time, value: ema });
+    }
+    return out;
+  }, [data]);
+
   const chartData = useMemo(() => {
     const poolMap = new Map(
-      data.map((pt) => [
+      smoothedPool.map((pt) => [
         pt.time,
         { time: pt.time, value: isFahrenheit ? celsiusToFahrenheit(pt.value) : pt.value } as {
           time: string;
@@ -79,7 +91,7 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
     }
 
     return Array.from(poolMap.values()).sort((a, b) => a.time.localeCompare(b.time));
-  }, [data, airHistory, isFahrenheit]);
+  }, [smoothedPool, airHistory, isFahrenheit]);
 
   const spansMultipleDays = useMemo(() => {
     if (data.length < 2) return false;
