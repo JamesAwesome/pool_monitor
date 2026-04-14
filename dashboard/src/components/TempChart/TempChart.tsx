@@ -184,7 +184,7 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
                 />
               )}
               <Area
-                type="monotone"
+                type="basis"
                 dataKey="value"
                 name="Pool"
                 stroke="#38bdf8"
