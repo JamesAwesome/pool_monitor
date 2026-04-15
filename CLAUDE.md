@@ -72,6 +72,7 @@ The default dashboard JSON is at `grafana/provisioning/dashboards/pool-temperatu
 Mobile-first React SPA with Express backend that queries InfluxDB directly. Stack: pnpm, React 19, Vite 8, TypeScript 5.9, recharts, CSS Modules.
 
 ### Commands (run from `dashboard/`)
+`pnpm` and `node` are only on PATH inside nvm, so prefix every command with `source ~/.nvm/nvm.sh &&` (or wrap in `bash -lc '...'`). Plain `pnpm ...` will fail with "command not found".
 ```bash
 pnpm dev              # Vite dev server (port 5173, proxies /api to 3001)
 pnpm dev:server       # Express API server (port 3001)
