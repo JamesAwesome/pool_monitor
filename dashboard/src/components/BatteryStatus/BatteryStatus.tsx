@@ -33,7 +33,7 @@ function getDischargeRate(history: TimeSeriesPoint[]): string | null {
 
 function getBatteryStatus(level: number): 'ok' | 'warning' | 'low' {
   if (level > 50) return 'ok';
-  if (level > 20) return 'warning';
+  if (level > 25) return 'warning';
   return 'low';
 }
 
@@ -94,7 +94,7 @@ function BatteryChart({ history, loading: chartLoading }: { history: TimeSeriesP
             }}
           />
           <ReferenceLine
-            y={20}
+            y={25}
             stroke="#d97706"
             strokeDasharray="6 4"
             strokeOpacity={0.7}
@@ -163,7 +163,7 @@ export function BatteryStatus({ batteries, loading }: BatteryStatusProps) {
           if (b.current === null) return null;
           const level = b.current;
           const status = getBatteryStatus(level);
-          const statusText = status === 'ok' ? 'OK' : status === 'warning' ? 'Low' : 'Replace';
+          const statusText = status === 'ok' ? 'OK' : status === 'warning' ? 'Med' : 'Replace';
 
           return (
             <button

@@ -41,10 +41,10 @@ describe('BatteryStatus', () => {
     expect(screen.getByText('Replace')).toBeTruthy();
   });
 
-  it('shows "Low" when current is 30', () => {
+  it('shows "Med" when current is 30', () => {
     render(<BatteryStatus batteries={[{ id: '29908', model: 'Inkbird', current: 30 }]} loading={false} />);
     expect(screen.getByText('30%')).toBeTruthy();
-    expect(screen.getByText('Low')).toBeTruthy();
+    expect(screen.getByText('Med')).toBeTruthy();
   });
 
   it('shows "--%" when loading with no data', () => {
