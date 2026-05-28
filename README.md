@@ -177,6 +177,22 @@ Ports 8080 (dashboard) and 3000 (Grafana) are exposed locally for direct access 
 - **Grafana**: http://localhost:3000 or your tunnel's public URL (login with `admin` / your `GRAFANA_ADMIN_PASSWORD`)
 - **InfluxDB**: http://localhost:8086
 
+## Maintenance
+
+### Clear all InfluxDB data (start of season)
+
+To wipe all historical readings while keeping the bucket, Telegraf, Grafana, and dashboard config intact:
+
+```bash
+docker exec influxdb influx delete \
+  --bucket pool_temps \
+  --start 1970-01-01T00:00:00Z \
+  --stop $(date -u +%Y-%m-%dT%H:%M:%SZ) \
+  --token YOUR_INFLUXDB_TOKEN
+```
+
+Replace `YOUR_INFLUXDB_TOKEN` with the value of `INFLUXDB_TOKEN` from your `.env`. New data from the sensor will appear immediately after.
+
 ### Grafana Query
 
 Example Flux query for a temperature panel (Fahrenheit):
