@@ -7,6 +7,8 @@ import { ChemFocusSheet } from '../ChemFocusSheet';
 import { LogTestFlow } from '../LogTestFlow';
 import { Toast } from '../Toast';
 import { DateRangePicker } from '../DateRangePicker';
+import { BottomSheet } from '../BottomSheet';
+import { OverlayPill } from '../OverlayPill';
 import type { ChemKey } from '../../types';
 import styles from './ChemistryTab.module.css';
 
@@ -21,7 +23,7 @@ export function ChemistryTab() {
   const [range, setRange] = useState('season');
   const [showCustom, setShowCustom] = useState(false);
   const [poolOn, setPoolOn] = useState(true);
-  const [airOn, setAirOn] = useState(false);
+  const [airOn, setAirOn] = useState(true);
   const [selected, setSelected] = useState<ChemKey | null>(null);
   const [logOpen, setLogOpen] = useState(false);
   const [toast, setToast] = useState(false);
@@ -49,16 +51,8 @@ export function ChemistryTab() {
       <div className={styles.controls}>
         <div className={styles.overlayControl}>
           <span className={styles.overlayLabel}>OVERLAY TEMP</span>
-          <button type="button" aria-pressed={poolOn}
-            className={`${styles.pill} ${poolOn ? styles.poolOn : ''}`}
-            onClick={() => setPoolOn((v) => !v)}>
-            <span className={styles.swatchPool} /> Pool
-          </button>
-          <button type="button" aria-pressed={airOn}
-            className={`${styles.pill} ${airOn ? styles.airOn : ''}`}
-            onClick={() => setAirOn((v) => !v)}>
-            <span className={styles.swatchAir} /> Air
-          </button>
+          <OverlayPill label="Pool" variant="pool" active={poolOn} onToggle={() => setPoolOn((v) => !v)} />
+          <OverlayPill label="Air" variant="air" active={airOn} onToggle={() => setAirOn((v) => !v)} />
         </div>
         <div className={styles.rangeRow}>
           {RANGES.map((r) => (
@@ -71,9 +65,9 @@ export function ChemistryTab() {
         </div>
       </div>
 
-      {showCustom && (
+      <BottomSheet open={showCustom} onClose={() => setShowCustom(false)} title="Custom range">
         <DateRangePicker onApply={(from, to) => { setRange(`custom:${from}:${to}`); setShowCustom(false); }} />
-      )}
+      </BottomSheet>
 
       {loading && readings.length === 0 ? (
         <p className={styles.loading}>Loading…</p>

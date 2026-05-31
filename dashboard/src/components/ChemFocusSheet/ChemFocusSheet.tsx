@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { BottomSheet } from '../BottomSheet';
 import { ChemChart } from '../ChemChart';
 import { DeltaTag } from '../DeltaTag';
+import { OverlayPill } from '../OverlayPill';
 import type { ChemMeta } from '../../constants/chemicals';
 import type { ChemistryReading, TimeSeriesPoint } from '../../types';
 import { latestReading, computeDelta, computeStats, formatChemValue } from '../../utils/chemistry';
@@ -19,7 +20,7 @@ interface ChemFocusSheetProps {
 
 export function ChemFocusSheet({ meta, readings, poolHistory, airHistory, onClose }: ChemFocusSheetProps) {
   const [poolOn, setPoolOn] = useState(true);
-  const [airOn, setAirOn] = useState(false);
+  const [airOn, setAirOn] = useState(true);
   const { unit } = useTheme();
   const unitSuffix = unit === 'F' ? '°F' : '°C';
 
@@ -48,14 +49,8 @@ export function ChemFocusSheet({ meta, readings, poolHistory, airHistory, onClos
 
         <div className={styles.overlayRow}>
           <span className={styles.overlayLabel}>Overlay</span>
-          <button type="button" aria-pressed={poolOn}
-            className={`${styles.pill} ${poolOn ? styles.poolOn : ''}`} onClick={() => setPoolOn((v) => !v)}>
-            <span className={styles.swatchPool} /> Pool temp
-          </button>
-          <button type="button" aria-pressed={airOn}
-            className={`${styles.pill} ${airOn ? styles.airOn : ''}`} onClick={() => setAirOn((v) => !v)}>
-            <span className={styles.swatchAir} /> Air temp
-          </button>
+          <OverlayPill label="Pool temp" variant="pool" active={poolOn} onToggle={() => setPoolOn((v) => !v)} />
+          <OverlayPill label="Air temp" variant="air" active={airOn} onToggle={() => setAirOn((v) => !v)} />
         </div>
 
         <ChemChart readings={readings} chemKey={meta.key} color={meta.color} decimals={meta.decimals}

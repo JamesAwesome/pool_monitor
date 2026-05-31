@@ -8,11 +8,12 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
-  Legend,
 } from 'recharts';
 import { useTheme } from '../../context/ThemeContext';
 import { celsiusToFahrenheit } from '../../utils/temperature';
 import { DateRangePicker } from '../DateRangePicker';
+import { BottomSheet } from '../BottomSheet';
+import { OverlayPill } from '../OverlayPill';
 import type { TimeSeriesPoint } from '../../types';
 import styles from './TempChart.module.css';
 
@@ -124,14 +125,20 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
         </button>
       </div>
 
-      {showCustom && (
+      {hasAir && (
+        <div className={styles.overlayRow}>
+          <OverlayPill label="Air" variant="air" active={airVisible} onToggle={() => setAirVisible((v) => !v)} />
+        </div>
+      )}
+
+      <BottomSheet open={showCustom} onClose={() => setShowCustom(false)} title="Custom range">
         <DateRangePicker
           onApply={(from, to) => {
             onRangeChange(`custom:${from}:${to}`);
             setShowCustom(false);
           }}
         />
-      )}
+      </BottomSheet>
 
       <div className={styles.chartWrap}>
         {loading ? (
@@ -180,21 +187,6 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
                 }}
                 cursor={{ stroke: 'rgba(56, 189, 248, 0.3)', strokeWidth: 1 }}
               />
-              {hasAir && (
-                <Legend
-                  verticalAlign="top"
-                  height={28}
-                  iconType="plainline"
-                  wrapperStyle={{ fontSize: 12, cursor: 'pointer' }}
-                  onClick={(entry) => {
-                    if (entry.dataKey === 'airValue') setAirVisible((v) => !v);
-                  }}
-                  formatter={(value, entry) => {
-                    const dimmed = entry.dataKey === 'airValue' && !airVisible;
-                    return <span style={{ color: dimmed ? 'var(--color-text-secondary)' : 'var(--color-text)', opacity: dimmed ? 0.5 : 1 }}>{value}</span>;
-                  }}
-                />
-              )}
               <Area
                 type="basis"
                 dataKey="value"
@@ -219,7 +211,6 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
                   connectNulls={true}
                   isAnimationActive={false}
                   hide={!airVisible}
-                  legendType={airVisible ? 'plainline' : 'line'}
                 />
               )}
             </ComposedChart>

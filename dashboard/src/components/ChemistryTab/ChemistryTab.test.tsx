@@ -37,22 +37,22 @@ describe('ChemistryTab', () => {
     await waitFor(() => expect(screen.getByText('Avg')).toBeInTheDocument());
   });
 
-  it('toggles Pool and Air overlays independently (Pool on, Air off by default)', async () => {
+  it('toggles Pool and Air overlays independently (both on by default)', async () => {
     render(<ChemistryTab />);
     await waitFor(() => expect(screen.getByText('PH')).toBeInTheDocument());
-    const pool = screen.getByRole('button', { name: /pool/i });
-    const air = screen.getByRole('button', { name: /air/i });
-    // Defaults: Pool on, Air off
+    const pool = screen.getByRole('button', { name: 'Pool' });
+    const air = screen.getByRole('button', { name: 'Air' });
+    // Defaults: both on
     expect(pool).toHaveAttribute('aria-pressed', 'true');
-    expect(air).toHaveAttribute('aria-pressed', 'false');
-    // Turn Air on without affecting Pool — both can be active at once
-    await userEvent.click(air);
     expect(air).toHaveAttribute('aria-pressed', 'true');
+    // Turn Air off without affecting Pool
+    await userEvent.click(air);
+    expect(air).toHaveAttribute('aria-pressed', 'false');
     expect(pool).toHaveAttribute('aria-pressed', 'true');
     // Turn Pool off independently
     await userEvent.click(pool);
     expect(pool).toHaveAttribute('aria-pressed', 'false');
-    expect(air).toHaveAttribute('aria-pressed', 'true');
+    expect(air).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('opens the unlock sheet from Log test when locked', async () => {
