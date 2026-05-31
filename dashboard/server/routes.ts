@@ -1,12 +1,15 @@
-import { Router } from 'express'
-import { querySensors, queryStats, queryHistory, queryBatteries, queryBatteryHistory, querySeasonHistory, queryStatDetail, queryWeatherCurrent, queryWeatherHistory } from './influx.js'
+import express, { Router } from 'express'
+import { querySensors, queryStats, queryHistory, queryBatteries, queryBatteryHistory, querySeasonHistory, queryStatDetail, queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry } from './influx.js'
 import { generateOgImage } from './og-image.js'
+import { requireAuth } from './auth.js'
+import { validateChemistryBody } from './chemistry.js'
 
 function isValidSensorId(id: string): boolean {
   return /^[a-zA-Z0-9_-]+$/.test(id);
 }
 
 const router = Router()
+router.use('/api/chemistry', express.json())
 
 router.get('/og-image.png', async (_req, res) => {
   try {
@@ -147,6 +150,37 @@ router.get('/api/weather/history', async (req, res) => {
     const range = typeof req.query.range === 'string' ? req.query.range : '24h'
     const history = await queryWeatherHistory(range)
     res.json(history)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    res.status(500).json({ error: message })
+  }
+})
+
+router.get('/api/chemistry', async (req, res) => {
+  try {
+    const range = typeof req.query.range === 'string' ? req.query.range : 'season'
+    const readings = await queryChemistry(range)
+    res.json(readings)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    res.status(500).json({ error: message })
+  }
+})
+
+// Lightweight credential probe for the unlock sheet — writes nothing.
+router.get('/api/chemistry/auth-check', requireAuth, (_req, res) => {
+  res.json({ ok: true })
+})
+
+router.post('/api/chemistry', requireAuth, async (req, res) => {
+  try {
+    const result = validateChemistryBody(req.body)
+    if (!result.ok) {
+      res.status(400).json({ error: result.error })
+      return
+    }
+    await writeChemistry({ date: result.date, values: result.values })
+    res.status(201).json({ ok: true })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     res.status(500).json({ error: message })
