@@ -1,0 +1,1 @@
+export { ChemistryTab } from './ChemistryTab';
