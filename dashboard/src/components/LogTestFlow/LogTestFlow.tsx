@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { UnlockSheet } from './UnlockSheet';
 import { LogForm } from './LogForm';
 import { useChemAuth } from '../../hooks/useChemAuth';
@@ -13,16 +12,10 @@ interface LogTestFlowProps {
 
 export function LogTestFlow({ open, onClose, onSaved, latest }: LogTestFlowProps) {
   const { unlocked, authHeader, unlock, lock } = useChemAuth();
-  const [stage, setStage] = useState<'unlock' | 'form'>(unlocked ? 'form' : 'unlock');
-
-  // When opened, jump straight to the form if already unlocked.
-  useEffect(() => {
-    if (open) setStage(unlocked ? 'form' : 'unlock');
-  }, [open, unlocked]);
 
   if (!open) return null;
 
-  if (stage === 'unlock' || !authHeader) {
+  if (!unlocked || !authHeader) {
     return (
       <UnlockSheet
         open
@@ -31,7 +24,6 @@ export function LogTestFlow({ open, onClose, onSaved, latest }: LogTestFlowProps
           // header is `Basic base64(user:pass)`; decode to persist via useChemAuth
           const [user, pass] = atob(header.slice(6)).split(/:(.*)/s);
           unlock(user, pass);
-          setStage('form');
         }}
       />
     );
@@ -44,7 +36,7 @@ export function LogTestFlow({ open, onClose, onSaved, latest }: LogTestFlowProps
       authHeader={authHeader}
       latest={latest}
       onSaved={onSaved}
-      onAuthExpired={() => { lock(); setStage('unlock'); }}
+      onAuthExpired={() => { lock(); }}
     />
   );
 }
