@@ -1,0 +1,11 @@
+.tag {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.flat {
+  opacity: 0.5;
+}
