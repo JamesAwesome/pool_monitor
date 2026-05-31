@@ -54,3 +54,10 @@ export interface WeatherCurrent {
   location: string;
   timestamp: string;
 }
+
+export type ChemKey = 'ph' | 'fc' | 'cc' | 'ta' | 'cya' | 'ch';
+
+export interface ChemistryReading {
+  date: string; // ISO timestamp from the API
+  ph?: number; fc?: number; cc?: number; ta?: number; cya?: number; ch?: number;
+}

@@ -30,6 +30,15 @@ describe('parseRange', () => {
     expect(parseRange('custom:2025-12-30:2025-12-31'))
       .toBe('start: 2025-12-30T00:00:00Z, stop: 2026-01-01T00:00:00Z');
   });
+
+  it('handles the season token as Jan 1 of the current year', () => {
+    const year = new Date().getFullYear();
+    expect(parseRange('season')).toBe(`start: ${year}-01-01T00:00:00Z`);
+  });
+
+  it('handles the all token as the unix epoch', () => {
+    expect(parseRange('all')).toBe('start: 0');
+  });
 });
 
 describe('windowPeriod', () => {
@@ -88,6 +97,14 @@ describe('windowPeriod', () => {
   it('returns 6h for custom 60-day range', () => {
     expect(windowPeriod('custom:2026-02-01:2026-04-04')).toBe('6h');
   });
+
+  it('returns 1d for season', () => {
+    expect(windowPeriod('season')).toBe('1d');
+  });
+
+  it('returns 1d for all', () => {
+    expect(windowPeriod('all')).toBe('1d');
+  });
 });
 
 describe('computePeriods', () => {
@@ -140,22 +157,34 @@ describe('computePeriods', () => {
 // queryWeatherCurrent and queryWeatherHistory — need to mock getQueryApi
 // ---------------------------------------------------------------------------
 
-// vi.mock is hoisted, so we hold the spy in a shared object reference that
-// is closed over by the factory (plain object, not a const binding).
 const queryApiStub = { collectRows: vi.fn() }
+const writeApiStub = { writePoint: vi.fn(), flush: vi.fn().mockResolvedValue(undefined) }
 
 vi.mock('@influxdata/influxdb-client', () => {
-  function InfluxDB(this: { getQueryApi: () => typeof queryApiStub }) {
-    this.getQueryApi = () => queryApiStub
+  class Point {
+    measurement: string
+    fields: Record<string, number> = {}
+    ts: Date | undefined
+    constructor(m: string) { this.measurement = m }
+    timestamp(t: Date) { this.ts = t; return this }
+    floatField(k: string, v: number) { this.fields[k] = v; return this }
   }
-  return { InfluxDB }
+  function InfluxDB(this: {
+    getQueryApi: () => typeof queryApiStub
+    getWriteApi: () => typeof writeApiStub
+  }) {
+    this.getQueryApi = () => queryApiStub
+    this.getWriteApi = () => writeApiStub
+  }
+  return { InfluxDB, Point }
 })
 
-// Re-import after mock is set up
-const { queryWeatherCurrent, queryWeatherHistory } = await import('./influx')
+const { queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry } = await import('./influx')
 
 beforeEach(() => {
   queryApiStub.collectRows.mockReset()
+  writeApiStub.writePoint.mockReset()
+  writeApiStub.flush.mockClear()
 })
 
 describe('queryWeatherCurrent', () => {
@@ -209,5 +238,36 @@ describe('queryWeatherHistory', () => {
     queryApiStub.collectRows.mockResolvedValueOnce([])
     const result = await queryWeatherHistory('3d')
     expect(result).toEqual([])
+  })
+})
+
+describe('queryChemistry', () => {
+  it('maps pivoted rows to readings, including only present fields', async () => {
+    queryApiStub.collectRows.mockResolvedValueOnce([
+      { _time: '2026-05-20T16:00:00Z', ph: 7.6, fc: 3.5 },
+      { _time: '2026-05-29T16:00:00Z', ph: 7.7, fc: 4.0, ta: 88 },
+    ])
+    const result = await queryChemistry('season')
+    expect(result).toEqual([
+      { date: '2026-05-20T16:00:00Z', ph: 7.6, fc: 3.5 },
+      { date: '2026-05-29T16:00:00Z', ph: 7.7, fc: 4.0, ta: 88 },
+    ])
+  })
+
+  it('returns an empty array when there are no rows', async () => {
+    queryApiStub.collectRows.mockResolvedValueOnce([])
+    expect(await queryChemistry('all')).toEqual([])
+  })
+})
+
+describe('writeChemistry', () => {
+  it('writes a point with only the provided fields at local noon, then flushes', async () => {
+    await writeChemistry({ date: '2026-05-29', values: { ph: 7.7, fc: 4 } }, 'America/New_York')
+    expect(writeApiStub.writePoint).toHaveBeenCalledOnce()
+    const point = writeApiStub.writePoint.mock.calls[0][0]
+    expect(point.measurement).toBe('chemistry')
+    expect(point.fields).toEqual({ ph: 7.7, fc: 4 })
+    expect(point.ts?.toISOString()).toBe('2026-05-29T16:00:00.000Z')
+    expect(writeApiStub.flush).toHaveBeenCalledOnce()
   })
 })

@@ -48,6 +48,12 @@
   box-shadow: 0 0 12px rgba(14, 165, 233, 0.3);
 }
 
+.overlayRow {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
 .chartWrap {
   width: 100%;
   min-height: 300px;

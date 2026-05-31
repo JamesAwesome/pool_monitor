@@ -111,6 +111,8 @@ services:
       PUBLIC_URL: ${PUBLIC_URL:-}
       TIMEZONE: ${TIMEZONE:-America/New_York}
       TZ: ${TIMEZONE:-America/New_York}
+      CHEM_AUTH_USER: ${CHEM_AUTH_USER:-}
+      CHEM_AUTH_PASSWORD: ${CHEM_AUTH_PASSWORD:-}
     depends_on:
       influxdb:
         condition: service_healthy

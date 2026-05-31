@@ -1,4 +1,6 @@
-import { InfluxDB } from '@influxdata/influxdb-client'
+import { InfluxDB, Point } from '@influxdata/influxdb-client'
+import { CHEM_FIELDS, zonedNoonToUtc } from './chemistry.js'
+import type { ChemField } from './chemistry.js'
 
 const url = process.env.INFLUXDB_URL ?? 'http://localhost:8086'
 const token = process.env.INFLUXDB_TOKEN ?? ''
@@ -12,6 +14,12 @@ export function getQueryApi() {
 }
 
 export function parseRange(range: string): string {
+  if (range === 'season') {
+    return `start: ${new Date().getFullYear()}-01-01T00:00:00Z`;
+  }
+  if (range === 'all') {
+    return 'start: 0';
+  }
   if (range.startsWith('custom:')) {
     const [, from, to] = range.split(':')
     // Use next day at midnight for inclusive stop (range is [start, stop))
@@ -104,6 +112,7 @@ export async function queryStats(sensorId?: string, range = '24h'): Promise<{
 }
 
 export function windowPeriod(range: string): string {
+  if (range === 'season' || range === 'all') return '1d';
   if (range.startsWith('custom:')) {
     const [, from, to] = range.split(':')
     const days = (new Date(to).getTime() - new Date(from).getTime()) / 86400000 + 1
@@ -399,4 +408,49 @@ export async function queryWeatherHistory(range: string): Promise<Array<{ time: 
   `
   const rows = await api.collectRows<HistoryRow>(query)
   return rows.map((r) => ({ time: r._time, value: r._value }))
+}
+
+export function getWriteApi() {
+  return client.getWriteApi(org, bucket, 'ms')
+}
+
+export interface ChemistryReading {
+  date: string
+  ph?: number; fc?: number; cc?: number; ta?: number; cya?: number; ch?: number
+}
+
+export async function queryChemistry(range: string): Promise<ChemistryReading[]> {
+  const api = getQueryApi()
+  const fieldFilter = CHEM_FIELDS.map((f) => `r._field == "${f}"`).join(' or ')
+  const query = `
+    from(bucket: "${bucket}")
+      |> range(${parseRange(range)})
+      |> filter(fn: (r) => r._measurement == "chemistry")
+      |> filter(fn: (r) => ${fieldFilter})
+      |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
+      |> sort(columns: ["_time"])
+  `
+  const rows = await api.collectRows<Record<string, unknown>>(query)
+  return rows.map((row) => {
+    const reading: ChemistryReading = { date: row._time as string }
+    for (const f of CHEM_FIELDS) {
+      const v = row[f]
+      if (typeof v === 'number') reading[f] = v
+    }
+    return reading
+  })
+}
+
+export async function writeChemistry(
+  input: { date: string; values: Partial<Record<ChemField, number>> },
+  timeZone = process.env.TIMEZONE ?? 'America/New_York'
+): Promise<void> {
+  const writeApi = getWriteApi()
+  const point = new Point('chemistry').timestamp(zonedNoonToUtc(input.date, timeZone))
+  for (const f of CHEM_FIELDS) {
+    const v = input.values[f]
+    if (v !== undefined) point.floatField(f, v)
+  }
+  writeApi.writePoint(point)
+  await writeApi.flush()
 }

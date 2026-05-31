@@ -1,0 +1,39 @@
+.body { display: flex; flex-direction: column; gap: var(--spacing-md); }
+
+.name { font-size: 0.78rem; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; }
+
+.valueRow { display: flex; align-items: baseline; gap: var(--spacing-sm); }
+
+.value { font-size: 2.3rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.unit { font-size: 0.9rem; color: var(--color-text-secondary); }
+
+.overlayRow { display: flex; align-items: center; gap: var(--spacing-sm); flex-wrap: wrap; }
+
+.overlayLabel { font-size: 0.78rem; font-weight: 600; color: var(--color-text-secondary); }
+
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing-sm); }
+
+.statBox {
+  display: flex; flex-direction: column; gap: 2px;
+  background: var(--color-bg); border-radius: var(--radius-sm); padding: 8px 10px;
+}
+
+.statKey { font-size: 0.66rem; font-weight: 600; text-transform: uppercase; color: var(--color-text-secondary); }
+
+.statVal { font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.list { display: flex; flex-direction: column; }
+
+.listRow {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 0; font-size: 0.84rem; border-bottom: 1px solid var(--color-border);
+}
+
+.listVal { font-size: 0.86rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--spacing-sm); font-size: 0.78rem; color: var(--color-text-secondary); }
+
+.legendItem { display: inline-flex; align-items: baseline; gap: 4px; }
+
+.legendVal { font-weight: 700; font-variant-numeric: tabular-nums; }

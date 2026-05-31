@@ -1,0 +1,59 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: 13px 13px 6px;
+  background: var(--gradient-card);
+  border: var(--border-glow);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm), var(--glow-primary);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+@media (hover: hover) {
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md), var(--glow-accent);
+  }
+}
+
+.card:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xs);
+}
+
+.name {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.valueRow {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.value {
+  font-size: 1.55rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.unit {
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+}

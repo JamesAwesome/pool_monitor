@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
-import { vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { vi, beforeEach } from 'vitest';
 import App from './App';
 
 vi.mock('./hooks/usePoolData', () => ({
@@ -14,6 +15,8 @@ vi.mock('./hooks/usePoolData', () => ({
     sensors: [{ id: '29908', model: 'Inkbird-ITH20R' }],
     selectedSensor: null,
     setSelectedSensor: vi.fn(),
+    airCurrent: null,
+    airHistory: [],
   }),
 }));
 
@@ -28,6 +31,10 @@ vi.mock('./context/ThemeContext', () => ({
 }));
 
 describe('App', () => {
+  beforeEach(() => {
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => [] });
+  });
+
   it('renders the header', () => {
     render(<App />);
     expect(screen.getByText('Pool Dashboard')).toBeTruthy();
@@ -52,5 +59,11 @@ describe('App', () => {
   it('does not show error when none exists', () => {
     render(<App />);
     expect(screen.queryByText(/error/i)).toBeNull();
+  });
+
+  it('switches to the Chemistry tab', async () => {
+    render(<App />);
+    await userEvent.click(await screen.findByRole('tab', { name: 'Chemistry' }));
+    expect(await screen.findByRole('heading', { name: 'Chemistry' })).toBeInTheDocument();
   });
 });

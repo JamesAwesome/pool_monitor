@@ -96,6 +96,8 @@ pnpm typecheck        # TypeScript only
   - `/api/weather/current` — latest air temperature, feels-like, humidity, condition
   - `/api/weather/history?range=...` — aggregated air temperature time series
   - `/api/health` — health check
+  - `/api/chemistry?range=...` — GET list of manual chemistry readings `{ date, ph?, fc?, cc?, ta?, cya?, ch? }[]`; POST a reading (Basic-Auth gated). Ranges include `30d`/`90d`/`season`/`all`/`custom:`.
+  - `/api/chemistry/auth-check` — GET, Basic-Auth gated; returns `{ ok: true }` (used by the unlock sheet to validate credentials without writing).
   - `/og-image.png` — dynamically generated 1200x630 PNG with current temp (for iMessage/social previews, cached 5 min)
   - All data endpoints accept optional `?sensor=<id>` to filter by sensor; omit for averaged "all sensors" view.
 - **OG image**: `server/og-image.ts` generates a social preview image using `@napi-rs/canvas`. Inter font files bundled in `server/fonts/`. Dynamic OG meta tags injected into HTML in production.
@@ -109,6 +111,18 @@ pnpm typecheck        # TypeScript only
   - **Battery** → 7-day battery history chart with discharge rate and estimated days remaining
 - **Input validation**: All sensor ID params validated against `[a-zA-Z0-9_-]` regex to prevent Flux injection.
 - **Multi-sensor "All" view**: When no sensor is selected, stats and history aggregate across all sensors (true average/peak, not one arbitrary sensor). Individual sensor view groups by sensor ID.
+
+### Chemistry tab
+
+A second tab (local `activeTab` state in `App`) logs six manual chemical readings
+(`ph`, `fc`, `cc`, `ta`, `cya`, `ch`) to a new InfluxDB `chemistry` measurement and
+shows each as a small-multiple trend card correlated against pool/air temperature.
+Tapping a card opens a focus `BottomSheet` (full chart + Low/Avg/High + recent
+readings). Logging is gated by an Express Basic-Auth middleware (`server/auth.ts`)
+on `POST /api/chemistry`; the UI uses a custom unlock sheet (the 401 response
+intentionally omits `WWW-Authenticate` to suppress the native browser dialog).
+Date-only readings are stored at local noon in `TIMEZONE`. No ideal-range/dosing
+logic — numbers and trends only.
 
 ### Query aggregation strategy
 All time-series queries use `aggregateWindow` with `fn: mean` (temperature) or `fn: last` (battery). Note: `aggregateWindow` `location` parameter is not available in InfluxDB OSS 2.x (Cloud only), so windows align to UTC.
@@ -147,6 +161,8 @@ Battery history uses `6h` windows with `createEmpty: true` + `fill(usePrevious: 
 | `TIMEZONE` | No | IANA timezone for OG image and server-side dates (default: America/New_York). Also sets `TZ` in the container. |
 | `WEATHERAPI_KEY` | Yes (for weather) | weatherapi.com API key |
 | `WEATHER_LOCATION` | Yes (for weather) | Location passed to weatherapi `q` param. Use a zip code or `City, State, Country` — bare city names like `Cheltenham, PA` resolve to the wrong place (e.g. Cheltenham UK). The worker stores the API-resolved `name, region, country` as the `location` tag so mismatches are visible. |
+| `CHEM_AUTH_USER` | Yes (for logging) | Username for the Basic-Auth gate on chemistry writes |
+| `CHEM_AUTH_PASSWORD` | Yes (for logging) | Password for the Basic-Auth gate on chemistry writes |
 
 ### Rebuilding the dashboard
 ```bash
