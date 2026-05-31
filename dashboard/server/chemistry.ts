@@ -19,6 +19,48 @@ export const CHEM_BOUNDS: Record<ChemField, [number, number]> = {
  * Uses Intl.DateTimeFormat to determine the UTC offset, which avoids the
  * system-timezone dependency of the `new Date(toLocaleString(...))` approach.
  */
+export type ValidatedChemistry =
+  | { ok: true; date: string; values: Partial<Record<ChemField, number>> }
+  | { ok: false; error: string };
+
+export function validateChemistryBody(body: unknown): ValidatedChemistry {
+  if (typeof body !== 'object' || body === null) {
+    return { ok: false, error: 'Body must be an object' };
+  }
+  const b = body as Record<string, unknown>;
+
+  if (typeof b.date !== 'string' || Number.isNaN(new Date(b.date).getTime())) {
+    return { ok: false, error: 'Invalid or missing date' };
+  }
+
+  const values: Partial<Record<ChemField, number>> = {};
+  for (const field of CHEM_FIELDS) {
+    const raw = b[field];
+    if (raw === undefined || raw === null) continue;
+    if (typeof raw !== 'number' || !Number.isFinite(raw)) {
+      return { ok: false, error: `Invalid value for ${field}` };
+    }
+    const [min, max] = CHEM_BOUNDS[field];
+    if (raw < min || raw > max) {
+      return { ok: false, error: `${field} out of range` };
+    }
+    values[field] = raw;
+  }
+
+  if (Object.keys(values).length === 0) {
+    return { ok: false, error: 'At least one chemical value is required' };
+  }
+  return { ok: true, date: b.date, values };
+}
+
+/**
+ * Convert a date-only string (YYYY-MM-DD) to the UTC instant that reads as
+ * 12:00 noon in the given IANA timezone. Readings are logged by date only;
+ * anchoring at local noon keeps them on the correct calendar day everywhere.
+ *
+ * Uses Intl.DateTimeFormat to determine the UTC offset, which avoids the
+ * system-timezone dependency of the `new Date(toLocaleString(...))` approach.
+ */
 export function zonedNoonToUtc(dateStr: string, timeZone: string): Date {
   // Start with UTC noon as a reference point.
   const naiveNoon = new Date(`${dateStr}T12:00:00Z`);
