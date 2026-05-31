@@ -50,6 +50,10 @@ router.get('/api/stats', async (req, res) => {
       return
     }
     const range = typeof req.query.range === 'string' ? req.query.range : '24h'
+    if (!isValidRange(range)) {
+      res.status(400).json({ error: 'Invalid range' })
+      return
+    }
     const stats = await queryStats(sensor, range)
     res.json(stats)
   } catch (err) {
@@ -61,6 +65,10 @@ router.get('/api/stats', async (req, res) => {
 router.get('/api/history', async (req, res) => {
   try {
     const range = typeof req.query.range === 'string' ? req.query.range : '12h'
+    if (!isValidRange(range)) {
+      res.status(400).json({ error: 'Invalid range' })
+      return
+    }
     const sensor = typeof req.query.sensor === 'string' ? req.query.sensor : undefined
     if (sensor && !isValidSensorId(sensor)) {
       res.status(400).json({ error: 'Invalid sensor ID' })
@@ -126,6 +134,10 @@ router.get('/api/season-history', async (req, res) => {
 router.get('/api/stat-detail', async (req, res) => {
   try {
     const range = typeof req.query.range === 'string' ? req.query.range : '3d'
+    if (!isValidRange(range)) {
+      res.status(400).json({ error: 'Invalid range' })
+      return
+    }
     const stat = typeof req.query.stat === 'string' ? req.query.stat : ''
     if (stat !== 'average' && stat !== 'peak') {
       res.status(400).json({ error: 'stat must be "average" or "peak"' })
@@ -157,6 +169,10 @@ router.get('/api/weather/current', async (_req, res) => {
 router.get('/api/weather/history', async (req, res) => {
   try {
     const range = typeof req.query.range === 'string' ? req.query.range : '24h'
+    if (!isValidRange(range)) {
+      res.status(400).json({ error: 'Invalid range' })
+      return
+    }
     const history = await queryWeatherHistory(range)
     res.json(history)
   } catch (err) {
