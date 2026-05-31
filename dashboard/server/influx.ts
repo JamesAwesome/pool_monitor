@@ -12,6 +12,12 @@ export function getQueryApi() {
 }
 
 export function parseRange(range: string): string {
+  if (range === 'season') {
+    return `start: ${new Date().getFullYear()}-01-01T00:00:00Z`;
+  }
+  if (range === 'all') {
+    return 'start: 0';
+  }
   if (range.startsWith('custom:')) {
     const [, from, to] = range.split(':')
     // Use next day at midnight for inclusive stop (range is [start, stop))
@@ -104,6 +110,7 @@ export async function queryStats(sensorId?: string, range = '24h'): Promise<{
 }
 
 export function windowPeriod(range: string): string {
+  if (range === 'season' || range === 'all') return '1d';
   if (range.startsWith('custom:')) {
     const [, from, to] = range.split(':')
     const days = (new Date(to).getTime() - new Date(from).getTime()) / 86400000 + 1

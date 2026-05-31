@@ -30,6 +30,15 @@ describe('parseRange', () => {
     expect(parseRange('custom:2025-12-30:2025-12-31'))
       .toBe('start: 2025-12-30T00:00:00Z, stop: 2026-01-01T00:00:00Z');
   });
+
+  it('handles the season token as Jan 1 of the current year', () => {
+    const year = new Date().getFullYear();
+    expect(parseRange('season')).toBe(`start: ${year}-01-01T00:00:00Z`);
+  });
+
+  it('handles the all token as the unix epoch', () => {
+    expect(parseRange('all')).toBe('start: 0');
+  });
 });
 
 describe('windowPeriod', () => {
@@ -87,6 +96,14 @@ describe('windowPeriod', () => {
 
   it('returns 6h for custom 60-day range', () => {
     expect(windowPeriod('custom:2026-02-01:2026-04-04')).toBe('6h');
+  });
+
+  it('returns 1d for season', () => {
+    expect(windowPeriod('season')).toBe('1d');
+  });
+
+  it('returns 1d for all', () => {
+    expect(windowPeriod('all')).toBe('1d');
   });
 });
 
