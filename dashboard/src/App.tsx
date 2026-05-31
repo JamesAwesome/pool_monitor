@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
 import { usePoolData } from './hooks/usePoolData';
 import { Header } from './components/Header';
@@ -7,20 +8,32 @@ import { StatsGrid } from './components/StatsGrid';
 import { TempChart } from './components/TempChart';
 import { BatteryStatus } from './components/BatteryStatus';
 import { SensorSelector } from './components/SensorSelector';
+import { TabBar, type TabKey } from './components/TabBar';
+import { ChemistryTab } from './components/ChemistryTab';
 import styles from './App.module.css';
 
-function Dashboard() {
+function TemperatureTab() {
   const { stats, history, batteries, range, setRange, loading, error, sensors, selectedSensor, setSelectedSensor, airCurrent, airHistory } = usePoolData();
 
   return (
+    <>
+      {error && !loading && stats && <p className={styles.error}>{error}</p>}
+      <SensorSelector sensors={sensors} selected={selectedSensor} onSelect={setSelectedSensor} />
+      <CurrentTemp value={stats?.current ?? null} loading={loading} airCurrent={airCurrent} />
+      <StatsGrid stats={stats} loading={loading} selectedSensor={selectedSensor} range={range} />
+      <TempChart data={history} range={range} onRangeChange={setRange} loading={loading} airHistory={airHistory} />
+      <BatteryStatus batteries={batteries} loading={loading} />
+    </>
+  );
+}
+
+function Dashboard() {
+  const [tab, setTab] = useState<TabKey>('temperature');
+  return (
     <main className={styles.main}>
+      <TabBar active={tab} onChange={setTab} />
       <div className="container">
-        {error && !loading && stats && <p className={styles.error}>{error}</p>}
-        <SensorSelector sensors={sensors} selected={selectedSensor} onSelect={setSelectedSensor} />
-        <CurrentTemp value={stats?.current ?? null} loading={loading} airCurrent={airCurrent} />
-        <StatsGrid stats={stats} loading={loading} selectedSensor={selectedSensor} range={range} />
-        <TempChart data={history} range={range} onRangeChange={setRange} loading={loading} airHistory={airHistory} />
-        <BatteryStatus batteries={batteries} loading={loading} />
+        {tab === 'temperature' ? <TemperatureTab /> : <ChemistryTab />}
       </div>
     </main>
   );
