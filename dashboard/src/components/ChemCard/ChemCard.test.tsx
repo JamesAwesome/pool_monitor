@@ -16,7 +16,7 @@ const readings = [
 function renderCard(onOpen = vi.fn()) {
   render(
     <ChemCard meta={CHEM_BY_KEY.fc} readings={readings}
-      poolHistory={[]} airHistory={[]} overlay="off" onOpen={onOpen} />,
+      poolHistory={[]} airHistory={[]} showPool={false} showAir={false} onOpen={onOpen} />,
   );
   return onOpen;
 }
@@ -38,7 +38,7 @@ describe('ChemCard', () => {
   it('renders -- when no reading exists for the chemical', () => {
     render(
       <ChemCard meta={CHEM_BY_KEY.ch} readings={readings}
-        poolHistory={[]} airHistory={[]} overlay="off" onOpen={vi.fn()} />,
+        poolHistory={[]} airHistory={[]} showPool={false} showAir={false} onOpen={vi.fn()} />,
     );
     expect(screen.getByText('--')).toBeInTheDocument();
   });

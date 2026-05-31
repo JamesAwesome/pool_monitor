@@ -37,6 +37,24 @@ describe('ChemistryTab', () => {
     await waitFor(() => expect(screen.getByText('Avg')).toBeInTheDocument());
   });
 
+  it('toggles Pool and Air overlays independently (Pool on, Air off by default)', async () => {
+    render(<ChemistryTab />);
+    await waitFor(() => expect(screen.getByText('PH')).toBeInTheDocument());
+    const pool = screen.getByRole('button', { name: /pool/i });
+    const air = screen.getByRole('button', { name: /air/i });
+    // Defaults: Pool on, Air off
+    expect(pool).toHaveAttribute('aria-pressed', 'true');
+    expect(air).toHaveAttribute('aria-pressed', 'false');
+    // Turn Air on without affecting Pool — both can be active at once
+    await userEvent.click(air);
+    expect(air).toHaveAttribute('aria-pressed', 'true');
+    expect(pool).toHaveAttribute('aria-pressed', 'true');
+    // Turn Pool off independently
+    await userEvent.click(pool);
+    expect(pool).toHaveAttribute('aria-pressed', 'false');
+    expect(air).toHaveAttribute('aria-pressed', 'true');
+  });
+
   it('opens the unlock sheet from Log test when locked', async () => {
     render(<ChemistryTab />);
     await waitFor(() => expect(screen.getByText('PH')).toBeInTheDocument());

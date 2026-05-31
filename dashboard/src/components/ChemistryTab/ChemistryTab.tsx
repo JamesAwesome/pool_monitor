@@ -10,8 +10,6 @@ import { DateRangePicker } from '../DateRangePicker';
 import type { ChemKey } from '../../types';
 import styles from './ChemistryTab.module.css';
 
-type Overlay = 'pool' | 'air' | 'off';
-
 const RANGES = [
   { key: '30d', label: '30D' },
   { key: '90d', label: '90D' },
@@ -22,7 +20,8 @@ const RANGES = [
 export function ChemistryTab() {
   const [range, setRange] = useState('season');
   const [showCustom, setShowCustom] = useState(false);
-  const [overlay, setOverlay] = useState<Overlay>('pool');
+  const [poolOn, setPoolOn] = useState(true);
+  const [airOn, setAirOn] = useState(false);
   const [selected, setSelected] = useState<ChemKey | null>(null);
   const [logOpen, setLogOpen] = useState(false);
   const [toast, setToast] = useState(false);
@@ -50,15 +49,16 @@ export function ChemistryTab() {
       <div className={styles.controls}>
         <div className={styles.overlayControl}>
           <span className={styles.overlayLabel}>OVERLAY TEMP</span>
-          <div className={styles.segment}>
-            {(['pool', 'air', 'off'] as Overlay[]).map((o) => (
-              <button key={o} type="button"
-                className={`${styles.segBtn} ${overlay === o ? styles.segActive : ''}`}
-                onClick={() => setOverlay(o)}>
-                {o === 'pool' ? 'Pool' : o === 'air' ? 'Air' : 'Off'}
-              </button>
-            ))}
-          </div>
+          <button type="button" aria-pressed={poolOn}
+            className={`${styles.pill} ${poolOn ? styles.poolOn : ''}`}
+            onClick={() => setPoolOn((v) => !v)}>
+            <span className={styles.swatchPool} /> Pool
+          </button>
+          <button type="button" aria-pressed={airOn}
+            className={`${styles.pill} ${airOn ? styles.airOn : ''}`}
+            onClick={() => setAirOn((v) => !v)}>
+            <span className={styles.swatchAir} /> Air
+          </button>
         </div>
         <div className={styles.rangeRow}>
           {RANGES.map((r) => (
@@ -81,7 +81,7 @@ export function ChemistryTab() {
         <div className={styles.grid}>
           {CHEMS.map((c) => (
             <ChemCard key={c.key} meta={c} readings={readings}
-              poolHistory={poolHistory} airHistory={airHistory} overlay={overlay} onOpen={setSelected} />
+              poolHistory={poolHistory} airHistory={airHistory} showPool={poolOn} showAir={airOn} onOpen={setSelected} />
           ))}
         </div>
       )}

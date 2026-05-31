@@ -10,11 +10,12 @@ interface ChemCardProps {
   readings: ChemistryReading[];
   poolHistory: TimeSeriesPoint[];
   airHistory: TimeSeriesPoint[];
-  overlay: 'pool' | 'air' | 'off';
+  showPool: boolean;
+  showAir: boolean;
   onOpen: (key: ChemKey) => void;
 }
 
-export function ChemCard({ meta, readings, poolHistory, airHistory, overlay, onOpen }: ChemCardProps) {
+export function ChemCard({ meta, readings, poolHistory, airHistory, showPool, showAir, onOpen }: ChemCardProps) {
   const latest = latestReading(readings, meta.key);
   const delta = computeDelta(readings, meta.key, meta.decimals);
 
@@ -42,8 +43,8 @@ export function ChemCard({ meta, readings, poolHistory, airHistory, overlay, onO
         decimals={meta.decimals}
         poolHistory={poolHistory}
         airHistory={airHistory}
-        showPool={overlay === 'pool'}
-        showAir={overlay === 'air'}
+        showPool={showPool}
+        showAir={showAir}
         variant="mini"
       />
     </button>

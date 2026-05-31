@@ -14,15 +14,26 @@
 
 .controls { display: flex; flex-direction: column; gap: var(--spacing-sm); }
 
-.overlayControl { display: flex; align-items: center; gap: var(--spacing-sm); }
+.overlayControl { display: flex; align-items: center; gap: var(--spacing-sm); flex-wrap: wrap; }
 
 .overlayLabel { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); }
 
-.segment { display: inline-flex; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 999px; padding: 2px; }
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 999px;
+  border: 1px solid var(--color-border); background: var(--color-surface);
+  font-size: 0.78rem; font-weight: 600; color: var(--color-text-secondary); cursor: pointer;
+}
 
-.segBtn { padding: 6px 13px; font-size: 0.78rem; font-weight: 600; border: none; border-radius: 999px; background: transparent; color: var(--color-text-secondary); cursor: pointer; }
+.poolOn { background: rgba(26, 111, 196, 0.1); border-color: rgba(26, 111, 196, 0.3); color: var(--color-primary); }
 
-.segActive { background: var(--color-bg); color: var(--color-text); box-shadow: var(--shadow-sm); }
+.airOn { background: rgba(234, 88, 12, 0.1); border-color: rgba(234, 88, 12, 0.35); color: var(--color-air-temp); }
+
+.swatchPool, .swatchAir { width: 15px; border-top: 2px dashed; display: inline-block; }
+
+.swatchPool { border-color: var(--ghost-stroke); }
+
+.swatchAir { border-color: var(--air-stroke); }
 
 .rangeRow { display: flex; gap: 6px; flex-wrap: wrap; }
 
