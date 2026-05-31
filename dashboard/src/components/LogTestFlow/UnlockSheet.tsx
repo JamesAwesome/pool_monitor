@@ -49,7 +49,15 @@ export function UnlockSheet({ open, onClose, onUnlocked }: UnlockSheetProps) {
 
         <label className={styles.field}>
           <span className={styles.fieldLabel}>Username</span>
-          <input className={styles.input} value={user} onChange={(e) => setUser(e.target.value)} autoComplete="username" />
+          <input
+            className={styles.input}
+            value={user}
+            onChange={(e) => setUser(e.target.value.toLowerCase())}
+            autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+          />
         </label>
         <label className={styles.field}>
           <span className={styles.fieldLabel}>Password</span>

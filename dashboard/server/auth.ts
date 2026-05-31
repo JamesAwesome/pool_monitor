@@ -34,11 +34,16 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   // Deny when unconfigured or credentials don't match. Deliberately NO
   // WWW-Authenticate header: the UI uses a custom unlock sheet, and that header
   // would trigger the browser's native Basic-Auth dialog.
+  // The username is compared case-insensitively (normalized to lowercase on
+  // both sides); the password remains case-sensitive.
   if (
     !expectedUser ||
     !expectedPass ||
     !creds ||
-    !credentialsMatch(creds, { user: expectedUser, pass: expectedPass })
+    !credentialsMatch(
+      { user: creds.user.toLowerCase(), pass: creds.pass },
+      { user: expectedUser.toLowerCase(), pass: expectedPass },
+    )
   ) {
     res.status(401).json({ error: 'Unauthorized' });
     return;

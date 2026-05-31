@@ -79,4 +79,30 @@ describe('requireAuth', () => {
     expect(res.statusCode).toBe(401);
     expect(next).not.toHaveBeenCalled();
   });
+
+  it('matches the username case-insensitively', () => {
+    const header = `Basic ${Buffer.from('ALICE:s3cret').toString('base64')}`;
+    const next = vi.fn();
+    const res = mockRes();
+    requireAuth({ headers: { authorization: header } } as never, res as never, next);
+    expect(next).toHaveBeenCalledOnce();
+  });
+
+  it('matches when the configured username has mixed case', () => {
+    process.env.CHEM_AUTH_USER = 'Alice';
+    const header = `Basic ${Buffer.from('alice:s3cret').toString('base64')}`;
+    const next = vi.fn();
+    const res = mockRes();
+    requireAuth({ headers: { authorization: header } } as never, res as never, next);
+    expect(next).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the password case-sensitive', () => {
+    const header = `Basic ${Buffer.from('alice:S3CRET').toString('base64')}`;
+    const next = vi.fn();
+    const res = mockRes();
+    requireAuth({ headers: { authorization: header } } as never, res as never, next);
+    expect(next).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(401);
+  });
 });

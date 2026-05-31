@@ -1,6 +1,7 @@
 .bar {
   display: flex;
   padding: 10px 14px 0;
+  margin-bottom: var(--spacing-lg);
 }
 
 .tab {
