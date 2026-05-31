@@ -48,3 +48,9 @@
 }
 
 .listVal { font-size: 0.86rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.legend { display: flex; flex-wrap: wrap; gap: var(--spacing-sm); font-size: 0.78rem; color: var(--color-text-secondary); }
+
+.legendItem { display: inline-flex; align-items: baseline; gap: 4px; }
+
+.legendVal { font-weight: 700; font-variant-numeric: tabular-nums; }

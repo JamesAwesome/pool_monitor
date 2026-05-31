@@ -35,4 +35,19 @@ describe('ChemFocusSheet', () => {
     await userEvent.click(poolPill);
     expect(poolPill).toHaveAttribute('aria-pressed', 'false');
   });
+
+  it('shows pool now legend when Pool overlay is on and poolHistory has data', () => {
+    // poolHistory last value: 28.89°C → 84.0°F (unit mock returns 'F')
+    const poolHistory = [
+      { time: '2026-05-29T12:00:00Z', value: 27.0 },
+      { time: '2026-05-29T16:00:00Z', value: 28.89 },
+    ];
+    render(
+      <ChemFocusSheet meta={CHEM_BY_KEY.fc} readings={readings}
+        poolHistory={poolHistory} airHistory={[]} onClose={vi.fn()} />,
+    );
+    expect(screen.getByText(/pool now/i)).toBeInTheDocument();
+    // 28.89°C → 84.0°F
+    expect(screen.getByText(/84\.0°F/)).toBeInTheDocument();
+  });
 });

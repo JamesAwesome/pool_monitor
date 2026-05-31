@@ -11,14 +11,6 @@ export const CHEM_BOUNDS: Record<ChemField, [number, number]> = {
   ch: [0, 2000],
 };
 
-/**
- * Convert a date-only string (YYYY-MM-DD) to the UTC instant that reads as
- * 12:00 noon in the given IANA timezone. Readings are logged by date only;
- * anchoring at local noon keeps them on the correct calendar day everywhere.
- *
- * Uses Intl.DateTimeFormat to determine the UTC offset, which avoids the
- * system-timezone dependency of the `new Date(toLocaleString(...))` approach.
- */
 export type ValidatedChemistry =
   | { ok: true; date: string; values: Partial<Record<ChemField, number>> }
   | { ok: false; error: string };

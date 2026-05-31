@@ -8,6 +8,15 @@ function isValidSensorId(id: string): boolean {
   return /^[a-zA-Z0-9_-]+$/.test(id);
 }
 
+export function isValidRange(range: string): boolean {
+  return (
+    range === 'season' ||
+    range === 'all' ||
+    /^\d+[hdwm]$/.test(range) ||
+    /^custom:\d{4}-\d{2}-\d{2}:\d{4}-\d{2}-\d{2}$/.test(range)
+  );
+}
+
 const router = Router()
 router.use('/api/chemistry', express.json())
 
@@ -159,6 +168,10 @@ router.get('/api/weather/history', async (req, res) => {
 router.get('/api/chemistry', async (req, res) => {
   try {
     const range = typeof req.query.range === 'string' ? req.query.range : 'season'
+    if (req.query.range !== undefined && !isValidRange(range)) {
+      res.status(400).json({ error: 'Invalid range' })
+      return
+    }
     const readings = await queryChemistry(range)
     res.json(readings)
   } catch (err) {

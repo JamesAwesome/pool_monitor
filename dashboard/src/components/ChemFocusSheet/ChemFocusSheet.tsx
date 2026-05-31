@@ -5,6 +5,8 @@ import { DeltaTag } from '../DeltaTag';
 import type { ChemMeta } from '../../constants/chemicals';
 import type { ChemistryReading, TimeSeriesPoint } from '../../types';
 import { latestReading, computeDelta, computeStats, formatChemValue } from '../../utils/chemistry';
+import { formatTemperature } from '../../utils/temperature';
+import { useTheme } from '../../context/ThemeContext';
 import styles from './ChemFocusSheet.module.css';
 
 interface ChemFocusSheetProps {
@@ -18,6 +20,8 @@ interface ChemFocusSheetProps {
 export function ChemFocusSheet({ meta, readings, poolHistory, airHistory, onClose }: ChemFocusSheetProps) {
   const [poolOn, setPoolOn] = useState(true);
   const [airOn, setAirOn] = useState(false);
+  const { unit } = useTheme();
+  const unitSuffix = unit === 'F' ? '°F' : '°C';
 
   const latest = latestReading(readings, meta.key);
   const delta = computeDelta(readings, meta.key, meta.decimals);
@@ -56,6 +60,23 @@ export function ChemFocusSheet({ meta, readings, poolHistory, airHistory, onClos
 
         <ChemChart readings={readings} chemKey={meta.key} color={meta.color} decimals={meta.decimals}
           poolHistory={poolHistory} airHistory={airHistory} showPool={poolOn} showAir={airOn} variant="full" />
+
+        {(poolOn && poolHistory.length > 0) || (airOn && airHistory.length > 0) ? (
+          <div className={styles.legend}>
+            {poolOn && poolHistory.length > 0 && (
+              <span className={styles.legendItem}>
+                <span className={styles.legendVal}>{formatTemperature(poolHistory[poolHistory.length - 1].value, unit)}{unitSuffix}</span>
+                pool now
+              </span>
+            )}
+            {airOn && airHistory.length > 0 && (
+              <span className={styles.legendItem} style={{ color: 'var(--color-air-temp)' }}>
+                <span className={styles.legendVal}>{formatTemperature(airHistory[airHistory.length - 1].value, unit)}{unitSuffix}</span>
+                air now
+              </span>
+            )}
+          </div>
+        ) : null}
 
         <div className={styles.stats}>
           {(['low', 'avg', 'high'] as const).map((k) => (
