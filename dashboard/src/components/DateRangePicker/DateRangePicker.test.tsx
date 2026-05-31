@@ -23,8 +23,11 @@ describe('DateRangePicker', () => {
     const user = userEvent.setup();
     render(<DateRangePicker onApply={vi.fn()} />);
     await user.click(screen.getByLabelText('Previous month'));
-    const prev = new Date();
-    prev.setMonth(prev.getMonth() - 1);
+    // Anchor to the first of the month (matching the component's
+    // `new Date(year, month - 1, 1)`) so the expected label doesn't drift when
+    // today's day-of-month doesn't exist in the previous month (e.g. May 31).
+    const today = new Date();
+    const prev = new Date(today.getFullYear(), today.getMonth() - 1, 1);
     const label = prev.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
     expect(screen.getByText(label)).toBeTruthy();
   });
