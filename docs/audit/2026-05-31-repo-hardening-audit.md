@@ -8,13 +8,13 @@
 
 ## 1. Executive summary
 
-**Finding counts by severity (actionable findings, n=30):**
+**Finding counts by severity (actionable findings, n=31):**
 
 | Severity | Count |
 |----------|-------|
 | Critical | 0 |
 | High | 5 |
-| Medium | 12 |
+| Medium | 13 |
 | Low | 13 |
 
 **Top quick wins (backlog ranks 1–5):**
@@ -47,26 +47,27 @@ Ordering: quick wins (High/Critical severity AND S effort) first; then remaining
 | 10 | Vite MODERATE path traversal (`.map`) | Security | Medium | S | Covered by vite bump (dashboard) / vitest bump (weather) |
 | 11 | PostCSS MODERATE XSS (stringify) | Security | Medium | S | Pulled in by vite/vitest bump (transitive) |
 | 12 | qs MODERATE DoS (via express) | Security | Medium | S | Bump express to pull `qs`≥6.15.2 or add `pnpm.overrides` |
-| 13 | Dashboard uses admin InfluxDB token | Security | Medium | M | Issue a bucket-scoped read+write token for dashboard/weather; rotate admin |
-| 14 | `@napi-rs/canvas` 0.1→1.0 major | Dependencies | Medium | M | Review 1.0 changelog; bump; verify `/og-image.png` renders |
-| 15 | Weather `vitest` 2→4 (clears 3 dev CVEs) | Dependencies | Medium | M | Bump `vitest`→^4.1.7; fix config; closes esbuild/vite/postcss CVEs |
-| 16 | TempChart.tsx coverage below 80% | Code quality | Medium | M | Test `formatXTick`, air-overlay, loading state, custom-range flow |
-| 17 | `recharts` 2→3 major API change | Dependencies | Medium | L | Dedicated migration; audit imports; visual smoke-test |
-| 18 | brace-expansion MODERATE (dev-only) | Security | Low | S | Bump `typescript-eslint` or override `brace-expansion`≥5.0.6 |
-| 19 | esbuild MODERATE (weather, dev-only) | Security | Low | S | Covered by weather `vitest` bump |
-| 20 | `/api/stat-detail` missing `isValidRange` (hygiene) | Security | Low | S | Add guard for consistency (no live injection path) |
-| 21 | Dashboard patch/minor dep batch | Dependencies | Low | S | `pnpm update` in dashboard; also clears vite/postcss/brace CVEs |
-| 22 | Node runtime unpinned (engines/.nvmrc/Dockerfile) | Dependencies | Low | S | Add `engines`, `.nvmrc`, pin `node:22.x.y-slim` |
-| 23 | ChemistryTab.tsx coverage below 80% | Code quality | Low | S | Test ChemFocusSheet open, custom range, `onSaved` callback |
-| 24 | types.ts shows 0% coverage | Code quality | Low | S | Exclude `src/types.ts` in vitest coverage config |
-| 25 | TempChart.tsx `undefined as unknown as number` cast | Code quality | Low | S | Widen local point type to `value: number \| undefined` |
-| 26 | Chemistry cred base64 in localStorage | Security | Low | S | Accept for threat model; if hardened, use sessionStorage/short-lived token |
-| 27 | No runtime hardening in docker-compose | Security | Low | M | Add `no-new-privileges`/`cap_drop`/`read_only` (+tmpfs) per service |
-| 28 | `eslint` / `@eslint/js` 9→10 major | Dependencies | Low | M | Review ESLint 10 guide; bump together; fix new rule errors |
-| 29 | `@types/node` 24→25 & `typescript` 5→6 majors | Dependencies | Low | M | Bump TS first, typecheck; then `@types/node`; dedicated task |
-| 30 | No HTTP-layer (supertest) integration tests | Code quality | Low | M | Optional: add supertest tests for chemistry routes (400/201/range) |
+| 13 | Ref written during render in BottomSheet (blocks CI lint gate) | Code quality | Medium | S | Move `onCloseRef.current = onClose` into a `useEffect` (or drop the ref) |
+| 14 | Dashboard uses admin InfluxDB token | Security | Medium | M | Issue a bucket-scoped read+write token for dashboard/weather; rotate admin |
+| 15 | `@napi-rs/canvas` 0.1→1.0 major | Dependencies | Medium | M | Review 1.0 changelog; bump; verify `/og-image.png` renders |
+| 16 | Weather `vitest` 2→4 (clears 3 dev CVEs) | Dependencies | Medium | M | Bump `vitest`→^4.1.7; fix config; closes esbuild/vite/postcss CVEs |
+| 17 | TempChart.tsx coverage below 80% | Code quality | Medium | M | Test `formatXTick`, air-overlay, loading state, custom-range flow |
+| 18 | `recharts` 2→3 major API change | Dependencies | Medium | L | Dedicated migration; audit imports; visual smoke-test |
+| 19 | brace-expansion MODERATE (dev-only) | Security | Low | S | Bump `typescript-eslint` or override `brace-expansion`≥5.0.6 |
+| 20 | esbuild MODERATE (weather, dev-only) | Security | Low | S | Covered by weather `vitest` bump |
+| 21 | `/api/stat-detail` missing `isValidRange` (hygiene) | Security | Low | S | Add guard for consistency (no live injection path) |
+| 22 | Dashboard patch/minor dep batch | Dependencies | Low | S | `pnpm update` in dashboard; also clears vite/postcss/brace CVEs |
+| 23 | Node runtime unpinned (engines/.nvmrc/Dockerfile) | Dependencies | Low | S | Add `engines`, `.nvmrc`, pin `node:22.x.y-slim` |
+| 24 | ChemistryTab.tsx coverage below 80% | Code quality | Low | S | Test ChemFocusSheet open, custom range, `onSaved` callback |
+| 25 | types.ts shows 0% coverage | Code quality | Low | S | Exclude `src/types.ts` in vitest coverage config |
+| 26 | TempChart.tsx `undefined as unknown as number` cast | Code quality | Low | S | Widen local point type to `value: number \| undefined` |
+| 27 | Chemistry cred base64 in localStorage | Security | Low | S | Accept for threat model; if hardened, use sessionStorage/short-lived token |
+| 28 | No runtime hardening in docker-compose | Security | Low | M | Add `no-new-privileges`/`cap_drop`/`read_only` (+tmpfs) per service |
+| 29 | `eslint` / `@eslint/js` 9→10 major | Dependencies | Low | M | Review ESLint 10 guide; bump together; fix new rule errors |
+| 30 | `@types/node` 24→25 & `typescript` 5→6 majors | Dependencies | Low | M | Bump TS first, typecheck; then `@types/node`; dedicated task |
+| 31 | No HTTP-layer (supertest) integration tests | Code quality | Low | M | Optional: add supertest tests for chemistry routes (400/201/range) |
 
-**Authoritative counts by severity (n=30, all ranked):** Critical 0 · High 5 · Medium 12 · Low 13.
+**Authoritative counts by severity (n=31, all ranked):** Critical 0 · High 5 · Medium 13 · Low 13.
 
 **Clean / no-action items (recorded, intentionally not ranked):**
 - `ThemeContext.tsx:75` `eslint-disable react-refresh/only-export-components` — standard, intentional. No action.
