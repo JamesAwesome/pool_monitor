@@ -9,6 +9,11 @@ import { celsiusToFahrenheit } from './utils.js'
 const app = express()
 const port = parseInt(process.env.PORT ?? '8080', 10)
 
+// The app runs behind the cloudflared tunnel (a single hop). Trust one proxy so
+// req.ip reflects the forwarded client address rather than the tunnel container.
+// (The chemistry rate limiter additionally prefers the CF-Connecting-IP header.)
+app.set('trust proxy', 1)
+
 app.use(router)
 
 if (process.env.NODE_ENV === 'production') {
