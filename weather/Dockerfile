@@ -1,4 +1,4 @@
-FROM node:22-slim AS build
+FROM node:22.22.3-slim AS build
 
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
@@ -10,7 +10,7 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build
 
-FROM node:22-slim
+FROM node:22.22.3-slim
 
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
@@ -22,5 +22,8 @@ RUN pnpm install --frozen-lockfile --prod
 COPY --from=build /app/dist ./dist
 
 ENV NODE_ENV=production
+
+# Run as the unprivileged 'node' user that the base image already provides.
+USER node
 
 CMD ["node", "dist/index.js"]
