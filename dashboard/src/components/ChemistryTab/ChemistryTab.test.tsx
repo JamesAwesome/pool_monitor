@@ -61,4 +61,83 @@ describe('ChemistryTab', () => {
     await userEvent.click(screen.getByRole('button', { name: /log test/i }));
     expect(screen.getByText(/Unlock to log a test/i)).toBeInTheDocument();
   });
+
+  it('range buttons change the active selection', async () => {
+    render(<ChemistryTab />);
+    await waitFor(() => expect(screen.getByText('PH')).toBeInTheDocument());
+    // "Season" is the default — clicking "30D" should switch to it
+    const btn30d = screen.getByRole('button', { name: '30D' });
+    await userEvent.click(btn30d);
+    // After clicking 30D, clicking "All" should also work without error
+    const btnAll = screen.getByRole('button', { name: 'All' });
+    await userEvent.click(btnAll);
+    // No assertion on class (CSS modules are opaque in tests), but we verify
+    // the fetch was re-triggered with the new range
+    await waitFor(() => expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+      expect.stringContaining('range=all')
+    ));
+  });
+
+  it('Custom button opens the bottom sheet with the date range picker', async () => {
+    render(<ChemistryTab />);
+    await waitFor(() => expect(screen.getByText('PH')).toBeInTheDocument());
+    expect(screen.queryByRole('dialog', { name: 'Custom range' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Custom' }));
+    expect(screen.getByRole('dialog', { name: 'Custom range' })).toBeTruthy();
+  });
+
+  it('Custom button toggles the bottom sheet off on second click', async () => {
+    render(<ChemistryTab />);
+    await waitFor(() => expect(screen.getByText('PH')).toBeInTheDocument());
+    await userEvent.click(screen.getByRole('button', { name: 'Custom' }));
+    expect(screen.getByRole('dialog', { name: 'Custom range' })).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Custom' }));
+    expect(screen.queryByRole('dialog', { name: 'Custom range' })).toBeNull();
+  });
+
+  it('DateRangePicker in custom sheet fires onApply and closes the sheet', async () => {
+    render(<ChemistryTab />);
+    await waitFor(() => expect(screen.getByText('PH')).toBeInTheDocument());
+    await userEvent.click(screen.getByRole('button', { name: 'Custom' }));
+    expect(screen.getByRole('dialog', { name: 'Custom range' })).toBeTruthy();
+
+    // Navigate to previous month so multiple past days are available
+    await userEvent.click(screen.getByRole('button', { name: 'Previous month' }));
+
+    const allDayButtons = screen.getAllByRole('button').filter(
+      (b) => !b.hasAttribute('disabled') && /^\d+$/.test((b.textContent ?? '').trim())
+    );
+    expect(allDayButtons.length).toBeGreaterThanOrEqual(2);
+    await userEvent.click(allDayButtons[0]);
+    await userEvent.click(allDayButtons[Math.min(4, allDayButtons.length - 1)]);
+
+    const applyBtn = screen.getByRole('button', { name: /apply/i });
+    expect(applyBtn).not.toBeDisabled();
+    await userEvent.click(applyBtn);
+
+    // Sheet should close and a custom range fetch should be triggered
+    expect(screen.queryByRole('dialog', { name: 'Custom range' })).toBeNull();
+    await waitFor(() => expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+      expect.stringContaining('range=custom%3A')
+    ));
+  });
+
+  it('closing a quick range button hides the custom sheet when it was open', async () => {
+    render(<ChemistryTab />);
+    await waitFor(() => expect(screen.getByText('PH')).toBeInTheDocument());
+    await userEvent.click(screen.getByRole('button', { name: 'Custom' }));
+    expect(screen.getByRole('dialog', { name: 'Custom range' })).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: '90D' }));
+    expect(screen.queryByRole('dialog', { name: 'Custom range' })).toBeNull();
+  });
+
+  it('closes the focus sheet when its close button is clicked', async () => {
+    render(<ChemistryTab />);
+    await waitFor(() => expect(screen.getByText('FREE CHLORINE')).toBeInTheDocument());
+    await userEvent.click(screen.getByText('FREE CHLORINE'));
+    await waitFor(() => expect(screen.getByText('Avg')).toBeInTheDocument());
+    // BottomSheet renders a close button with aria-label="Close"
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByText('Avg')).toBeNull());
+  });
 });
