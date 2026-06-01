@@ -1,0 +1,101 @@
+# Dependabot configuration — keeps npm deps and Docker images current via
+# weekly, grouped pull requests. See docs/superpowers/specs/2026-06-01-dependabot-design.md
+# No CI gates these PRs; review each manually (+ a Docker build for image bumps).
+version: 2
+updates:
+  # --- npm: dashboard ---
+  - package-ecosystem: npm
+    directory: /dashboard
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+    commit-message:
+      prefix: deps
+      prefix-development: deps-dev
+    groups:
+      dashboard-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # --- npm: weather ---
+  - package-ecosystem: npm
+    directory: /weather
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+    commit-message:
+      prefix: deps
+      prefix-development: deps-dev
+    groups:
+      weather-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # --- docker: dashboard Dockerfile base image ---
+  - package-ecosystem: docker
+    directory: /dashboard
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+    commit-message:
+      prefix: deps
+    groups:
+      dashboard-docker-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # --- docker: weather Dockerfile base image ---
+  - package-ecosystem: docker
+    directory: /weather
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+    commit-message:
+      prefix: deps
+    groups:
+      weather-docker-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # --- docker: docker-compose.yml image tags (repo root) ---
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+    commit-message:
+      prefix: deps
+    groups:
+      compose-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
