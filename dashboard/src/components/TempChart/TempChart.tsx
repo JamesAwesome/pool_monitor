@@ -68,14 +68,11 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
   }, [data]);
 
   const chartData = useMemo(() => {
-    const poolMap = new Map(
+    type ChartPoint = { time: string; value: number | undefined; airValue?: number };
+    const poolMap = new Map<string, ChartPoint>(
       smoothedPool.map((pt) => [
         pt.time,
-        { time: pt.time, value: isFahrenheit ? celsiusToFahrenheit(pt.value) : pt.value } as {
-          time: string;
-          value: number;
-          airValue?: number;
-        },
+        { time: pt.time, value: isFahrenheit ? celsiusToFahrenheit(pt.value) : pt.value },
       ]),
     );
 
@@ -86,7 +83,9 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
         if (existing) {
           existing.airValue = airVal;
         } else {
-          poolMap.set(pt.time, { time: pt.time, value: undefined as unknown as number, airValue: airVal });
+          // Air-only point: no pool reading at this timestamp. Recharts renders
+          // the undefined pool value as a gap.
+          poolMap.set(pt.time, { time: pt.time, value: undefined, airValue: airVal });
         }
       }
     }
