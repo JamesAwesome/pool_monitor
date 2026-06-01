@@ -54,6 +54,11 @@ updates:
       - dependencies
     commit-message:
       prefix: deps
+    # Stay on the Node LTS line we build/test against; don't propose Node > 24.
+    ignore:
+      - dependency-name: node
+        update-types:
+          - version-update:semver-major
     groups:
       dashboard-docker-minor-patch:
         patterns:
@@ -73,6 +78,11 @@ updates:
       - dependencies
     commit-message:
       prefix: deps
+    # Stay on the Node LTS line we build/test against; don't propose Node > 24.
+    ignore:
+      - dependency-name: node
+        update-types:
+          - version-update:semver-major
     groups:
       weather-docker-minor-patch:
         patterns:
