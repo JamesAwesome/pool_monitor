@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@influxdata/influxdb-client": "^1.35.0",
-    "@napi-rs/canvas": "^0.1.100",
+    "@napi-rs/canvas": "^1.0.0",
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.2",
     "react": "^19.2.6",
