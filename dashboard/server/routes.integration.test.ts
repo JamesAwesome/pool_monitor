@@ -56,7 +56,7 @@ describe('range validation on data routes', () => {
     it(`rejects an injection-ish range on ${label} with 400`, async () => {
       const res = await fetch(`${base}${path}${sep}range=${evil}`);
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body = (await res.json()) as { error: string };
       expect(body.error).toBe('Invalid range');
     });
 
