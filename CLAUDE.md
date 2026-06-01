@@ -124,6 +124,18 @@ intentionally omits `WWW-Authenticate` to suppress the native browser dialog).
 Date-only readings are stored at local noon in `TIMEZONE`. No ideal-range/dosing
 logic — numbers and trends only.
 
+**Auth hardening notes:**
+- The chemistry auth endpoints (`POST /api/chemistry`, `/api/chemistry/auth-check`)
+  are rate-limited in `server/rateLimit.ts` (10 attempts / 15 min per client IP,
+  applied before `requireAuth`) to blunt brute-forcing the shared password. The
+  limiter keys on `CF-Connecting-IP` (the app is reached via cloudflared, so
+  `req.ip` would otherwise be the tunnel); `index.ts` sets `trust proxy: 1`.
+- The unlock sheet persists the credential as base64 `user:pass` in `localStorage`
+  (`useChemAuth`). This is **accepted for the threat model** — a single shared
+  credential on a personal, read-only-public dashboard; it gates only writes, and
+  XSS would already be game-over. If the model ever broadens (multiple users,
+  sensitive writes), switch to a short-lived server-issued token instead.
+
 ### Query aggregation strategy
 All time-series queries use `aggregateWindow` with `fn: mean` (temperature) or `fn: last` (battery). Note: `aggregateWindow` `location` parameter is not available in InfluxDB OSS 2.x (Cloud only), so windows align to UTC.
 

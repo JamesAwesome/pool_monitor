@@ -3,6 +3,7 @@ import { querySensors, queryStats, queryHistory, queryBatteries, queryBatteryHis
 import { generateOgImage } from './og-image.js'
 import { requireAuth } from './auth.js'
 import { validateChemistryBody } from './chemistry.js'
+import { chemistryAuthLimiter } from './rateLimit.js'
 
 function isValidSensorId(id: string): boolean {
   return /^[a-zA-Z0-9_-]+$/.test(id);
@@ -197,11 +198,12 @@ router.get('/api/chemistry', async (req, res) => {
 })
 
 // Lightweight credential probe for the unlock sheet — writes nothing.
-router.get('/api/chemistry/auth-check', requireAuth, (_req, res) => {
+// Rate-limited (before auth) to blunt brute-force password guessing.
+router.get('/api/chemistry/auth-check', chemistryAuthLimiter, requireAuth, (_req, res) => {
   res.json({ ok: true })
 })
 
-router.post('/api/chemistry', requireAuth, async (req, res) => {
+router.post('/api/chemistry', chemistryAuthLimiter, requireAuth, async (req, res) => {
   try {
     const result = validateChemistryBody(req.body)
     if (!result.ok) {
