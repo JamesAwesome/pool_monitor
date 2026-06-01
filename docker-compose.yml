@@ -1,6 +1,6 @@
 services:
   mosquitto:
-    image: eclipse-mosquitto:2
+    image: eclipse-mosquitto:2.0.22
     container_name: mosquitto
     restart: unless-stopped
     profiles: ["standalone", "edge"]
@@ -12,7 +12,9 @@ services:
       - mosquitto-log:/mosquitto/log
 
   rtl_433:
-    image: hertzg/rtl_433:latest
+    # hertzg/rtl_433 publishes only rolling master-* tags (no semver), so pin by
+    # digest for reproducibility. Update the digest deliberately when upgrading.
+    image: hertzg/rtl_433:master-alpine-3.23.4@sha256:a775b5b7b98aff241ba6f361d13a4265ed3fd3a59d12aacf00dcd5f4a2cacd29
     container_name: rtl_433
     restart: unless-stopped
     profiles: ["standalone", "edge"]
@@ -30,7 +32,7 @@ services:
       -F mqtt://mosquitto:1883,retain=1
 
   influxdb:
-    image: influxdb:2
+    image: influxdb:2.9.1
     container_name: influxdb
     restart: unless-stopped
     profiles: ["standalone", "server"]
@@ -54,7 +56,7 @@ services:
       start_period: 30s
 
   telegraf:
-    image: telegraf:latest
+    image: telegraf:1.38.4
     container_name: telegraf
     restart: unless-stopped
     profiles: ["standalone", "server"]
@@ -74,7 +76,7 @@ services:
       - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:13.0.1
     container_name: grafana
     restart: unless-stopped
     profiles: ["standalone", "server"]
@@ -101,6 +103,16 @@ services:
     container_name: pool-dashboard
     restart: unless-stopped
     profiles: ["standalone", "server"]
+    # Defense-in-depth: drop privileges and make the root FS read-only. The app
+    # only needs writable scratch for /tmp and the fontconfig cache (OG image).
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/fontconfig
     ports:
       - "8080:8080"
     environment:
@@ -123,6 +135,15 @@ services:
     container_name: weather
     restart: unless-stopped
     profiles: ["standalone", "server"]
+    # Defense-in-depth: drop privileges and make the root FS read-only. The
+    # poller only needs writable scratch for /tmp.
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
     environment:
       WEATHERAPI_KEY: ${WEATHERAPI_KEY}
       WEATHER_LOCATION: ${WEATHER_LOCATION:-19012}
@@ -136,7 +157,7 @@ services:
         condition: service_healthy
 
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    image: cloudflare/cloudflared:2026.5.2
     container_name: cloudflared
     restart: unless-stopped
     profiles: ["standalone", "server"]
