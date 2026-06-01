@@ -41,6 +41,10 @@ export function useChemistryData(range: string, refreshInterval = 30000): UseChe
   }, [range]);
 
   useEffect(() => {
+    // Intentionally show the loading state when the range (→ fetchData) changes.
+    // This is a deliberate synchronize-on-param-change effect, not a render-time
+    // setState; the rule's cascading-render concern doesn't apply here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     fetchData();
     const id = setInterval(fetchData, refreshInterval);

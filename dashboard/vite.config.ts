@@ -20,7 +20,9 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html'],
       include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/test/**', 'src/main.tsx', '**/*.d.ts', '**/index.ts'],
+      // src/types.ts is pure type declarations (no runtime code) — its 0% line
+      // is coverage noise, not an untested code path.
+      exclude: ['src/test/**', 'src/main.tsx', 'src/types.ts', '**/*.d.ts', '**/index.ts'],
     },
   },
 })

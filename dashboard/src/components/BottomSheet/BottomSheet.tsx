@@ -17,8 +17,13 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
   const dragStartY = useRef(0);
   const [dragOffset, setDragOffset] = useState(0);
   const isDragging = useRef(false);
+  // Latest-ref for onClose so the touch-drag effect can call the current
+  // handler without re-subscribing its listeners on every onClose change.
+  // Assigned in an effect (not during render) to satisfy react-hooks/refs.
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose();

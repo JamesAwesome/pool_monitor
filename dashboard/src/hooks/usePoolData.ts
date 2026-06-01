@@ -112,8 +112,12 @@ export function usePoolData(refreshInterval = 30000): UsePoolDataReturn {
     }
   }, []);
 
-  // Fetch on mount and when range or sensor changes
+  // Fetch on mount and when range or sensor changes. fetchData drives loading/
+  // data state asynchronously after its awaited fetches resolve — this is the
+  // intended "synchronize with an external system on mount/param-change" effect,
+  // not a render-time setState, so the rule's cascading-render concern doesn't apply.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData(range, selectedSensor);
 
     const id = setInterval(() => {
