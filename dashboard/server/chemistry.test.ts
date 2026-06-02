@@ -54,6 +54,30 @@ describe('dateTimeToUtc', () => {
     expect(dateTimeToUtc('2026-05-20', '16:30', 'UTC').toISOString())
       .toBe('2026-05-20T16:30:00.000Z');
   });
+  it('keeps early-morning readings on the correct calendar day (behind-UTC zone day-wrap)', () => {
+    // Regression: midnight NY is the SAME calendar day, not the previous one.
+    // 2026-05-20 00:00 EDT (-4) = 2026-05-20T04:00:00Z
+    expect(dateTimeToUtc('2026-05-20', '00:00', 'America/New_York').toISOString())
+      .toBe('2026-05-20T04:00:00.000Z');
+    // 01:30 EDT = 05:30Z; winter 00:30 EST (-5) = 05:30Z (still May/Jan 15, not 14)
+    expect(dateTimeToUtc('2026-05-20', '01:30', 'America/New_York').toISOString())
+      .toBe('2026-05-20T05:30:00.000Z');
+    expect(dateTimeToUtc('2026-01-15', '00:30', 'America/New_York').toISOString())
+      .toBe('2026-01-15T05:30:00.000Z');
+  });
+  it('handles late-night times near the day boundary', () => {
+    // 23:59 EDT = next-UTC-day 03:59Z, but the LOCAL day is still the 20th.
+    const iso = dateTimeToUtc('2026-05-20', '23:59', 'America/New_York').toISOString();
+    expect(iso).toBe('2026-05-21T03:59:00.000Z');
+    expect(utcToZonedParts(iso, 'America/New_York')).toEqual({ date: '2026-05-20', time: '23:59' });
+  });
+  it('round-trips early-morning and boundary wall times (was off by 24h)', () => {
+    const tz = 'America/New_York';
+    for (const [d, t] of [['2026-05-20', '00:00'], ['2026-05-20', '03:30'], ['2026-01-15', '00:30'], ['2026-11-01', '01:30']] as const) {
+      const iso = dateTimeToUtc(d, t, tz).toISOString();
+      expect(utcToZonedParts(iso, tz)).toEqual({ date: d, time: t });
+    }
+  });
 });
 
 describe('utcToZonedParts', () => {

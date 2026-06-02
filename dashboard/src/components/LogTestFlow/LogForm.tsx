@@ -79,7 +79,13 @@ export function LogForm({ open, onClose, authHeader, latest, onSaved, onAuthExpi
         body: JSON.stringify(body),
       });
       if (res.status === 401) { onAuthExpired(); return; }
-      if (!res.ok) { setError('Could not save. Try again.'); return; }
+      if (!res.ok) {
+        // Surface the server's specific validation message (e.g. "ph out of
+        // range") when present, since the client doesn't mirror CHEM_BOUNDS.
+        const msg = await res.json().then((b) => (b as { error?: string }).error).catch(() => null);
+        setError(msg || 'Could not save. Try again.');
+        return;
+      }
       onSaved();
     } catch {
       setError('Could not save. Try again.');

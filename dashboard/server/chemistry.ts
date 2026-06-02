@@ -67,15 +67,22 @@ export function dateTimeToUtc(dateStr: string, timeStr: string, timeZone: string
   const [h, m] = timeStr.split(':').map((s) => parseInt(s, 10));
   // Reference instant: treat the wall-clock as if it were UTC.
   const naive = new Date(`${dateStr}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00Z`);
+  // Format that instant in the target zone, then reassemble those FULL parts
+  // (date + time) back into a UTC epoch. The gap between that and `naive` is the
+  // zone's offset for this moment. Using the full timestamp — not just seconds
+  // within the day — correctly accounts for the local date wrapping to a
+  // different calendar day (e.g. early-morning hours in a behind-UTC zone).
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
   }).formatToParts(naive);
   const get = (t: string) => parseInt(parts.find((p) => p.type === t)!.value, 10);
-  const localSecondsOfNaive = (get('hour') % 24) * 3600 + get('minute') * 60 + get('second');
-  const wallSeconds = h * 3600 + m * 60;
-  const offsetSeconds = localSecondsOfNaive - wallSeconds;
-  return new Date(naive.getTime() - offsetSeconds * 1000);
+  const localAsUtc = Date.UTC(
+    get('year'), get('month') - 1, get('day'),
+    get('hour') % 24, get('minute'), get('second'),
+  );
+  const offsetMs = localAsUtc - naive.getTime();
+  return new Date(naive.getTime() - offsetMs);
 }
 
 /** Derive { date: 'YYYY-MM-DD', time: 'HH:mm' } from a UTC ISO instant in tz. */
