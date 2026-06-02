@@ -23,13 +23,13 @@ services:
       - /dev/bus/usb:/dev/bus/usb
     depends_on:
       - mosquitto
-    environment:
-      MQTT_USERNAME: ${MQTT_USER:-}
-      MQTT_PASSWORD: ${MQTT_PASSWORD:-}
+    # rtl_433 authenticates to the broker only via credentials embedded in the
+    # -F output URL below; it does not read MQTT_USERNAME/MQTT_PASSWORD env vars.
+    # ${MQTT_USER}/${MQTT_PASSWORD} are substituted from .env by docker compose.
     command: >
       -f 433.92M
       -R 194
-      -F mqtt://mosquitto:1883,retain=1
+      -F mqtt://mosquitto:1883,user=${MQTT_USER},pass=${MQTT_PASSWORD},retain=1
 
   influxdb:
     image: influxdb:2.9.1
