@@ -118,6 +118,17 @@ In split mode, the MQTT port (1883) is exposed on the Pi's network interface. Th
 **Recommendations:**
 - Always enable MQTT authentication in split mode
 - If the server is not on the same LAN as the Pi, connect them with a VPN (e.g., Tailscale or WireGuard) rather than exposing MQTT to the internet
+- Tighten the Mosquitto password file permissions. Mosquitto 2.x warns on a
+  world-readable password file (`File ... has world readable permissions. Future
+  versions will refuse to load this file.`) and future versions will refuse to
+  load it. Fix once:
+  ```bash
+  docker exec mosquitto chmod 0700 /mosquitto/config/password_file
+  ```
+  The file is bind-mounted from the repo's `mosquitto/` directory, so `chmod`
+  persists on the host. (`chown root` is also suggested by the warning but the
+  container's mosquitto process runs unprivileged; `chmod 0700` is the one that
+  matters and silences the load-refusal warning.)
 
 ## Weather sidecar (optional)
 
@@ -139,10 +150,39 @@ If `WEATHERAPI_KEY` is empty, `start.sh` skips the weather container. Data appea
 - Check the port is open: `nc -zv <pi-ip> 1883`
 - Check firewall: `sudo ufw status` (if using ufw)
 
-**"Not authorized" in Telegraf or rtl_433 logs**
-- MQTT credentials don't match. Verify `MQTT_USER` and `MQTT_PASSWORD` in `.env` match the Mosquitto password file on both machines
-- Re-run `./scripts/mqtt-password.sh <user> <password>` on the Pi if needed
-- rtl_433 reads credentials from `MQTT_USERNAME`/`MQTT_PASSWORD` env vars (mapped from `MQTT_USER`/`MQTT_PASSWORD` in docker-compose.yml)
+**"Not authorized" / `disconnected, not authorised` loop in Mosquitto, Telegraf, or rtl_433 logs**
+
+This means the connecting client is sending a username/password that the broker's
+password file doesn't accept. Two distinct causes — check both:
+
+1. **Credential mismatch.** The broker's stored password for the user must equal the
+   `MQTT_PASSWORD` the client sends. Verify the broker actually accepts the `.env`
+   credentials (no output = success):
+   ```bash
+   docker exec mosquitto mosquitto_pub -h localhost -t test -m hi \
+     -u "$MQTT_USER" -P "$MQTT_PASSWORD"
+   ```
+   If it returns `not authorised`, reset the broker password to match `.env`:
+   ```bash
+   docker exec mosquitto mosquitto_passwd -b /mosquitto/config/password_file "$MQTT_USER" "$MQTT_PASSWORD"
+   docker compose up -d --force-recreate mosquitto
+   ```
+   Note the password file is per-broker — in split mode the Pi's broker is the only
+   one, and both rtl_433 (Pi) and Telegraf (server) must use the credentials that
+   match *that* file.
+
+2. **Stale container running an old definition.** `docker compose restart` only
+   restarts the existing container with its *old* config — it does **not** pick up
+   changes to `docker-compose.yml` or `.env`. After any credential/compose change,
+   recreate the affected containers:
+   ```bash
+   git pull        # if the compose change came from the repo
+   docker compose up -d --force-recreate rtl_433 mosquitto
+   ```
+   rtl_433 authenticates using the `user=`/`pass=` options embedded in its `-F`
+   MQTT output URL (substituted from `MQTT_USER`/`MQTT_PASSWORD` in `.env`); it also
+   honors `MQTT_USERNAME`/`MQTT_PASSWORD` env vars if set. Either way the running
+   container must have been (re)created *after* the credentials were in place.
 
 **No data in dashboard after setup**
 - Check Telegraf logs: `docker logs --since 5m telegraf`

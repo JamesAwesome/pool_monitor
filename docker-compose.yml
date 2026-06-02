@@ -23,9 +23,12 @@ services:
       - /dev/bus/usb:/dev/bus/usb
     depends_on:
       - mosquitto
-    # rtl_433 authenticates to the broker only via credentials embedded in the
-    # -F output URL below; it does not read MQTT_USERNAME/MQTT_PASSWORD env vars.
-    # ${MQTT_USER}/${MQTT_PASSWORD} are substituted from .env by docker compose.
+    # rtl_433 authenticates to the broker via the user=/pass= options in the -F
+    # output URL below (${MQTT_USER}/${MQTT_PASSWORD} substituted from .env by
+    # docker compose). rtl_433 also honors MQTT_USERNAME/MQTT_PASSWORD env vars,
+    # but the explicit URL options are self-documenting and unambiguous.
+    # NOTE: after changing credentials, recreate the container (docker compose
+    # up -d --force-recreate rtl_433) — `restart` keeps the old definition.
     command: >
       -f 433.92M
       -R 194
