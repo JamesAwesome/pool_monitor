@@ -9,8 +9,8 @@ vi.mock('../../context/ThemeContext', () => ({
 }));
 
 const readings = [
-  { date: '2026-05-20T16:00:00Z', fc: 3.0 },
-  { date: '2026-05-29T16:00:00Z', fc: 4.0 },
+  { id: '2026-05-20T16:00:00Z', date: '2026-05-20', time: '12:00', fc: 3.0 },
+  { id: '2026-05-29T16:00:00Z', date: '2026-05-29', time: '12:00', fc: 4.0 },
 ];
 
 function renderCard(onOpen = vi.fn()) {

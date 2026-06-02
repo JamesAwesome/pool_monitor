@@ -14,8 +14,8 @@ describe('ChemistryTab', () => {
     localStorage.clear();
     vi.stubGlobal('fetch', vi.fn((url: string) => {
       if (url.startsWith('/api/chemistry')) return Promise.resolve(jsonResponse([
-        { date: '2026-05-20T16:00:00Z', ph: 7.5, fc: 3.0 },
-        { date: '2026-05-29T16:00:00Z', ph: 7.7, fc: 4.0 },
+        { id: '2026-05-20T16:00:00.000Z', date: '2026-05-20', time: '12:00', ph: 7.5, fc: 3.0 },
+        { id: '2026-05-29T16:00:00.000Z', date: '2026-05-29', time: '12:00', ph: 7.7, fc: 4.0 },
       ]));
       return Promise.resolve(jsonResponse([]));
     }));
@@ -139,5 +139,12 @@ describe('ChemistryTab', () => {
     // BottomSheet renders a close button with aria-label="Close"
     await userEvent.click(screen.getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(screen.queryByText('Avg')).toBeNull());
+  });
+
+  it('opens the History sheet from the History button', async () => {
+    render(<ChemistryTab />);
+    await waitFor(() => expect(screen.getByText('PH')).toBeInTheDocument());
+    await userEvent.click(screen.getByRole('button', { name: /history/i }));
+    expect(await screen.findByText(/tests logged/i)).toBeInTheDocument();
   });
 });

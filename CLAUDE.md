@@ -96,7 +96,7 @@ pnpm typecheck        # TypeScript only
   - `/api/weather/current` — latest air temperature, feels-like, humidity, condition
   - `/api/weather/history?range=...` — aggregated air temperature time series
   - `/api/health` — health check
-  - `/api/chemistry?range=...` — GET list of manual chemistry readings `{ date, ph?, fc?, cc?, ta?, cya?, ch? }[]`; POST a reading (Basic-Auth gated). Ranges include `30d`/`90d`/`season`/`all`/`custom:`.
+  - `/api/chemistry?range=...` — GET readings `{ id, date, time, ph?, fc?, cc?, ta?, cya?, ch? }[]` (id = the reading's ISO-UTC timestamp; date/time derived in `TIMEZONE`). POST a reading `{ date, time, <values> }` → `201 { id }`. PUT `{ id, date, time, <values> }` edits it (delete-old-timestamp + write-new, so time changes and field-clearing work). DELETE `?id=<iso>` removes one. POST/PUT/DELETE are Basic-Auth gated + rate-limited; GET is public. Ranges: `30d`/`90d`/`season`/`all`/`custom:`. Partial readings (≥1 of the six values) allowed; storage is InfluxDB with the point's UTC timestamp as its id (two tests on one day = two distinct points; legacy noon-logged readings display as 12:00 until edited).
   - `/api/chemistry/auth-check` — GET, Basic-Auth gated; returns `{ ok: true }` (used by the unlock sheet to validate credentials without writing).
   - `/og-image.png` — dynamically generated 1200x630 PNG with current temp (for iMessage/social previews, cached 5 min)
   - All data endpoints accept optional `?sensor=<id>` to filter by sensor; omit for averaged "all sensors" view.
@@ -119,10 +119,16 @@ A second tab (local `activeTab` state in `App`) logs six manual chemical reading
 shows each as a small-multiple trend card correlated against pool/air temperature.
 Tapping a card opens a focus `BottomSheet` (full chart + Low/Avg/High + recent
 readings). Logging is gated by an Express Basic-Auth middleware (`server/auth.ts`)
-on `POST /api/chemistry`; the UI uses a custom unlock sheet (the 401 response
+on the chemistry write routes; the UI uses a custom unlock sheet (the 401 response
 intentionally omits `WWW-Authenticate` to suppress the native browser dialog).
-Date-only readings are stored at local noon in `TIMEZONE`. No ideal-range/dosing
-logic — numbers and trends only.
+Readings carry a real timestamp (date + time), so two tests on the same day are
+distinct points; a **History** sheet (`HistorySheet`) lists every test newest-first,
+and tapping one opens the log form in **edit** mode (PUT) with an inline
+**delete** confirm — both behind the same unlock gate as logging. New writes are
+timestamped at the logged date+time in `TIMEZONE`; the point's UTC timestamp is
+the reading's stable id (`server/chemistry.ts` `dateTimeToUtc`/`utcToZonedParts`;
+deletes via `server/influxDelete.ts` `DeleteAPI`). No ideal-range/dosing logic —
+numbers and trends only.
 
 **Auth hardening notes:**
 - The chemistry auth endpoints (`POST /api/chemistry`, `/api/chemistry/auth-check`)

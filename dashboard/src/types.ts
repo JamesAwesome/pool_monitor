@@ -58,6 +58,8 @@ export interface WeatherCurrent {
 export type ChemKey = 'ph' | 'fc' | 'cc' | 'ta' | 'cya' | 'ch';
 
 export interface ChemistryReading {
-  date: string; // ISO timestamp from the API
+  id: string;   // ISO UTC timestamp (stable id)
+  date: string; // YYYY-MM-DD in app timezone
+  time: string; // HH:mm 24h in app timezone
   ph?: number; fc?: number; cc?: number; ta?: number; cya?: number; ch?: number;
 }

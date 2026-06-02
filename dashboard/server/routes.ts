@@ -1,8 +1,8 @@
 import express, { Router } from 'express'
-import { querySensors, queryStats, queryHistory, queryBatteries, queryBatteryHistory, querySeasonHistory, queryStatDetail, queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry } from './influx.js'
+import { querySensors, queryStats, queryHistory, queryBatteries, queryBatteryHistory, querySeasonHistory, queryStatDetail, queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry, deleteChemistryPoint } from './influx.js'
 import { generateOgImage } from './og-image.js'
 import { requireAuth } from './auth.js'
-import { validateChemistryBody } from './chemistry.js'
+import { validateChemistryBody, isValidId } from './chemistry.js'
 import { chemistryAuthLimiter } from './rateLimit.js'
 
 function isValidSensorId(id: string): boolean {
@@ -206,15 +206,42 @@ router.get('/api/chemistry/auth-check', chemistryAuthLimiter, requireAuth, (_req
 router.post('/api/chemistry', chemistryAuthLimiter, requireAuth, async (req, res) => {
   try {
     const result = validateChemistryBody(req.body)
-    if (!result.ok) {
-      res.status(400).json({ error: result.error })
-      return
-    }
-    await writeChemistry({ date: result.date, values: result.values })
-    res.status(201).json({ ok: true })
+    if (!result.ok) { res.status(400).json({ error: result.error }); return }
+    const id = await writeChemistry({ date: result.date, time: result.time, values: result.values })
+    res.status(201).json({ id })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    res.status(500).json({ error: message })
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' })
+  }
+})
+
+// Edit = delete the old point then write the new one. This supports changing the
+// timestamp and clearing fields (InfluxDB fields otherwise linger on a point).
+// LIMITATION: not transactional — if the process dies between the delete and the
+// write, that reading is lost. Acceptable for this single-user app; the delete-
+// then-write order is deliberate (write-first could leave a duplicate, and a
+// same-instant edit would self-delete).
+router.put('/api/chemistry', chemistryAuthLimiter, requireAuth, async (req, res) => {
+  try {
+    const id = (req.body as { id?: unknown })?.id
+    if (!isValidId(id)) { res.status(400).json({ error: 'Invalid or missing id' }); return }
+    const result = validateChemistryBody(req.body)
+    if (!result.ok) { res.status(400).json({ error: result.error }); return }
+    await deleteChemistryPoint(id as string)
+    const newId = await writeChemistry({ date: result.date, time: result.time, values: result.values })
+    res.status(200).json({ id: newId })
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' })
+  }
+})
+
+router.delete('/api/chemistry', chemistryAuthLimiter, requireAuth, async (req, res) => {
+  try {
+    const id = typeof req.query.id === 'string' ? req.query.id : ''
+    if (!isValidId(id)) { res.status(400).json({ error: 'Invalid or missing id' }); return }
+    await deleteChemistryPoint(id)
+    res.status(200).json({ ok: true })
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' })
   }
 })
 

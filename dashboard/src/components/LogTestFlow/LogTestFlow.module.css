@@ -61,3 +61,34 @@
 .primaryBtn { background: var(--color-primary); border: none; color: #fff; }
 
 .primaryBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.dateTimeRow { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-sm) var(--spacing-md); }
+
+.inlineNote {
+  font-size: 0.78rem; color: var(--color-text-secondary);
+  margin: 0; padding: 6px 10px;
+  background: rgba(26, 111, 196, 0.07);
+  border-radius: var(--radius-sm);
+}
+
+.deleteSection { margin-top: var(--spacing-sm); }
+
+.deleteBtn {
+  background: none; border: none; padding: 0;
+  font-size: 0.82rem; color: var(--color-danger);
+  cursor: pointer; text-decoration: underline;
+}
+
+.deleteConfirm { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+
+.deleteConfirmText { font-size: 0.88rem; font-weight: 600; color: var(--color-danger); margin: 0; }
+
+.deleteConfirmActions { display: flex; gap: var(--spacing-sm); }
+
+.dangerBtn {
+  flex: 1; padding: 11px 0; border-radius: var(--radius-sm);
+  font-size: 0.9rem; font-weight: 600; cursor: pointer;
+  background: var(--color-danger); border: none; color: #fff;
+}
+
+.dangerBtn:disabled { opacity: 0.5; cursor: not-allowed; }

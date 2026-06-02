@@ -1,5 +1,5 @@
 import { InfluxDB, Point } from '@influxdata/influxdb-client'
-import { CHEM_FIELDS, zonedNoonToUtc } from './chemistry.js'
+import { CHEM_FIELDS, dateTimeToUtc, utcToZonedParts } from './chemistry.js'
 import type { ChemField } from './chemistry.js'
 
 const url = process.env.INFLUXDB_URL ?? 'http://localhost:8086'
@@ -415,11 +415,16 @@ export function getWriteApi() {
 }
 
 export interface ChemistryReading {
+  id: string
   date: string
+  time: string
   ph?: number; fc?: number; cc?: number; ta?: number; cya?: number; ch?: number
 }
 
-export async function queryChemistry(range: string): Promise<ChemistryReading[]> {
+export async function queryChemistry(
+  range: string,
+  timeZone = process.env.TIMEZONE ?? 'America/New_York',
+): Promise<ChemistryReading[]> {
   const api = getQueryApi()
   const fieldFilter = CHEM_FIELDS.map((f) => `r._field == "${f}"`).join(' or ')
   const query = `
@@ -432,7 +437,9 @@ export async function queryChemistry(range: string): Promise<ChemistryReading[]>
   `
   const rows = await api.collectRows<Record<string, unknown>>(query)
   return rows.map((row) => {
-    const reading: ChemistryReading = { date: row._time as string }
+    const id = row._time as string
+    const { date, time } = utcToZonedParts(id, timeZone)
+    const reading: ChemistryReading = { id, date, time }
     for (const f of CHEM_FIELDS) {
       const v = row[f]
       if (typeof v === 'number') reading[f] = v
@@ -442,15 +449,19 @@ export async function queryChemistry(range: string): Promise<ChemistryReading[]>
 }
 
 export async function writeChemistry(
-  input: { date: string; values: Partial<Record<ChemField, number>> },
-  timeZone = process.env.TIMEZONE ?? 'America/New_York'
-): Promise<void> {
+  input: { date: string; time: string; values: Partial<Record<ChemField, number>> },
+  timeZone = process.env.TIMEZONE ?? 'America/New_York',
+): Promise<string> {
   const writeApi = getWriteApi()
-  const point = new Point('chemistry').timestamp(zonedNoonToUtc(input.date, timeZone))
+  const when = dateTimeToUtc(input.date, input.time, timeZone)
+  const point = new Point('chemistry').timestamp(when)
   for (const f of CHEM_FIELDS) {
     const v = input.values[f]
     if (v !== undefined) point.floatField(f, v)
   }
   writeApi.writePoint(point)
   await writeApi.flush()
+  return when.toISOString()
 }
+
+export { deleteChemistryPoint } from './influxDelete.js'

@@ -48,3 +48,24 @@ export function computeStats(readings: ChemistryReading[], key: ChemKey): ChemSt
 export function formatChemValue(value: number, decimals: number): string {
   return value.toFixed(decimals);
 }
+
+export function testsOnDay(readings: ChemistryReading[], date: string): number {
+  return readings.filter((r) => r.date === date).length;
+}
+
+export function sortedDesc(readings: ChemistryReading[]): ChemistryReading[] {
+  return [...readings].sort((a, b) => b.id.localeCompare(a.id));
+}
+
+export function fmtTime12(time: string): string {
+  const [h, m] = time.split(':').map((s) => parseInt(s, 10));
+  const period = h < 12 ? 'AM' : 'PM';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+}
+
+export function fmtDateWeekday(date: string): string {
+  // Parse as local midnight to avoid tz shifting the weekday.
+  const [y, mo, d] = date.split('-').map((s) => parseInt(s, 10));
+  return new Date(y, mo - 1, d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}

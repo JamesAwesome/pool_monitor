@@ -12,8 +12,17 @@ export const CHEM_BOUNDS: Record<ChemField, [number, number]> = {
 };
 
 export type ValidatedChemistry =
-  | { ok: true; date: string; values: Partial<Record<ChemField, number>> }
+  | { ok: true; date: string; time: string; values: Partial<Record<ChemField, number>> }
   | { ok: false; error: string };
+
+export function isValidTime(t: unknown): boolean {
+  return typeof t === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(t);
+}
+
+export function isValidId(id: unknown): boolean {
+  return typeof id === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(id)
+    && !Number.isNaN(new Date(id).getTime());
+}
 
 export function validateChemistryBody(body: unknown): ValidatedChemistry {
   if (typeof body !== 'object' || body === null) {
@@ -23,6 +32,10 @@ export function validateChemistryBody(body: unknown): ValidatedChemistry {
 
   if (typeof b.date !== 'string' || Number.isNaN(new Date(b.date).getTime())) {
     return { ok: false, error: 'Invalid or missing date' };
+  }
+
+  if (!isValidTime(b.time)) {
+    return { ok: false, error: 'Invalid or missing time' };
   }
 
   const values: Partial<Record<ChemField, number>> = {};
@@ -42,35 +55,44 @@ export function validateChemistryBody(body: unknown): ValidatedChemistry {
   if (Object.keys(values).length === 0) {
     return { ok: false, error: 'At least one chemical value is required' };
   }
-  return { ok: true, date: b.date, values };
+  return { ok: true, date: b.date, time: b.time as string, values };
 }
 
 /**
- * Convert a date-only string (YYYY-MM-DD) to the UTC instant that reads as
- * 12:00 noon in the given IANA timezone. Readings are logged by date only;
- * anchoring at local noon keeps them on the correct calendar day everywhere.
- *
- * Uses Intl.DateTimeFormat to determine the UTC offset, which avoids the
- * system-timezone dependency of the `new Date(toLocaleString(...))` approach.
+ * Convert a date (YYYY-MM-DD) + time (HH:mm) in the given IANA timezone to the
+ * UTC Date to store. Uses an Intl.DateTimeFormat offset derivation so it is
+ * independent of the host system timezone.
  */
-export function zonedNoonToUtc(dateStr: string, timeZone: string): Date {
-  // Start with UTC noon as a reference point.
-  const naiveNoon = new Date(`${dateStr}T12:00:00Z`);
-  // Find what local time UTC noon maps to in the target timezone.
+export function dateTimeToUtc(dateStr: string, timeStr: string, timeZone: string): Date {
+  const [h, m] = timeStr.split(':').map((s) => parseInt(s, 10));
+  // Reference instant: treat the wall-clock as if it were UTC.
+  const naive = new Date(`${dateStr}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00Z`);
+  // Format that instant in the target zone, then reassemble those FULL parts
+  // (date + time) back into a UTC epoch. The gap between that and `naive` is the
+  // zone's offset for this moment. Using the full timestamp — not just seconds
+  // within the day — correctly accounts for the local date wrapping to a
+  // different calendar day (e.g. early-morning hours in a behind-UTC zone).
   const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-    hour12: false,
-  }).formatToParts(naiveNoon);
-  const get = (type: string) =>
-    parseInt(parts.find((p) => p.type === type)!.value, 10);
-  // hour12:false can emit '24' for midnight; normalise with % 24.
-  const localHour = get('hour') % 24;
-  const localMin = get('minute');
-  const localSec = get('second');
-  // offsetSeconds = (local time of UTC noon) - noon
-  // Subtracting it from UTC noon gives the UTC instant for local noon.
-  const offsetSeconds = (localHour * 3600 + localMin * 60 + localSec) - 12 * 3600;
-  return new Date(naiveNoon.getTime() - offsetSeconds * 1000);
+    timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+  }).formatToParts(naive);
+  const get = (t: string) => parseInt(parts.find((p) => p.type === t)!.value, 10);
+  const localAsUtc = Date.UTC(
+    get('year'), get('month') - 1, get('day'),
+    get('hour') % 24, get('minute'), get('second'),
+  );
+  const offsetMs = localAsUtc - naive.getTime();
+  return new Date(naive.getTime() - offsetMs);
+}
+
+/** Derive { date: 'YYYY-MM-DD', time: 'HH:mm' } from a UTC ISO instant in tz. */
+export function utcToZonedParts(iso: string, timeZone: string): { date: string; time: string } {
+  const d = new Date(iso);
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(d);
+  const get = (t: string) => parts.find((p) => p.type === t)!.value;
+  const hour = (parseInt(get('hour'), 10) % 24).toString().padStart(2, '0');
+  return { date: `${get('year')}-${get('month')}-${get('day')}`, time: `${hour}:${get('minute')}` };
 }
