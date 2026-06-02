@@ -463,3 +463,5 @@ export async function writeChemistry(
   await writeApi.flush()
   return when.toISOString()
 }
+
+export { deleteChemistryPoint } from './influxDelete.js'
