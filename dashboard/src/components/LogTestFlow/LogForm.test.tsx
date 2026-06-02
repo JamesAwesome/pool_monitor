@@ -10,6 +10,8 @@ const defaultProps = {
   latest: { fc: 4 },
   onSaved: vi.fn(),
   onAuthExpired: vi.fn(),
+  readings: [],
+  onDeleted: vi.fn(),
 };
 
 function renderForm(props: Partial<React.ComponentProps<typeof LogForm>> = {}) {

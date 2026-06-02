@@ -86,7 +86,9 @@ export function ChemistryTab() {
       )}
 
       <LogTestFlow open={logOpen} onClose={() => setLogOpen(false)} latest={latestValues}
-        onSaved={() => { setLogOpen(false); setToast(true); refetch(); }} />
+        readings={readings}
+        onSaved={() => { setLogOpen(false); setToast(true); refetch(); }}
+        onDeleted={() => { setLogOpen(false); setToast(true); refetch(); }} />
 
       <Toast open={toast} message="Reading saved" onDismiss={() => setToast(false)} />
     </div>
