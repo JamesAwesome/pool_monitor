@@ -12,8 +12,17 @@ export const CHEM_BOUNDS: Record<ChemField, [number, number]> = {
 };
 
 export type ValidatedChemistry =
-  | { ok: true; date: string; values: Partial<Record<ChemField, number>> }
+  | { ok: true; date: string; time: string; values: Partial<Record<ChemField, number>> }
   | { ok: false; error: string };
+
+export function isValidTime(t: unknown): boolean {
+  return typeof t === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(t);
+}
+
+export function isValidId(id: unknown): boolean {
+  return typeof id === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(id)
+    && !Number.isNaN(new Date(id).getTime());
+}
 
 export function validateChemistryBody(body: unknown): ValidatedChemistry {
   if (typeof body !== 'object' || body === null) {
@@ -23,6 +32,10 @@ export function validateChemistryBody(body: unknown): ValidatedChemistry {
 
   if (typeof b.date !== 'string' || Number.isNaN(new Date(b.date).getTime())) {
     return { ok: false, error: 'Invalid or missing date' };
+  }
+
+  if (!isValidTime(b.time)) {
+    return { ok: false, error: 'Invalid or missing time' };
   }
 
   const values: Partial<Record<ChemField, number>> = {};
@@ -42,7 +55,7 @@ export function validateChemistryBody(body: unknown): ValidatedChemistry {
   if (Object.keys(values).length === 0) {
     return { ok: false, error: 'At least one chemical value is required' };
   }
-  return { ok: true, date: b.date, values };
+  return { ok: true, date: b.date, time: b.time as string, values };
 }
 
 /**

@@ -29,12 +29,12 @@ import { validateChemistryBody } from './chemistry';
 
 describe('validateChemistryBody', () => {
   it('accepts a valid partial reading', () => {
-    const r = validateChemistryBody({ date: '2026-05-29', ph: 7.7, fc: 4 });
-    expect(r).toEqual({ ok: true, date: '2026-05-29', values: { ph: 7.7, fc: 4 } });
+    const r = validateChemistryBody({ date: '2026-05-29', time: '12:00', ph: 7.7, fc: 4 });
+    expect(r).toEqual({ ok: true, date: '2026-05-29', time: '12:00', values: { ph: 7.7, fc: 4 } });
   });
 
   it('rejects when no chemical values are present', () => {
-    const r = validateChemistryBody({ date: '2026-05-29' });
+    const r = validateChemistryBody({ date: '2026-05-29', time: '12:00' });
     expect(r.ok).toBe(false);
   });
 
@@ -44,13 +44,13 @@ describe('validateChemistryBody', () => {
   });
 
   it('rejects out-of-bounds and non-finite values', () => {
-    expect(validateChemistryBody({ date: '2026-05-29', ph: 99 }).ok).toBe(false);
-    expect(validateChemistryBody({ date: '2026-05-29', fc: Number.NaN }).ok).toBe(false);
+    expect(validateChemistryBody({ date: '2026-05-29', time: '12:00', ph: 99 }).ok).toBe(false);
+    expect(validateChemistryBody({ date: '2026-05-29', time: '12:00', fc: Number.NaN }).ok).toBe(false);
   });
 
   it('ignores unknown keys', () => {
-    const r = validateChemistryBody({ date: '2026-05-29', ph: 7, bogus: 5 });
-    expect(r).toEqual({ ok: true, date: '2026-05-29', values: { ph: 7 } });
+    const r = validateChemistryBody({ date: '2026-05-29', time: '12:00', ph: 7, bogus: 5 });
+    expect(r).toEqual({ ok: true, date: '2026-05-29', time: '12:00', values: { ph: 7 } });
   });
 });
 
@@ -85,5 +85,29 @@ describe('utcToZonedParts', () => {
   it('renders a legacy noon-stored reading as 12:00', () => {
     const iso = '2026-05-29T16:00:00.000Z'; // noon EDT
     expect(utcToZonedParts(iso, 'America/New_York')).toEqual({ date: '2026-05-29', time: '12:00' });
+  });
+});
+
+import { isValidTime, isValidId } from './chemistry';
+
+describe('isValidTime', () => {
+  it('accepts HH:mm', () => { expect(isValidTime('07:50')).toBe(true); expect(isValidTime('23:59')).toBe(true); });
+  it('rejects bad times', () => { ['7:50','24:00','12:60','','noon','12'].forEach(t => expect(isValidTime(t)).toBe(false)); });
+});
+describe('isValidId', () => {
+  it('accepts an ISO timestamp', () => { expect(isValidId('2026-05-20T20:30:00.000Z')).toBe(true); });
+  it('rejects non-ISO', () => { ['','abc','2026-05-20'].forEach(s => expect(isValidId(s)).toBe(false)); });
+});
+describe('validateChemistryBody (with time)', () => {
+  it('accepts a valid partial reading with date+time', () => {
+    const r = validateChemistryBody({ date: '2026-05-20', time: '16:30', fc: 6.8 });
+    expect(r).toEqual({ ok: true, date: '2026-05-20', time: '16:30', values: { fc: 6.8 } });
+  });
+  it('rejects a missing/invalid time', () => {
+    expect(validateChemistryBody({ date: '2026-05-20', fc: 1 }).ok).toBe(false);
+    expect(validateChemistryBody({ date: '2026-05-20', time: '99:99', fc: 1 }).ok).toBe(false);
+  });
+  it('still requires >=1 value', () => {
+    expect(validateChemistryBody({ date: '2026-05-20', time: '16:30' }).ok).toBe(false);
   });
 });
