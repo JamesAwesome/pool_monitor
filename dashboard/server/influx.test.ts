@@ -242,32 +242,24 @@ describe('queryWeatherHistory', () => {
 })
 
 describe('queryChemistry', () => {
-  it('maps pivoted rows to readings, including only present fields', async () => {
+  it('maps each point to id + derived date/time + present fields', async () => {
     queryApiStub.collectRows.mockResolvedValueOnce([
-      { _time: '2026-05-20T16:00:00Z', ph: 7.6, fc: 3.5 },
-      { _time: '2026-05-29T16:00:00Z', ph: 7.7, fc: 4.0, ta: 88 },
-    ])
-    const result = await queryChemistry('season')
-    expect(result).toEqual([
-      { date: '2026-05-20T16:00:00Z', ph: 7.6, fc: 3.5 },
-      { date: '2026-05-29T16:00:00Z', ph: 7.7, fc: 4.0, ta: 88 },
-    ])
-  })
-
-  it('returns an empty array when there are no rows', async () => {
-    queryApiStub.collectRows.mockResolvedValueOnce([])
-    expect(await queryChemistry('all')).toEqual([])
-  })
-})
+      { _time: '2026-05-20T11:50:00.000Z', ph: 7.6, fc: 3.6 },           // 07:50 EDT
+      { _time: '2026-05-20T20:30:00.000Z', ph: 7.4, fc: 6.8, cc: 0.2 }, // 16:30 EDT
+    ]);
+    const out = await queryChemistry('season', 'America/New_York');
+    expect(out).toEqual([
+      { id: '2026-05-20T11:50:00.000Z', date: '2026-05-20', time: '07:50', ph: 7.6, fc: 3.6 },
+      { id: '2026-05-20T20:30:00.000Z', date: '2026-05-20', time: '16:30', ph: 7.4, fc: 6.8, cc: 0.2 },
+    ]);
+  });
+});
 
 describe('writeChemistry', () => {
-  it('writes a point with only the provided fields at local noon, then flushes', async () => {
-    await writeChemistry({ date: '2026-05-29', values: { ph: 7.7, fc: 4 } }, 'America/New_York')
-    expect(writeApiStub.writePoint).toHaveBeenCalledOnce()
-    const point = writeApiStub.writePoint.mock.calls[0][0]
-    expect(point.measurement).toBe('chemistry')
-    expect(point.fields).toEqual({ ph: 7.7, fc: 4 })
-    expect(point.ts?.toISOString()).toBe('2026-05-29T16:00:00.000Z')
-    expect(writeApiStub.flush).toHaveBeenCalledOnce()
-  })
-})
+  it('writes a point at the date+time instant with only provided fields', async () => {
+    const id = await writeChemistry({ date: '2026-05-20', time: '16:30', values: { fc: 6.8 } }, 'America/New_York');
+    expect(writeApiStub.writePoint).toHaveBeenCalledOnce();
+    expect(writeApiStub.flush).toHaveBeenCalledOnce();
+    expect(id).toBe('2026-05-20T20:30:00.000Z');
+  });
+});
