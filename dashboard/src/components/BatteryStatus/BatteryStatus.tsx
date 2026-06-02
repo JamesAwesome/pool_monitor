@@ -81,8 +81,11 @@ function BatteryChart({ history, loading: chartLoading }: { history: TimeSeriesP
             width={44}
           />
           <Tooltip
-            formatter={(v: number) => [`${v.toFixed(0)}%`, 'Battery']}
-            labelFormatter={(t: string) => new Date(t).toLocaleDateString()}
+            formatter={(value) => {
+              const v = typeof value === 'number' ? value : Number(value);
+              return [`${v.toFixed(0)}%`, 'Battery'];
+            }}
+            labelFormatter={(label) => new Date(String(label)).toLocaleDateString()}
             contentStyle={{
               background: 'rgba(15, 23, 42, 0.9)',
               border: '1px solid rgba(34, 197, 94, 0.3)',
