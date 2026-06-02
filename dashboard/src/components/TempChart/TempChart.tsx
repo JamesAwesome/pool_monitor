@@ -173,8 +173,12 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
                 domain={['auto', 'auto']}
               />
               <Tooltip
-                formatter={(v: number, name: string) => [`${v.toFixed(1)}${unitLabel}`, name === 'Air' ? 'Air temp' : 'Pool temp']}
-                labelFormatter={(t: string) => new Date(t).toLocaleString()}
+                formatter={(value, name) => {
+                  const v = typeof value === 'number' ? value : Number(value);
+                  const n = String(name);
+                  return [`${v.toFixed(1)}${unitLabel}`, n === 'Air' ? 'Air temp' : 'Pool temp'];
+                }}
+                labelFormatter={(label) => new Date(String(label)).toLocaleString()}
                 contentStyle={{
                   background: 'rgba(15, 23, 42, 0.9)',
                   border: '1px solid rgba(56, 189, 248, 0.3)',
