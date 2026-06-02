@@ -17,10 +17,10 @@ export function clientIp(req: Request): string {
 }
 
 /**
- * Throttle the chemistry auth surface (`POST /api/chemistry` and the
- * `/api/chemistry/auth-check` credential probe) to blunt brute-force guessing of
- * the shared Basic-Auth password. 10 attempts per 15 minutes per client IP.
- * Read-only endpoints are unaffected.
+ * Throttle the chemistry write surface (`POST`/`PUT`/`DELETE /api/chemistry` and
+ * the `/api/chemistry/auth-check` credential probe) to blunt brute-force guessing
+ * of the shared Basic-Auth password. 10 attempts per 15 minutes per client IP.
+ * The public read endpoint (`GET /api/chemistry`) is unaffected.
  */
 export const chemistryAuthLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

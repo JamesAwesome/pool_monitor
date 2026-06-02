@@ -214,6 +214,12 @@ router.post('/api/chemistry', chemistryAuthLimiter, requireAuth, async (req, res
   }
 })
 
+// Edit = delete the old point then write the new one. This supports changing the
+// timestamp and clearing fields (InfluxDB fields otherwise linger on a point).
+// LIMITATION: not transactional — if the process dies between the delete and the
+// write, that reading is lost. Acceptable for this single-user app; the delete-
+// then-write order is deliberate (write-first could leave a duplicate, and a
+// same-instant edit would self-delete).
 router.put('/api/chemistry', chemistryAuthLimiter, requireAuth, async (req, res) => {
   try {
     const id = (req.body as { id?: unknown })?.id
