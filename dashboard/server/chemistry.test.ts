@@ -53,3 +53,37 @@ describe('validateChemistryBody', () => {
     expect(r).toEqual({ ok: true, date: '2026-05-29', values: { ph: 7 } });
   });
 });
+
+import { dateTimeToUtc, utcToZonedParts } from './chemistry';
+
+describe('dateTimeToUtc', () => {
+  it('maps a date+time in EDT (-4) to the correct UTC instant', () => {
+    // 2026-05-20 16:30 America/New_York (EDT) = 20:30 UTC
+    expect(dateTimeToUtc('2026-05-20', '16:30', 'America/New_York').toISOString())
+      .toBe('2026-05-20T20:30:00.000Z');
+  });
+  it('maps a winter date+time in EST (-5) correctly', () => {
+    // 2026-01-15 08:00 EST = 13:00 UTC
+    expect(dateTimeToUtc('2026-01-15', '08:00', 'America/New_York').toISOString())
+      .toBe('2026-01-15T13:00:00.000Z');
+  });
+  it('treats UTC zone as identity', () => {
+    expect(dateTimeToUtc('2026-05-20', '16:30', 'UTC').toISOString())
+      .toBe('2026-05-20T16:30:00.000Z');
+  });
+});
+
+describe('utcToZonedParts', () => {
+  it('derives date + time back from a UTC instant (EDT)', () => {
+    expect(utcToZonedParts('2026-05-20T20:30:00.000Z', 'America/New_York'))
+      .toEqual({ date: '2026-05-20', time: '16:30' });
+  });
+  it('round-trips dateTimeToUtc', () => {
+    const iso = dateTimeToUtc('2026-05-20', '07:50', 'America/New_York').toISOString();
+    expect(utcToZonedParts(iso, 'America/New_York')).toEqual({ date: '2026-05-20', time: '07:50' });
+  });
+  it('renders a legacy noon-stored reading as 12:00', () => {
+    const iso = '2026-05-29T16:00:00.000Z'; // noon EDT
+    expect(utcToZonedParts(iso, 'America/New_York')).toEqual({ date: '2026-05-29', time: '12:00' });
+  });
+});

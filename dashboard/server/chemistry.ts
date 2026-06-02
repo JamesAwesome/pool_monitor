@@ -46,6 +46,38 @@ export function validateChemistryBody(body: unknown): ValidatedChemistry {
 }
 
 /**
+ * Convert a date (YYYY-MM-DD) + time (HH:mm) in the given IANA timezone to the
+ * UTC Date to store. Mirrors zonedNoonToUtc's offset-from-Intl approach so it is
+ * independent of the host system timezone.
+ */
+export function dateTimeToUtc(dateStr: string, timeStr: string, timeZone: string): Date {
+  const [h, m] = timeStr.split(':').map((s) => parseInt(s, 10));
+  // Reference instant: treat the wall-clock as if it were UTC.
+  const naive = new Date(`${dateStr}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00Z`);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+  }).formatToParts(naive);
+  const get = (t: string) => parseInt(parts.find((p) => p.type === t)!.value, 10);
+  const localSecondsOfNaive = (get('hour') % 24) * 3600 + get('minute') * 60 + get('second');
+  const wallSeconds = h * 3600 + m * 60;
+  const offsetSeconds = localSecondsOfNaive - wallSeconds;
+  return new Date(naive.getTime() - offsetSeconds * 1000);
+}
+
+/** Derive { date: 'YYYY-MM-DD', time: 'HH:mm' } from a UTC ISO instant in tz. */
+export function utcToZonedParts(iso: string, timeZone: string): { date: string; time: string } {
+  const d = new Date(iso);
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(d);
+  const get = (t: string) => parts.find((p) => p.type === t)!.value;
+  const hour = (parseInt(get('hour'), 10) % 24).toString().padStart(2, '0');
+  return { date: `${get('year')}-${get('month')}-${get('day')}`, time: `${hour}:${get('minute')}` };
+}
+
+/**
  * Convert a date-only string (YYYY-MM-DD) to the UTC instant that reads as
  * 12:00 noon in the given IANA timezone. Readings are logged by date only;
  * anchoring at local noon keeps them on the correct calendar day everywhere.
