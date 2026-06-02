@@ -1,5 +1,6 @@
 // @vitest-environment node
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 import express from 'express';
@@ -21,6 +22,8 @@ vi.mock('./influx.js', () => ({
   deleteChemistryPoint: vi.fn(async () => {}),
 }));
 vi.mock('./og-image.js', () => ({ generateOgImage: vi.fn(async () => Buffer.from('')) }));
+
+import { writeChemistry, deleteChemistryPoint } from './influx.js';
 
 const router = (await import('./routes')).default;
 
@@ -75,9 +78,25 @@ describe('range validation on data routes', () => {
 describe('chemistry write routes', () => {
   const auth = { Authorization: 'Basic ' + Buffer.from('tester:secret').toString('base64') };
 
+  // The chemistryAuthLimiter is module-level state keyed on client IP. Give each
+  // request a unique CF-Connecting-IP so the shared bucket is never exhausted and
+  // the suite stays flake-free regardless of how many tests are added.
+  let ipSeq = 0;
+  function nextIp(): string {
+    ipSeq += 1;
+    return `198.51.100.${ipSeq}`;
+  }
+
+  beforeEach(() => {
+    // Reset invocation counters so order indices are clean for each test.
+    (writeChemistry as Mock).mockClear();
+    (deleteChemistryPoint as Mock).mockClear();
+  });
+
   it('POST returns 201 with the new id', async () => {
     const res = await fetch(`${base}/api/chemistry`, {
-      method: 'POST', headers: { ...auth, 'Content-Type': 'application/json' },
+      method: 'POST',
+      headers: { ...auth, 'Content-Type': 'application/json', 'CF-Connecting-IP': nextIp() },
       body: JSON.stringify({ date: '2026-05-20', time: '16:30', fc: 6.8 }),
     });
     expect(res.status).toBe(201);
@@ -86,7 +105,8 @@ describe('chemistry write routes', () => {
 
   it('POST 400 on missing time', async () => {
     const res = await fetch(`${base}/api/chemistry`, {
-      method: 'POST', headers: { ...auth, 'Content-Type': 'application/json' },
+      method: 'POST',
+      headers: { ...auth, 'Content-Type': 'application/json', 'CF-Connecting-IP': nextIp() },
       body: JSON.stringify({ date: '2026-05-20', fc: 6.8 }),
     });
     expect(res.status).toBe(400);
@@ -94,7 +114,8 @@ describe('chemistry write routes', () => {
 
   it('POST 401 without auth', async () => {
     const res = await fetch(`${base}/api/chemistry`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': nextIp() },
       body: JSON.stringify({ date: '2026-05-20', time: '16:30', fc: 6.8 }),
     });
     expect(res.status).toBe(401);
@@ -102,15 +123,26 @@ describe('chemistry write routes', () => {
 
   it('PUT deletes the old id then writes the new reading (200)', async () => {
     const res = await fetch(`${base}/api/chemistry`, {
-      method: 'PUT', headers: { ...auth, 'Content-Type': 'application/json' },
+      method: 'PUT',
+      headers: { ...auth, 'Content-Type': 'application/json', 'CF-Connecting-IP': nextIp() },
       body: JSON.stringify({ id: '2026-05-20T11:50:00.000Z', date: '2026-05-20', time: '16:30', fc: 6.8 }),
     });
     expect(res.status).toBe(200);
+
+    // Assert that deleteChemistryPoint was called BEFORE writeChemistry.
+    // invocationCallOrder values are monotonically increasing global counters, so
+    // a lower value means the call happened first. If the route ever swaps to
+    // write-then-delete, the delete order will be greater than the write order and
+    // this assertion will fail.
+    const delOrder = (deleteChemistryPoint as Mock).mock.invocationCallOrder[0];
+    const writeOrder = (writeChemistry as Mock).mock.invocationCallOrder.at(-1)!;
+    expect(delOrder).toBeLessThan(writeOrder);
   });
 
   it('PUT 400 on invalid id', async () => {
     const res = await fetch(`${base}/api/chemistry`, {
-      method: 'PUT', headers: { ...auth, 'Content-Type': 'application/json' },
+      method: 'PUT',
+      headers: { ...auth, 'Content-Type': 'application/json', 'CF-Connecting-IP': nextIp() },
       body: JSON.stringify({ id: 'nope', date: '2026-05-20', time: '16:30', fc: 6.8 }),
     });
     expect(res.status).toBe(400);
@@ -118,18 +150,25 @@ describe('chemistry write routes', () => {
 
   it('DELETE 200 with a valid id', async () => {
     const res = await fetch(`${base}/api/chemistry?id=${encodeURIComponent('2026-05-20T11:50:00.000Z')}`, {
-      method: 'DELETE', headers: auth,
+      method: 'DELETE',
+      headers: { ...auth, 'CF-Connecting-IP': nextIp() },
     });
     expect(res.status).toBe(200);
   });
 
   it('DELETE 400 without a valid id', async () => {
-    const res = await fetch(`${base}/api/chemistry?id=nope`, { method: 'DELETE', headers: auth });
+    const res = await fetch(`${base}/api/chemistry?id=nope`, {
+      method: 'DELETE',
+      headers: { ...auth, 'CF-Connecting-IP': nextIp() },
+    });
     expect(res.status).toBe(400);
   });
 
   it('DELETE 401 without auth', async () => {
-    const res = await fetch(`${base}/api/chemistry?id=${encodeURIComponent('2026-05-20T11:50:00.000Z')}`, { method: 'DELETE' });
+    const res = await fetch(`${base}/api/chemistry?id=${encodeURIComponent('2026-05-20T11:50:00.000Z')}`, {
+      method: 'DELETE',
+      headers: { 'CF-Connecting-IP': nextIp() },
+    });
     expect(res.status).toBe(401);
   });
 });
