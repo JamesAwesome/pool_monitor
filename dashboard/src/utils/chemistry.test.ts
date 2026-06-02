@@ -48,3 +48,40 @@ describe('formatChemValue', () => {
     expect(formatChemValue(88.2, 0)).toBe('88');
   });
 });
+
+import { testsOnDay, sortedDesc, fmtTime12, fmtDateWeekday } from './chemistry';
+
+const rs = [
+  { id: '2026-05-20T11:50:00Z', date: '2026-05-20', time: '07:50', fc: 3.6 },
+  { id: '2026-05-20T20:30:00Z', date: '2026-05-20', time: '16:30', fc: 6.8 },
+  { id: '2026-05-24T12:35:00Z', date: '2026-05-24', time: '08:35', fc: 2.9 },
+];
+
+describe('testsOnDay', () => {
+  it('counts tests on a given date', () => {
+    expect(testsOnDay(rs, '2026-05-20')).toBe(2);
+    expect(testsOnDay(rs, '2026-05-24')).toBe(1);
+    expect(testsOnDay(rs, '2026-05-25')).toBe(0);
+  });
+});
+describe('sortedDesc', () => {
+  it('orders newest id first', () => {
+    expect(sortedDesc(rs).map(r => r.id)).toEqual([
+      '2026-05-24T12:35:00Z', '2026-05-20T20:30:00Z', '2026-05-20T11:50:00Z',
+    ]);
+  });
+});
+describe('fmtTime12', () => {
+  it('formats 24h to 12h', () => {
+    expect(fmtTime12('07:50')).toBe('7:50 AM');
+    expect(fmtTime12('16:30')).toBe('4:30 PM');
+    expect(fmtTime12('00:05')).toBe('12:05 AM');
+    expect(fmtTime12('12:00')).toBe('12:00 PM');
+  });
+});
+describe('fmtDateWeekday', () => {
+  it('formats YYYY-MM-DD to weekday short', () => {
+    // 2026-05-29 is a Friday
+    expect(fmtDateWeekday('2026-05-29')).toMatch(/^Fri, May 29$/);
+  });
+});
