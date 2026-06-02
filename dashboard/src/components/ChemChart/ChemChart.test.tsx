@@ -7,8 +7,8 @@ vi.mock('../../context/ThemeContext', () => ({
 }));
 
 const readings = [
-  { date: '2026-05-20T16:00:00Z', ph: 7.5 },
-  { date: '2026-05-29T16:00:00Z', ph: 7.7 },
+  { id: '2026-05-20T16:00:00Z', date: '2026-05-20', time: '12:00', ph: 7.5 },
+  { id: '2026-05-29T16:00:00Z', date: '2026-05-29', time: '12:00', ph: 7.7 },
 ];
 
 describe('ChemChart', () => {

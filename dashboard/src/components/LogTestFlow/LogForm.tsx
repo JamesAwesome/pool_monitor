@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { BottomSheet } from '../BottomSheet';
 import { CHEMS } from '../../constants/chemicals';
-import type { ChemKey, ChemistryReading } from '../../types';
+import type { ChemKey } from '../../types';
 import styles from './LogTestFlow.module.css';
 
 interface LogFormProps {
@@ -32,7 +32,7 @@ export function LogForm({ open, onClose, authHeader, latest, onSaved, onAuthExpi
   const save = async () => {
     setBusy(true);
     setError(null);
-    const body: ChemistryReading = { date };
+    const body: Record<string, unknown> = { date };
     for (const c of CHEMS) {
       const raw = values[c.key]?.trim();
       if (raw) {

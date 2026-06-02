@@ -3,9 +3,9 @@ import { latestReading, computeDelta, computeStats, formatChemValue } from './ch
 import type { ChemistryReading } from '../types';
 
 const READINGS: ChemistryReading[] = [
-  { date: '2026-05-10T16:00:00Z', ph: 7.4, fc: 2.0 },
-  { date: '2026-05-20T16:00:00Z', ph: 7.5, fc: 3.0 },
-  { date: '2026-05-29T16:00:00Z', ph: 7.7, fc: 4.0 }, // newest last
+  { id: '2026-05-10T16:00:00Z', date: '2026-05-10', time: '12:00', ph: 7.4, fc: 2.0 },
+  { id: '2026-05-20T16:00:00Z', date: '2026-05-20', time: '12:00', ph: 7.5, fc: 3.0 },
+  { id: '2026-05-29T16:00:00Z', date: '2026-05-29', time: '12:00', ph: 7.7, fc: 4.0 }, // newest last
 ];
 
 describe('latestReading', () => {
@@ -23,13 +23,13 @@ describe('computeDelta', () => {
   });
   it('reports flat when the change is below half a display unit', () => {
     const flat: ChemistryReading[] = [
-      { date: '2026-05-20T16:00:00Z', ta: 88 },
-      { date: '2026-05-29T16:00:00Z', ta: 88 },
+      { id: '2026-05-20T16:00:00Z', date: '2026-05-20', time: '12:00', ta: 88 },
+      { id: '2026-05-29T16:00:00Z', date: '2026-05-29', time: '12:00', ta: 88 },
     ];
     expect(computeDelta(flat, 'ta', 0)).toEqual({ dir: 'flat', magnitude: 0 });
   });
   it('returns null with fewer than two readings for the key', () => {
-    expect(computeDelta([{ date: 'x', ph: 7 }], 'ph', 1)).toBeNull();
+    expect(computeDelta([{ id: 'x', date: 'x', time: '12:00', ph: 7 }], 'ph', 1)).toBeNull();
   });
 });
 
