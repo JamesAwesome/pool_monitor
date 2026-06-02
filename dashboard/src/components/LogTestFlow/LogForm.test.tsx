@@ -30,6 +30,16 @@ function renderForm(props: Partial<React.ComponentProps<typeof LogForm>> = {}) {
   return { onClose, onSaved, onAuthExpired };
 }
 
+// Return today's date in YYYY-MM-DD (matches the component's todayLocalISODate())
+function todayISODate(): string {
+  const d = new Date();
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, '0'),
+    String(d.getDate()).padStart(2, '0'),
+  ].join('-');
+}
+
 describe('LogForm', () => {
   afterEach(() => vi.unstubAllGlobals());
 
@@ -112,6 +122,52 @@ describe('LogForm', () => {
 
       await waitFor(() => expect(onAuthExpired).toHaveBeenCalledOnce());
       expect(onSaved).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('same-day collision note', () => {
+    it('shows singular "1 test" note when one other reading exists for today', () => {
+      const today = todayISODate();
+      const readings = [
+        { id: '2026-05-20T10:00:00.000Z', date: today, time: '10:00', fc: 3 },
+      ];
+      renderForm({ readings });
+      expect(screen.getByText(/Already 1 test logged on this day/)).toBeInTheDocument();
+    });
+
+    it('shows plural "N tests" note when multiple other readings exist for today', () => {
+      const today = todayISODate();
+      const readings = [
+        { id: '2026-05-20T10:00:00.000Z', date: today, time: '10:00', fc: 3 },
+        { id: '2026-05-20T12:00:00.000Z', date: today, time: '12:00', fc: 4 },
+      ];
+      renderForm({ readings });
+      expect(screen.getByText(/Already 2 tests logged on this day/)).toBeInTheDocument();
+    });
+
+    it('does not show the note when no other readings exist for today', () => {
+      renderForm({ readings: [] });
+      expect(screen.queryByText(/Already .* logged on this day/)).not.toBeInTheDocument();
+    });
+
+    it('in edit mode, excludes the edited entry from the same-day count (no off-by-one)', () => {
+      const today = todayISODate();
+      const editEntry = { id: '2026-05-20T10:00:00.000Z', date: today, time: '10:00', fc: 3 };
+      // readings includes the entry being edited — it should NOT be counted against itself
+      const readings = [editEntry];
+      renderForm({ editEntry, readings });
+      // Only entry is the one being edited — count should be 0, no note shown
+      expect(screen.queryByText(/Already .* logged on this day/)).not.toBeInTheDocument();
+    });
+
+    it('in edit mode, counts other same-day entries but not the entry itself', () => {
+      const today = todayISODate();
+      const editEntry = { id: '2026-05-20T10:00:00.000Z', date: today, time: '10:00', fc: 3 };
+      const otherEntry = { id: '2026-05-20T12:00:00.000Z', date: today, time: '12:00', fc: 4 };
+      const readings = [editEntry, otherEntry];
+      renderForm({ editEntry, readings });
+      // Only 1 other (not the edited one) — should show singular "1 test"
+      expect(screen.getByText(/Already 1 test logged on this day/)).toBeInTheDocument();
     });
   });
 });

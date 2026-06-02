@@ -104,6 +104,16 @@ describe('isValidTime', () => {
 describe('isValidId', () => {
   it('accepts an ISO timestamp', () => { expect(isValidId('2026-05-20T20:30:00.000Z')).toBe(true); });
   it('rejects non-ISO', () => { ['','abc','2026-05-20'].forEach(s => expect(isValidId(s)).toBe(false)); });
+  it('accepts the no-millis form emitted by the GET endpoint (2026-05-20T20:30:00Z)', () => {
+    // influx.ts queryChemistry returns _time without millis for some points;
+    // isValidId must accept both forms.
+    expect(isValidId('2026-05-20T20:30:00Z')).toBe(true);
+  });
+  it('rejects a regex-valid-but-impossible date (month 13, day 40) caught only by Date parsing', () => {
+    // The regex accepts \d{4}-\d{2}-\d{2} which would pass '2026-13-40T00:00:00.000Z'.
+    // The !Number.isNaN(new Date(id)) guard is the only thing that rejects it.
+    expect(isValidId('2026-13-40T00:00:00.000Z')).toBe(false);
+  });
 });
 describe('validateChemistryBody (with time)', () => {
   it('accepts a valid partial reading with date+time', () => {

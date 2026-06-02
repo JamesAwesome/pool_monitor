@@ -68,6 +68,47 @@ describe('LogTestFlow', () => {
     );
   });
 
+  it('edit mode: clearing a pre-filled field omits it from the PUT body', async () => {
+    seedUnlocked();
+    const fetchMock = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ id: 'x' }) } as Response));
+    vi.stubGlobal('fetch', fetchMock);
+    // editEntry has fc set; we will clear it and verify it is absent from PUT body
+    const editEntry: ChemistryReading = { id: '2026-05-20T11:50:00.000Z', date: '2026-05-20', time: '07:50', fc: 3.6 };
+    renderFlow({ editEntry, readings: [editEntry] });
+    await screen.findByText(/Edit test/i);
+
+    const user = userEvent.setup();
+
+    // Clear the FC field (it is pre-filled with '3.6') using user-event v14 clear()
+    const fcInput = screen.getByLabelText(/^FC/i);
+    await user.clear(fcInput);
+
+    // Add a different field so Save is still enabled
+    await user.type(screen.getByLabelText(/^pH/i), '7.5');
+
+    const saveBtn = screen.getByRole('button', { name: /save changes/i });
+    await user.click(saveBtn);
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/chemistry',
+        expect.objectContaining({ method: 'PUT' }),
+      ),
+    );
+
+    const putCall = fetchMock.mock.calls.find(
+      (c) => ((c as unknown as [string, RequestInit])[1] as RequestInit).method === 'PUT',
+    ) as unknown as [string, RequestInit];
+    const body = JSON.parse(putCall[1].body as string) as Record<string, unknown>;
+
+    // Cleared field must be absent
+    expect(body).not.toHaveProperty('fc');
+    // Required fields must be present
+    expect(body).toHaveProperty('id', editEntry.id);
+    expect(body).toHaveProperty('date');
+    expect(body).toHaveProperty('time');
+  });
+
   it('delete confirm flow DELETEs by id', async () => {
     seedUnlocked();
     const fetchMock = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ ok: true }) } as Response));

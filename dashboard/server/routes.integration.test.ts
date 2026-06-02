@@ -171,4 +171,40 @@ describe('chemistry write routes', () => {
     });
     expect(res.status).toBe(401);
   });
+
+  it('PUT 500 when writeChemistry rejects', async () => {
+    (writeChemistry as Mock).mockRejectedValueOnce(new Error('boom'));
+    const res = await fetch(`${base}/api/chemistry`, {
+      method: 'PUT',
+      headers: { ...auth, 'Content-Type': 'application/json', 'CF-Connecting-IP': nextIp() },
+      body: JSON.stringify({ id: '2026-05-20T11:50:00.000Z', date: '2026-05-20', time: '16:30', fc: 6.8 }),
+    });
+    expect(res.status).toBe(500);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe('boom');
+  });
+
+  it('DELETE 500 when deleteChemistryPoint rejects', async () => {
+    (deleteChemistryPoint as Mock).mockRejectedValueOnce(new Error('boom'));
+    const res = await fetch(`${base}/api/chemistry?id=${encodeURIComponent('2026-05-20T11:50:00.000Z')}`, {
+      method: 'DELETE',
+      headers: { ...auth, 'CF-Connecting-IP': nextIp() },
+    });
+    expect(res.status).toBe(500);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe('boom');
+  });
+
+  // Non-transactional gap: if delete succeeds but write throws, the point is gone
+  // and the response is still 500. This documents the known limitation.
+  it('PUT 500 (non-transactional gap): delete succeeds but write throws — old point already gone', async () => {
+    (deleteChemistryPoint as Mock).mockResolvedValueOnce(undefined);
+    (writeChemistry as Mock).mockRejectedValueOnce(new Error('write failed'));
+    const res = await fetch(`${base}/api/chemistry`, {
+      method: 'PUT',
+      headers: { ...auth, 'Content-Type': 'application/json', 'CF-Connecting-IP': nextIp() },
+      body: JSON.stringify({ id: '2026-05-20T11:50:00.000Z', date: '2026-05-20', time: '16:30', fc: 6.8 }),
+    });
+    expect(res.status).toBe(500);
+  });
 });
