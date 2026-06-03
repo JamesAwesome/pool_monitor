@@ -1,8 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { selectLaneIcons, consolidateConditions, rollupMsForRange } from './WeatherLane';
+import { selectLaneIcons, collapseRuns } from './WeatherLane';
 import type { WeatherHistoryPoint } from '../../types';
-
-const HOUR_MS = 60 * 60 * 1000;
 
 const pts = [
   { time: '2026-05-20T00:00:00Z', value: 20, conditionCode: 1000, condition: 'Sunny' },
@@ -48,8 +46,8 @@ describe('selectLaneIcons', () => {
 // covered against REAL Recharts in WeatherLane.render.test.tsx — that is the only
 // place that meaningfully exercises the chart integration.
 
-describe('consolidateConditions', () => {
-  it('collapses consecutive identical conditions into one icon at each run start', () => {
+describe('collapseRuns', () => {
+  it('collapses consecutive identical conditions into one entry at each run start', () => {
     const pts: WeatherHistoryPoint[] = [
       { time: '2026-05-20T10:00:00Z', value: 20, conditionCode: 1000, condition: 'Sunny' },
       { time: '2026-05-20T10:30:00Z', value: 20, conditionCode: 1000, condition: 'Sunny' },
@@ -57,57 +55,34 @@ describe('consolidateConditions', () => {
       { time: '2026-05-20T12:00:00Z', value: 22, conditionCode: 1006, condition: 'Cloudy' },
       { time: '2026-05-20T13:00:00Z', value: 22, conditionCode: 1006, condition: 'Cloudy' },
     ];
-    const out = consolidateConditions(pts, HOUR_MS);
+    const out = collapseRuns(pts);
     expect(out.map((p) => p.conditionCode)).toEqual([1000, 1006]);
     expect(out[0].time).toBe('2026-05-20T10:00:00Z'); // start of the sunny run
     expect(out[1].time).toBe('2026-05-20T12:00:00Z'); // start of the cloudy run
     expect(out[0].condition).toBe('Sunny');
   });
 
-  it('suppresses a brief flicker: dominant condition per rollup window wins', () => {
+  it('keeps every genuine change, including a single-bucket event', () => {
+    // The whole point: brief events are signal, not flicker — they must show.
     const pts: WeatherHistoryPoint[] = [
       { time: '2026-05-20T10:00:00Z', value: 20, conditionCode: 1000, condition: 'Sunny' },
-      { time: '2026-05-20T10:15:00Z', value: 20, conditionCode: 1006, condition: 'Cloudy' }, // blip
-      { time: '2026-05-20T10:30:00Z', value: 20, conditionCode: 1000, condition: 'Sunny' },
-      { time: '2026-05-20T10:45:00Z', value: 20, conditionCode: 1000, condition: 'Sunny' },
+      { time: '2026-05-20T10:30:00Z', value: 20, conditionCode: 1006, condition: 'Cloudy' }, // one bucket
+      { time: '2026-05-20T11:00:00Z', value: 20, conditionCode: 1000, condition: 'Sunny' },
     ];
-    expect(consolidateConditions(pts, HOUR_MS).map((p) => p.conditionCode)).toEqual([1000]);
+    expect(collapseRuns(pts).map((p) => p.conditionCode)).toEqual([1000, 1006, 1000]);
   });
 
-  it('re-emits a condition that returns after a change (distinct runs)', () => {
+  it('skips points without a condition without splitting a run (sensor gap)', () => {
     const pts: WeatherHistoryPoint[] = [
       { time: '2026-05-20T10:00:00Z', value: 20, conditionCode: 1000, condition: 'Sunny' },
-      { time: '2026-05-20T11:00:00Z', value: 20, conditionCode: 1006, condition: 'Cloudy' },
-      { time: '2026-05-20T12:00:00Z', value: 20, conditionCode: 1000, condition: 'Sunny' },
-    ];
-    expect(consolidateConditions(pts, HOUR_MS).map((p) => p.conditionCode)).toEqual([1000, 1006, 1000]);
-  });
-
-  it('ignores points without a condition', () => {
-    const pts: WeatherHistoryPoint[] = [
-      { time: '2026-05-20T10:00:00Z', value: 20 },
+      { time: '2026-05-20T10:30:00Z', value: 20 }, // gap, no condition
       { time: '2026-05-20T11:00:00Z', value: 21, conditionCode: 1000, condition: 'Sunny' },
+      { time: '2026-05-20T12:00:00Z', value: 21, conditionCode: 1006, condition: 'Cloudy' },
     ];
-    expect(consolidateConditions(pts, HOUR_MS).map((p) => p.conditionCode)).toEqual([1000]);
+    expect(collapseRuns(pts).map((p) => p.conditionCode)).toEqual([1000, 1006]);
   });
 
-  it('returns input unchanged when rollupMs <= 0', () => {
-    const pts: WeatherHistoryPoint[] = [{ time: 't', value: 1, conditionCode: 1000, condition: 'Sunny' }];
-    expect(consolidateConditions(pts, 0)).toBe(pts);
-  });
-});
-
-describe('rollupMsForRange', () => {
-  it('maps quick ranges to the lane rollup floor', () => {
-    expect(rollupMsForRange('6h')).toBe(30 * 60 * 1000);
-    expect(rollupMsForRange('12h')).toBe(HOUR_MS);
-    expect(rollupMsForRange('24h')).toBe(HOUR_MS);
-    expect(rollupMsForRange('3d')).toBe(3 * HOUR_MS);
-    expect(rollupMsForRange('7d')).toBe(6 * HOUR_MS);
-    expect(rollupMsForRange('30d')).toBe(24 * HOUR_MS);
-  });
-  it('scales custom ranges by span', () => {
-    expect(rollupMsForRange('custom:2026-05-01:2026-05-01')).toBe(HOUR_MS);       // 1 day span
-    expect(rollupMsForRange('custom:2026-05-01:2026-05-10')).toBe(24 * HOUR_MS);  // ~10 days
+  it('returns [] when no points carry a condition', () => {
+    expect(collapseRuns([{ time: 't', value: 1 }])).toEqual([]);
   });
 });

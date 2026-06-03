@@ -51,7 +51,7 @@ describe('WeatherLane (real Recharts render)', () => {
     expect(container.querySelectorAll('foreignObject').length).toBe(3);
   });
 
-  it('collapses a run of identical conditions to one icon when rollupMs is set', () => {
+  it('collapses a run of identical conditions to one icon when collapse is set', () => {
     const sunnyRun = [
       { time: '2026-05-20T10:00:00Z', value: 20 },
       { time: '2026-05-20T10:30:00Z', value: 21 },
@@ -63,7 +63,7 @@ describe('WeatherLane (real Recharts render)', () => {
         <XAxis dataKey="time" />
         <YAxis width={56} />
         <Line dataKey="value" />
-        <WeatherLane points={sunnyPoints} iconSize={18} rollupMs={2 * 60 * 60 * 1000} />
+        <WeatherLane points={sunnyPoints} iconSize={18} collapse />
       </ComposedChart>,
     );
     expect(container.querySelectorAll('foreignObject').length).toBe(1); // one sun for the whole run

@@ -14,7 +14,7 @@ import { celsiusToFahrenheit } from '../../utils/temperature';
 import { DateRangePicker } from '../DateRangePicker';
 import { BottomSheet } from '../BottomSheet';
 import { OverlayPill } from '../OverlayPill';
-import { WeatherLane, rollupMsForRange } from '../WeatherLane';
+import { WeatherLane } from '../WeatherLane';
 import type { TimeSeriesPoint, WeatherHistoryPoint } from '../../types';
 import styles from './TempChart.module.css';
 
@@ -162,7 +162,7 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" strokeOpacity={0.5} vertical={false} />
-              {hasAir && <WeatherLane points={airHistory!} iconSize={18} rollupMs={rollupMsForRange(range)} />}
+              {hasAir && <WeatherLane points={airHistory!} iconSize={18} collapse />}
               <XAxis
                 dataKey="time"
                 tickFormatter={(t: string) => formatXTick(t, range, spansMultipleDays)}

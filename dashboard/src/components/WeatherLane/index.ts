@@ -1,2 +1,2 @@
-export { WeatherLane, selectLaneIcons, consolidateConditions, rollupMsForRange } from './WeatherLane';
+export { WeatherLane, selectLaneIcons, collapseRuns } from './WeatherLane';
 export type { LaneIcon } from './WeatherLane';
