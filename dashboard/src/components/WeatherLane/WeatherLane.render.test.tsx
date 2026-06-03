@@ -51,6 +51,24 @@ describe('WeatherLane (real Recharts render)', () => {
     expect(container.querySelectorAll('foreignObject').length).toBe(3);
   });
 
+  it('collapses a run of identical conditions to one icon when rollupMs is set', () => {
+    const sunnyRun = [
+      { time: '2026-05-20T10:00:00Z', value: 20 },
+      { time: '2026-05-20T10:30:00Z', value: 21 },
+      { time: '2026-05-20T11:00:00Z', value: 22 },
+    ];
+    const sunnyPoints = sunnyRun.map((d) => ({ ...d, conditionCode: 1000, condition: 'Sunny' }));
+    const { container } = render(
+      <ComposedChart width={400} height={200} data={sunnyRun} margin={{ top: 26, right: 16, bottom: 0, left: 0 }}>
+        <XAxis dataKey="time" />
+        <YAxis width={56} />
+        <Line dataKey="value" />
+        <WeatherLane points={sunnyPoints} iconSize={18} rollupMs={2 * 60 * 60 * 1000} />
+      </ComposedChart>,
+    );
+    expect(container.querySelectorAll('foreignObject').length).toBe(1); // one sun for the whole run
+  });
+
   it('renders nothing when no points carry a condition', () => {
     const { container } = render(
       <ComposedChart width={400} height={200} data={catData} margin={{ top: 26, right: 16, bottom: 0, left: 0 }}>
