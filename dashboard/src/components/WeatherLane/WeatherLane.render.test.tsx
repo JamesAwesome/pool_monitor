@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import type { ReactNode } from 'react';
 import { render } from '@testing-library/react';
 import { ComposedChart, Line, XAxis, YAxis } from 'recharts';
 import { WeatherLane } from './WeatherLane';
@@ -67,6 +68,25 @@ describe('WeatherLane (real Recharts render)', () => {
       </ComposedChart>,
     );
     expect(container.querySelectorAll('foreignObject').length).toBe(1); // one sun for the whole run
+  });
+
+  it('laneOffset lifts the band so a second row can stack above the first', () => {
+    const base = (
+      <WeatherLane points={points} iconSize={18} />
+    );
+    const offset = (
+      <WeatherLane points={points} iconSize={18} laneOffset={20} />
+    );
+    const renderIn = (lane: ReactNode) => render(
+      <ComposedChart width={400} height={200} data={catData} margin={{ top: 46, right: 16, bottom: 0, left: 0 }}>
+        <XAxis dataKey="time" /><YAxis width={56} /><Line dataKey="value" />
+        {lane}
+      </ComposedChart>,
+    );
+    const yOf = (c: HTMLElement) => Number(c.querySelector('foreignObject')!.getAttribute('y'));
+    const baseY = yOf(renderIn(base).container);
+    const offsetY = yOf(renderIn(offset).container);
+    expect(offsetY).toBe(baseY - 20); // lifted upward by laneOffset
   });
 
   it('renders nothing when no points carry a condition', () => {

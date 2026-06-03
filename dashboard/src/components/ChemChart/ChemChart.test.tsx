@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { ChemChart, laneFromAirHistory } from './ChemChart';
+import { ChemChart, laneFromAirHistory, weatherAtReadings } from './ChemChart';
 import { buildChartData } from './buildChartData';
 import type { WeatherHistoryPoint } from '../../types';
 
@@ -38,8 +38,9 @@ describe('ChemChart', () => {
     expect(screen.getByTestId('chem-chart-ph')).toBeInTheDocument();
   });
 
-  it('reserves top headroom in the full variant when weather falls within the charted span', () => {
+  it('reserves headroom scaling with the number of weather lane rows', () => {
     // Air line off → x-domain = readings span [05-20T16:00 .. 05-29T16:00].
+    // Weather within span → ambient row (1) + per-reading row (1) = 2 rows.
     const within: WeatherHistoryPoint[] = [
       { time: '2026-05-22T12:00:00Z', value: 28, conditionCode: 1000, condition: 'Sunny' },
     ];
@@ -47,9 +48,10 @@ describe('ChemChart', () => {
       <ChemChart readings={readings} chemKey="ph" color="#000" decimals={1}
         poolHistory={[]} airHistory={within} showPool={false} showAir={false} variant="full" />,
     );
-    expect(screen.getByTestId('composed').getAttribute('data-margin-top')).toBe('22');
+    expect(screen.getByTestId('composed').getAttribute('data-margin-top')).toBe('40');
 
-    // Weather only OUTSIDE the charted span → clipped away → no lane, no headroom.
+    // Weather only OUTSIDE the visible span → ambient lane clipped away, but the
+    // readings still get their nearest weather → 1 row.
     const outside: WeatherHistoryPoint[] = [
       { time: '2026-05-10T12:00:00Z', value: 28, conditionCode: 1000, condition: 'Sunny' },
     ];
@@ -57,7 +59,45 @@ describe('ChemChart', () => {
       <ChemChart readings={readings} chemKey="ph" color="#000" decimals={1}
         poolHistory={[]} airHistory={outside} showPool={false} showAir={false} variant="full" />,
     );
+    expect(screen.getByTestId('composed').getAttribute('data-margin-top')).toBe('22');
+
+    // No weather data at all → no lanes, no headroom.
+    rerender(
+      <ChemChart readings={readings} chemKey="ph" color="#000" decimals={1}
+        poolHistory={[]} airHistory={[]} showPool={false} showAir={false} variant="full" />,
+    );
     expect(screen.getByTestId('composed').getAttribute('data-margin-top')).toBe('8');
+  });
+});
+
+describe('weatherAtReadings', () => {
+  const air: WeatherHistoryPoint[] = [
+    { time: '2026-05-20T09:00:00Z', value: 20, conditionCode: 1000, condition: 'Sunny' },
+    { time: '2026-05-20T15:00:00Z', value: 24, conditionCode: 1006, condition: 'Cloudy' },
+    { time: '2026-05-21T09:00:00Z', value: 21, conditionCode: 1063, condition: 'Rain' },
+  ];
+
+  it('tags each reading with the nearest-in-time weather condition', () => {
+    const rs = [
+      { id: '2026-05-20T14:30:00Z', date: '2026-05-20', time: '10:30', ph: 7.5 }, // nearest 15:00 cloudy
+      { id: '2026-05-21T08:30:00Z', date: '2026-05-21', time: '04:30', ph: 7.6 }, // nearest 09:00 rain
+    ];
+    const out = weatherAtReadings(rs, air);
+    expect(out.map((p) => p.conditionCode)).toEqual([1006, 1063]);
+    expect(out[0].time).toBe('2026-05-20T14:30:00Z'); // positioned at the reading
+    expect(out[0].condition).toBe('Cloudy');
+  });
+
+  it('returns one point per reading (no collapsing of same conditions)', () => {
+    const rs = [
+      { id: '2026-05-20T09:05:00Z', date: '2026-05-20', time: '05:05', ph: 7.5 },
+      { id: '2026-05-20T09:10:00Z', date: '2026-05-20', time: '05:10', ph: 7.6 },
+    ];
+    expect(weatherAtReadings(rs, air)).toHaveLength(2); // both sunny, both kept
+  });
+
+  it('returns [] when there is no weather data', () => {
+    expect(weatherAtReadings(readings, [])).toEqual([]);
   });
 });
 

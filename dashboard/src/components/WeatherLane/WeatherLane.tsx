@@ -60,6 +60,9 @@ interface WeatherLaneProps {
    *  collapseRuns). Use for the dense per-bucket temp lane. Omit for the chemistry
    *  per-reading lane, where one icon per reading is intentional. */
   collapse?: boolean;
+  /** Extra pixels to lift the band upward, for stacking a second lane row above
+   *  the first (default 0 = the row sits just above the plot top). */
+  laneOffset?: number;
 }
 
 /**
@@ -73,7 +76,7 @@ interface WeatherLaneProps {
  * internals from a child. The host MUST reserve top margin for the band
  * (TempChart/ChemChart bump margin.top when the lane renders).
  */
-export function WeatherLane({ points, iconSize = 18, xValue = (t) => t, collapse }: WeatherLaneProps) {
+export function WeatherLane({ points, iconSize = 18, xValue = (t) => t, collapse, laneOffset = 0 }: WeatherLaneProps) {
   // Hooks must run unconditionally, before any early return.
   const scale = useXAxisScale();
   const plot = usePlotArea();
@@ -81,7 +84,7 @@ export function WeatherLane({ points, iconSize = 18, xValue = (t) => t, collapse
 
   const laneInput = collapse ? collapseRuns(points) : points;
   const icons = selectLaneIcons(laneInput, plot.width);
-  const y = Math.max(0, plot.y - iconSize - 2); // band above the plot top
+  const y = Math.max(0, plot.y - iconSize - 2 - laneOffset); // band above the plot top (+ stack offset)
 
   return (
     <g className="weather-lane" pointerEvents="none">

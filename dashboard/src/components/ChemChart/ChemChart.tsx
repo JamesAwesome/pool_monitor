@@ -32,6 +32,35 @@ export function laneFromAirHistory(
   return collapseRuns(inView);
 }
 
+/**
+ * One synthetic lane point per reading, carrying the weather condition nearest
+ * that reading's timestamp (so the second chem lane shows the weather at each
+ * recorded test). Each point keeps the reading's id as its `time` (a valid x on
+ * the numeric time axis). Readings with no weather data available are skipped.
+ * Pure + exported for testing.
+ */
+export function weatherAtReadings(
+  readings: ChemistryReading[],
+  airHistory: WeatherHistoryPoint[],
+): WeatherHistoryPoint[] {
+  const conditioned = airHistory.filter((p) => p.conditionCode !== undefined);
+  if (conditioned.length === 0) return [];
+  const times = conditioned.map((p) => new Date(p.time).getTime());
+  return readings.map((r) => {
+    const rt = new Date(r.id).getTime();
+    let bestI = 0;
+    let bestD = Infinity;
+    for (let i = 0; i < conditioned.length; i++) {
+      const d = Math.abs(times[i] - rt);
+      if (d < bestD) { bestD = d; bestI = i; }
+    }
+    const m = conditioned[bestI];
+    const pt: WeatherHistoryPoint = { time: r.id, value: 0, conditionCode: m.conditionCode };
+    if (m.condition) pt.condition = m.condition;
+    return pt;
+  });
+}
+
 interface ChemChartProps {
   readings: ChemistryReading[];
   chemKey: ChemKey;
@@ -80,6 +109,16 @@ export function ChemChart({
     [isFull, data, airHistory],
   );
 
+  // Second (lower) lane: the weather at each recorded reading's timestamp.
+  const readingLanePoints = useMemo(
+    () => (isFull ? weatherAtReadings(readings, airHistory) : []),
+    [isFull, readings, airHistory],
+  );
+
+  // Top headroom scales with how many lane rows render (0/1/2).
+  const laneRows = (lanePoints.length > 0 ? 1 : 0) + (readingLanePoints.length > 0 ? 1 : 0);
+  const topMargin = laneRows === 0 ? 8 : laneRows === 1 ? 22 : 40;
+
   const lastChemT = useMemo(() => {
     for (let i = data.length - 1; i >= 0; i--) if (typeof data[i].chem === 'number') return data[i].t;
     return null;
@@ -90,7 +129,7 @@ export function ChemChart({
   return (
     <div className={isFull ? styles.full : styles.mini} data-testid={`chem-chart-${chemKey}`}>
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} margin={isFull ? { top: lanePoints.length > 0 ? 22 : 8, right: 8, bottom: 4, left: 0 } : { top: 4, right: 4, bottom: 0, left: 0 }}>
+        <ComposedChart data={data} margin={isFull ? { top: topMargin, right: 8, bottom: 4, left: 0 } : { top: 4, right: 4, bottom: 0, left: 0 }}>
           <XAxis
             dataKey="t"
             type="number"
@@ -128,8 +167,15 @@ export function ChemChart({
               return <circle cx={cx} cy={cy} r={isLast ? 3.4 : 2.2} fill={color} />;
             }}
             activeDot={{ r: 3.4, fill: color }} />
+          {/* Top row: ambient weather across the range (change-only). Lifted one
+              row when the per-reading row below it is also present. */}
           {isFull && lanePoints.length > 0 && (
-            <WeatherLane points={lanePoints} iconSize={16} xValue={(t) => new Date(t).getTime()} />
+            <WeatherLane points={lanePoints} iconSize={16} xValue={(t) => new Date(t).getTime()}
+              laneOffset={readingLanePoints.length > 0 ? 18 : 0} />
+          )}
+          {/* Bottom row: weather at each recorded reading timestamp. */}
+          {isFull && readingLanePoints.length > 0 && (
+            <WeatherLane points={readingLanePoints} iconSize={16} xValue={(t) => new Date(t).getTime()} />
           )}
         </ComposedChart>
       </ResponsiveContainer>
