@@ -14,7 +14,8 @@ import { celsiusToFahrenheit } from '../../utils/temperature';
 import { DateRangePicker } from '../DateRangePicker';
 import { BottomSheet } from '../BottomSheet';
 import { OverlayPill } from '../OverlayPill';
-import type { TimeSeriesPoint } from '../../types';
+import { WeatherLane } from '../WeatherLane';
+import type { TimeSeriesPoint, WeatherHistoryPoint } from '../../types';
 import styles from './TempChart.module.css';
 
 interface TempChartProps {
@@ -22,7 +23,7 @@ interface TempChartProps {
   range: string;
   onRangeChange: (range: string) => void;
   loading: boolean;
-  airHistory?: TimeSeriesPoint[];
+  airHistory?: WeatherHistoryPoint[];
 }
 
 const QUICK_RANGES = [
@@ -54,6 +55,11 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
   const [showCustom, setShowCustom] = useState(false);
   const [airVisible, setAirVisible] = useState(true);
   const hasAir = !!airHistory && airHistory.length > 0;
+
+  const condByTime = useMemo(
+    () => new Map((airHistory ?? []).filter((p) => p.condition).map((p) => [p.time, p.condition!])),
+    [airHistory],
+  );
 
   const smoothedPool = useMemo(() => {
     if (data.length === 0) return data;
@@ -144,7 +150,10 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
           <div className={styles.loading}>Loading chart...</div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={chartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
+            {/* Reserve top headroom for the weather lane (18px icons + gap) only
+                when it renders, so icons sit in a clean band above the plot
+                rather than overlapping the chart lines. */}
+            <ComposedChart data={chartData} margin={{ top: hasAir ? 26 : 8, right: 16, bottom: 0, left: 0 }}>
               <defs>
                 <linearGradient id="tempGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.4} />
@@ -153,6 +162,7 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" strokeOpacity={0.5} vertical={false} />
+              {hasAir && <WeatherLane points={airHistory!} iconSize={18} collapse />}
               <XAxis
                 dataKey="time"
                 tickFormatter={(t: string) => formatXTick(t, range, spansMultipleDays)}
@@ -178,7 +188,11 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
                   const n = String(name);
                   return [`${v.toFixed(1)}${unitLabel}`, n === 'Air' ? 'Air temp' : 'Pool temp'];
                 }}
-                labelFormatter={(label) => new Date(String(label)).toLocaleString()}
+                labelFormatter={(label) => {
+                  const base = new Date(String(label)).toLocaleString();
+                  const cond = condByTime.get(String(label));
+                  return cond ? `${base} · ${cond}` : base;
+                }}
                 contentStyle={{
                   background: 'rgba(15, 23, 42, 0.9)',
                   border: '1px solid rgba(56, 189, 248, 0.3)',

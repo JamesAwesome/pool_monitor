@@ -179,12 +179,26 @@ vi.mock('@influxdata/influxdb-client', () => {
   return { InfluxDB, Point }
 })
 
-const { queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry } = await import('./influx')
+const { queryHistory, queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry } = await import('./influx')
 
 beforeEach(() => {
   queryApiStub.collectRows.mockReset()
   writeApiStub.writePoint.mockReset()
   writeApiStub.flush.mockClear()
+})
+
+describe('queryHistory', () => {
+  it('stamps buckets with window start so pool/air/lane share one time axis', async () => {
+    // Pool history must use timeSrc: "_start" to match the air line and weather
+    // lane (both window-start keyed). Otherwise the air line renders shifted by
+    // one window on TempChart, which merges pool/air points by exact time string.
+    queryApiStub.collectRows.mockResolvedValueOnce([
+      { _time: '2026-05-20T10:00:00.000Z', _value: 24 },
+    ]);
+    const out = await queryHistory('7d');
+    expect(queryApiStub.collectRows.mock.calls[0][0]).toContain('timeSrc: "_start"');
+    expect(out).toEqual([{ time: '2026-05-20T10:00:00.000Z', value: 24 }]);
+  });
 })
 
 describe('queryWeatherCurrent', () => {
@@ -219,26 +233,52 @@ describe('queryWeatherCurrent', () => {
 })
 
 describe('queryWeatherHistory', () => {
-  it('returns time/value pairs from rows', async () => {
-    const rows = [
-      { _time: '2026-04-14T10:00:00Z', _value: 19.5 },
-      { _time: '2026-04-14T11:00:00Z', _value: 20.1 },
-    ]
-    queryApiStub.collectRows.mockResolvedValueOnce(rows)
+  it('merges the mode condition per bucket onto the temp points', async () => {
+    // First collectRows call = temp aggregation; second = raw condition samples.
+    // Temp _time values are window STARTs (timeSrc: "_start"). IMPORTANT: real
+    // InfluxDB returns boundary timestamps WITHOUT fractional seconds
+    // ("...:00Z"), whereas bucketConditions keys via Date.toISOString() which
+    // always emits millis ("...:00.000Z"). The merge must compare by INSTANT
+    // (epoch ms), not by raw string — these mocks use the no-millis form on
+    // purpose so a string-keyed merge would fail this test.
+    queryApiStub.collectRows
+      .mockResolvedValueOnce([
+        { _time: '2026-05-20T10:00:00Z', _value: 24 },
+        { _time: '2026-05-20T11:00:00Z', _value: 25 },
+      ])
+      .mockResolvedValueOnce([
+        { _time: '2026-05-20T10:05:00Z', _value: 1000, condition: 'Sunny' },
+        { _time: '2026-05-20T10:25:00Z', _value: 1000, condition: 'Sunny' },
+        { _time: '2026-05-20T11:30:00Z', _value: 1006, condition: 'Cloudy' },
+      ]);
+    const out = await queryWeatherHistory('7d'); // 1h windows
+    // Guard: the generated tempQuery must request window-start timestamps so that
+    // the bucket instants line up with bucketConditions output (which floors to start).
+    // If timeSrc: "_start" is removed, the buckets no longer share an instant.
+    expect(queryApiStub.collectRows.mock.calls[0][0]).toContain('timeSrc: "_start"');
+    expect(out).toEqual([
+      { time: '2026-05-20T10:00:00Z', value: 24, conditionCode: 1000, condition: 'Sunny' },
+      { time: '2026-05-20T11:00:00Z', value: 25, conditionCode: 1006, condition: 'Cloudy' },
+    ]);
+  });
 
-    const result = await queryWeatherHistory('24h')
+  it('keeps the conditionCode but omits a blank condition label (missing tag)', async () => {
+    queryApiStub.collectRows
+      .mockResolvedValueOnce([{ _time: '2026-05-20T10:00:00Z', _value: 24 }])
+      .mockResolvedValueOnce([{ _time: '2026-05-20T10:05:00Z', _value: 1000 }]); // no condition tag
+    expect(await queryWeatherHistory('7d')).toEqual([
+      { time: '2026-05-20T10:00:00Z', value: 24, conditionCode: 1000 },
+    ]);
+  });
 
-    expect(result).toEqual([
-      { time: '2026-04-14T10:00:00Z', value: 19.5 },
-      { time: '2026-04-14T11:00:00Z', value: 20.1 },
-    ])
-  })
-
-  it('returns empty array when no rows', async () => {
-    queryApiStub.collectRows.mockResolvedValueOnce([])
-    const result = await queryWeatherHistory('3d')
-    expect(result).toEqual([])
-  })
+  it('omits condition fields when a temp bucket has no condition samples', async () => {
+    queryApiStub.collectRows
+      .mockResolvedValueOnce([{ _time: '2026-05-20T10:00:00Z', _value: 24 }])
+      .mockResolvedValueOnce([]);
+    expect(await queryWeatherHistory('7d')).toEqual([
+      { time: '2026-05-20T10:00:00Z', value: 24 },
+    ]);
+  });
 })
 
 describe('queryChemistry', () => {

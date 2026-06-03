@@ -11,6 +11,12 @@ export interface TimeSeriesPoint {
   value: number;
 }
 
+export interface WeatherHistoryPoint extends TimeSeriesPoint {
+  // value = air temp °C (unchanged)
+  conditionCode?: number;
+  condition?: string;
+}
+
 export interface BatteryData {
   current: number;
   history: TimeSeriesPoint[];

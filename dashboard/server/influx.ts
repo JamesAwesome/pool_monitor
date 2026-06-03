@@ -1,6 +1,8 @@
 import { InfluxDB, Point } from '@influxdata/influxdb-client'
 import { CHEM_FIELDS, dateTimeToUtc, utcToZonedParts } from './chemistry.js'
 import type { ChemField } from './chemistry.js'
+import { bucketConditions } from './weatherBuckets.js'
+import type { ConditionSample } from './weatherBuckets.js'
 
 const url = process.env.INFLUXDB_URL ?? 'http://localhost:8086'
 const token = process.env.INFLUXDB_TOKEN ?? ''
@@ -155,7 +157,10 @@ export async function queryHistory(range: string, sensorId?: string): Promise<Ar
       |> filter(fn: (r) => r._measurement == "mqtt_consumer")
       |> filter(fn: (r) => r._field == "temperature_C")${sensorFilter}
       |> ${groupClause}
-      |> aggregateWindow(every: ${period}, fn: mean, createEmpty: true)
+      // timeSrc: "_start" stamps each bucket with its window START so pool
+      // history aligns with the air line and weather lane (queryWeatherHistory
+      // + bucketConditions also key on window start). All three must agree.
+      |> aggregateWindow(every: ${period}, fn: mean, createEmpty: true, timeSrc: "_start")
       |> fill(column: "_value", usePrevious: true)
       |> filter(fn: (r) => exists r._value)
       |> yield(name: "history")
@@ -394,20 +399,62 @@ export async function queryWeatherCurrent(): Promise<WeatherCurrent | null> {
   }
 }
 
-export async function queryWeatherHistory(range: string): Promise<Array<{ time: string; value: number }>> {
+export interface WeatherHistoryPoint {
+  time: string
+  value: number
+  conditionCode?: number
+  condition?: string
+}
+
+export async function queryWeatherHistory(range: string): Promise<WeatherHistoryPoint[]> {
   const api = getQueryApi()
   const period = windowPeriod(range)
-  const query = `
+
+  const tempQuery = `
     from(bucket: "${bucket}")
       |> range(${parseRange(range)})
       |> filter(fn: (r) => r._measurement == "weather")
       |> filter(fn: (r) => r._field == "temperature_C")
       |> group()
-      |> aggregateWindow(every: ${period}, fn: mean, createEmpty: false)
+      |> aggregateWindow(every: ${period}, fn: mean, createEmpty: false, timeSrc: "_start")
       |> yield(name: "weather_history")
   `
-  const rows = await api.collectRows<HistoryRow>(query)
-  return rows.map((r) => ({ time: r._time, value: r._value }))
+  // Raw condition samples (un-windowed); bucketed + mode-picked in JS so the
+  // bucket boundaries match the temp line exactly.
+  const condQuery = `
+    from(bucket: "${bucket}")
+      |> range(${parseRange(range)})
+      |> filter(fn: (r) => r._measurement == "weather")
+      |> filter(fn: (r) => r._field == "condition_code")
+      |> keep(columns: ["_time", "_value", "condition"])
+  `
+
+  // Independent queries — run concurrently to halve endpoint latency.
+  const [tempRows, condRows] = await Promise.all([
+    api.collectRows<{ _time: string; _value: number }>(tempQuery),
+    api.collectRows<{ _time: string; _value: number; condition?: string }>(condQuery),
+  ])
+
+  const samples: ConditionSample[] = condRows.map((r) => ({
+    time: r._time, code: r._value, label: r.condition ?? '',
+  }))
+  // Key by epoch INSTANT, not raw string: InfluxDB returns boundary times as
+  // "...:00Z" (no fractional seconds) while bucketConditions keys via
+  // Date.toISOString() ("...:00.000Z"). Comparing strings would never match in
+  // production even though both denote the same window-start instant.
+  const condByTime = new Map(bucketConditions(samples, range).map((c) => [new Date(c.time).getTime(), c]))
+
+  return tempRows.map((r) => {
+    const cond = condByTime.get(new Date(r._time).getTime())
+    const point: WeatherHistoryPoint = { time: r._time, value: r._value }
+    if (cond) {
+      point.conditionCode = cond.conditionCode
+      // Only attach a label when present — keeps the `condition?: string` contract
+      // honest (a code with a missing tag still drives the icon, just no text).
+      if (cond.condition) point.condition = cond.condition
+    }
+    return point
+  })
 }
 
 export function getWriteApi() {

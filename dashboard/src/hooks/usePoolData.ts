@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { PoolStats, TimeSeriesPoint, SensorBattery, SensorInfo, WeatherCurrent } from '../types';
+import type { PoolStats, TimeSeriesPoint, WeatherHistoryPoint, SensorBattery, SensorInfo, WeatherCurrent } from '../types';
 
 function timeSeriesChanged(prev: TimeSeriesPoint[], next: TimeSeriesPoint[]): boolean {
   if (prev.length !== next.length) return true;
@@ -31,7 +31,7 @@ export interface UsePoolDataReturn {
   selectedSensor: string | null;
   setSelectedSensor: (id: string | null) => void;
   airCurrent: WeatherCurrent | null;
-  airHistory: TimeSeriesPoint[];
+  airHistory: WeatherHistoryPoint[];
 }
 
 export function usePoolData(refreshInterval = 30000): UsePoolDataReturn {
@@ -44,7 +44,7 @@ export function usePoolData(refreshInterval = 30000): UsePoolDataReturn {
   const [sensors, setSensors] = useState<SensorInfo[]>([]);
   const [selectedSensor, setSelectedSensor] = useState<string | null>(null);
   const [airCurrent, setAirCurrent] = useState<WeatherCurrent | null>(null);
-  const [airHistory, setAirHistory] = useState<TimeSeriesPoint[]>([]);
+  const [airHistory, setAirHistory] = useState<WeatherHistoryPoint[]>([]);
   const hasFetchedOnce = useRef(false);
   const statsRef = useRef<PoolStats | null>(null);
   const historyRef = useRef<TimeSeriesPoint[]>([]);
@@ -86,7 +86,7 @@ export function usePoolData(refreshInterval = 30000): UsePoolDataReturn {
         .catch(() => setAirCurrent(null));
 
       fetch(`/api/weather/history?range=${encodeURIComponent(currentRange)}`)
-        .then((res) => res.ok ? res.json() as Promise<TimeSeriesPoint[]> : [])
+        .then((res) => res.ok ? res.json() as Promise<WeatherHistoryPoint[]> : [])
         .then((data) => setAirHistory(data ?? []))
         .catch(() => setAirHistory([]));
 
