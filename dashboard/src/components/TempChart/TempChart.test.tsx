@@ -8,7 +8,9 @@ vi.mock('../../context/ThemeContext', () => ({
 
 vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="chart-container">{children}</div>,
-  ComposedChart: ({ children }: { children: React.ReactNode }) => <div data-testid="line-chart">{children}</div>,
+  ComposedChart: ({ children, margin }: { children: React.ReactNode; margin?: { top?: number } }) => (
+    <div data-testid="line-chart" data-margin-top={margin?.top}>{children}</div>
+  ),
   Area: () => <div data-testid="chart-line" />,
   Line: () => <div data-testid="chart-air-line" />,
   XAxis: () => null,
@@ -16,7 +18,11 @@ vi.mock('recharts', () => ({
   Tooltip: () => null,
   CartesianGrid: () => null,
   ReferenceLine: () => null,
-  Customized: () => <div data-testid="customized" />,
+  // WeatherLane reads these hooks; under the mock they return undefined so the
+  // lane renders nothing here (its real rendering is covered in
+  // WeatherLane.render.test.tsx). The lane's *presence* in the tree is harmless.
+  useXAxisScale: () => undefined,
+  usePlotArea: () => undefined,
 }));
 
 const sampleData = [
@@ -175,12 +181,20 @@ describe('TempChart', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('renders the weather lane when airHistory carries conditions', () => {
+  it('reserves top headroom for the weather lane only when air data is present', () => {
+    // The lane draws in a band above the plot, so the chart must reserve top
+    // margin when (and only when) airHistory is supplied. (Lane glyph rendering
+    // itself is covered against real Recharts in WeatherLane.render.test.tsx.)
     const air = [
       { time: '2025-07-01T12:00:00Z', value: 28, conditionCode: 1000, condition: 'Sunny' },
     ];
-    render(<TempChart data={sampleData} range="24h" onRangeChange={vi.fn()} loading={false} airHistory={air} />);
-    expect(screen.getByTestId('customized')).toBeTruthy();
+    const { rerender } = render(
+      <TempChart data={sampleData} range="24h" onRangeChange={vi.fn()} loading={false} airHistory={air} />,
+    );
+    expect(screen.getByTestId('line-chart').getAttribute('data-margin-top')).toBe('26');
+
+    rerender(<TempChart data={sampleData} range="24h" onRangeChange={vi.fn()} loading={false} />);
+    expect(screen.getByTestId('line-chart').getAttribute('data-margin-top')).toBe('8');
   });
 
   it('closing the custom bottom sheet via overlay click hides the sheet', () => {

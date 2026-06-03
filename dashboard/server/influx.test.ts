@@ -262,6 +262,15 @@ describe('queryWeatherHistory', () => {
     ]);
   });
 
+  it('keeps the conditionCode but omits a blank condition label (missing tag)', async () => {
+    queryApiStub.collectRows
+      .mockResolvedValueOnce([{ _time: '2026-05-20T10:00:00Z', _value: 24 }])
+      .mockResolvedValueOnce([{ _time: '2026-05-20T10:05:00Z', _value: 1000 }]); // no condition tag
+    expect(await queryWeatherHistory('7d')).toEqual([
+      { time: '2026-05-20T10:00:00Z', value: 24, conditionCode: 1000 },
+    ]);
+  });
+
   it('omits condition fields when a temp bucket has no condition samples', async () => {
     queryApiStub.collectRows
       .mockResolvedValueOnce([{ _time: '2026-05-20T10:00:00Z', _value: 24 }])

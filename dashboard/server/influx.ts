@@ -447,7 +447,12 @@ export async function queryWeatherHistory(range: string): Promise<WeatherHistory
   return tempRows.map((r) => {
     const cond = condByTime.get(new Date(r._time).getTime())
     const point: WeatherHistoryPoint = { time: r._time, value: r._value }
-    if (cond) { point.conditionCode = cond.conditionCode; point.condition = cond.condition }
+    if (cond) {
+      point.conditionCode = cond.conditionCode
+      // Only attach a label when present — keeps the `condition?: string` contract
+      // honest (a code with a missing tag still drives the icon, just no text).
+      if (cond.condition) point.condition = cond.condition
+    }
     return point
   })
 }
