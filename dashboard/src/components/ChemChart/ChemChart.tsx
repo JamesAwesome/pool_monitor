@@ -10,9 +10,27 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import type { ChemistryReading, ChemKey, TimeSeriesPoint, WeatherHistoryPoint } from '../../types';
 import { buildChartData, type ChartPoint } from './buildChartData';
-import { WeatherLane } from '../WeatherLane';
-import { readingLanePoints } from './readingLanePoints';
+import { WeatherLane, collapseRuns } from '../WeatherLane';
 import styles from './ChemChart.module.css';
+
+/**
+ * Weather-lane points for the focus chart: the full-range weather conditions
+ * (so weather can be read against the chem trend, not just at readings),
+ * clipped to the chart's visible x-domain so nothing renders off-plot, then
+ * collapsed to one icon per change. `domainMin`/`domainMax` are epoch ms (the
+ * chart's dataMin/dataMax). Pure + exported for testing.
+ */
+export function laneFromAirHistory(
+  airHistory: WeatherHistoryPoint[],
+  domainMin: number,
+  domainMax: number,
+): WeatherHistoryPoint[] {
+  const inView = airHistory.filter((p) => {
+    const t = new Date(p.time).getTime();
+    return t >= domainMin && t <= domainMax;
+  });
+  return collapseRuns(inView);
+}
 
 interface ChemChartProps {
   readings: ChemistryReading[];
@@ -53,9 +71,13 @@ export function ChemChart({
     [chemValues],
   );
 
+  // Weather lane spans the chart's visible time domain (data[0]..data[last]),
+  // matching the temp view. With the air line on, that domain covers the full
+  // weather range; with it off, it spans the readings — i.e. weather between
+  // readings either way.
   const lanePoints = useMemo(
-    () => (isFull ? readingLanePoints(readings, airHistory) : []),
-    [isFull, readings, airHistory],
+    () => (isFull && data.length > 0 ? laneFromAirHistory(airHistory, data[0].t, data[data.length - 1].t) : []),
+    [isFull, data, airHistory],
   );
 
   const lastChemT = useMemo(() => {

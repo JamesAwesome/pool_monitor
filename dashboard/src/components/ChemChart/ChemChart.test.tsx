@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { ChemChart } from './ChemChart';
+import { ChemChart, laneFromAirHistory } from './ChemChart';
 import { buildChartData } from './buildChartData';
+import type { WeatherHistoryPoint } from '../../types';
 
 vi.mock('../../context/ThemeContext', () => ({
   useTheme: () => ({ theme: 'light', toggleTheme: vi.fn(), unit: 'F', toggleUnit: vi.fn() }),
@@ -37,21 +38,51 @@ describe('ChemChart', () => {
     expect(screen.getByTestId('chem-chart-ph')).toBeInTheDocument();
   });
 
-  it('reserves top headroom in the full variant only when a reading-day has weather', () => {
-    // reading[0] is on 2026-05-20; give that UTC day a condition so the lane shows.
-    const air = [{ time: '2026-05-20T12:00:00Z', value: 28, conditionCode: 1000, condition: 'Sunny' }];
+  it('reserves top headroom in the full variant when weather falls within the charted span', () => {
+    // Air line off → x-domain = readings span [05-20T16:00 .. 05-29T16:00].
+    const within: WeatherHistoryPoint[] = [
+      { time: '2026-05-22T12:00:00Z', value: 28, conditionCode: 1000, condition: 'Sunny' },
+    ];
     const { rerender } = render(
       <ChemChart readings={readings} chemKey="ph" color="#000" decimals={1}
-        poolHistory={[]} airHistory={air} showPool={false} showAir={false} variant="full" />,
+        poolHistory={[]} airHistory={within} showPool={false} showAir={false} variant="full" />,
     );
     expect(screen.getByTestId('composed').getAttribute('data-margin-top')).toBe('22');
 
-    // No matching weather → no lane → no extra headroom.
+    // Weather only OUTSIDE the charted span → clipped away → no lane, no headroom.
+    const outside: WeatherHistoryPoint[] = [
+      { time: '2026-05-10T12:00:00Z', value: 28, conditionCode: 1000, condition: 'Sunny' },
+    ];
     rerender(
       <ChemChart readings={readings} chemKey="ph" color="#000" decimals={1}
-        poolHistory={[]} airHistory={[]} showPool={false} showAir={false} variant="full" />,
+        poolHistory={[]} airHistory={outside} showPool={false} showAir={false} variant="full" />,
     );
     expect(screen.getByTestId('composed').getAttribute('data-margin-top')).toBe('8');
+  });
+});
+
+describe('laneFromAirHistory', () => {
+  const t = (s: string) => new Date(s).getTime();
+  const air: WeatherHistoryPoint[] = [
+    { time: '2026-05-20T10:00:00Z', value: 20, conditionCode: 1000, condition: 'Sunny' },
+    { time: '2026-05-20T11:00:00Z', value: 21, conditionCode: 1000, condition: 'Sunny' },
+    { time: '2026-05-20T12:00:00Z', value: 22, conditionCode: 1006, condition: 'Cloudy' },
+    { time: '2026-05-20T13:00:00Z', value: 22, conditionCode: 1000, condition: 'Sunny' },
+  ];
+
+  it('collapses to one icon per change across the full range', () => {
+    const out = laneFromAirHistory(air, t('2026-05-20T10:00:00Z'), t('2026-05-20T13:00:00Z'));
+    expect(out.map((p) => p.conditionCode)).toEqual([1000, 1006, 1000]);
+  });
+
+  it('clips to the visible domain before collapsing', () => {
+    // Domain 11:30..12:30 → only the cloudy point is in view.
+    const out = laneFromAirHistory(air, t('2026-05-20T11:30:00Z'), t('2026-05-20T12:30:00Z'));
+    expect(out.map((p) => p.conditionCode)).toEqual([1006]);
+  });
+
+  it('returns [] when no weather falls within the domain', () => {
+    expect(laneFromAirHistory(air, t('2026-06-01T00:00:00Z'), t('2026-06-02T00:00:00Z'))).toEqual([]);
   });
 });
 
