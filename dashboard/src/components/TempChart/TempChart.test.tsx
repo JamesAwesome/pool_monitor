@@ -16,6 +16,7 @@ vi.mock('recharts', () => ({
   Tooltip: () => null,
   CartesianGrid: () => null,
   ReferenceLine: () => null,
+  Customized: () => <div data-testid="customized" />,
 }));
 
 const sampleData = [
@@ -172,6 +173,14 @@ describe('TempChart', () => {
     // Close via the × button inside the BottomSheet
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('renders the weather lane when airHistory carries conditions', () => {
+    const air = [
+      { time: '2025-07-01T12:00:00Z', value: 28, conditionCode: 1000, condition: 'Sunny' },
+    ];
+    render(<TempChart data={sampleData} range="24h" onRangeChange={vi.fn()} loading={false} airHistory={air} />);
+    expect(screen.getByTestId('customized')).toBeTruthy();
   });
 
   it('closing the custom bottom sheet via overlay click hides the sheet', () => {
