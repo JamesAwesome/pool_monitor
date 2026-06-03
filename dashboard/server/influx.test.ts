@@ -235,11 +235,16 @@ describe('queryWeatherCurrent', () => {
 describe('queryWeatherHistory', () => {
   it('merges the mode condition per bucket onto the temp points', async () => {
     // First collectRows call = temp aggregation; second = raw condition samples.
-    // Temp _time values are window STARTs (timeSrc: "_start"), matching bucketConditions output.
+    // Temp _time values are window STARTs (timeSrc: "_start"). IMPORTANT: real
+    // InfluxDB returns boundary timestamps WITHOUT fractional seconds
+    // ("...:00Z"), whereas bucketConditions keys via Date.toISOString() which
+    // always emits millis ("...:00.000Z"). The merge must compare by INSTANT
+    // (epoch ms), not by raw string — these mocks use the no-millis form on
+    // purpose so a string-keyed merge would fail this test.
     queryApiStub.collectRows
       .mockResolvedValueOnce([
-        { _time: '2026-05-20T10:00:00.000Z', _value: 24 },
-        { _time: '2026-05-20T11:00:00.000Z', _value: 25 },
+        { _time: '2026-05-20T10:00:00Z', _value: 24 },
+        { _time: '2026-05-20T11:00:00Z', _value: 25 },
       ])
       .mockResolvedValueOnce([
         { _time: '2026-05-20T10:05:00Z', _value: 1000, condition: 'Sunny' },
@@ -248,21 +253,21 @@ describe('queryWeatherHistory', () => {
       ]);
     const out = await queryWeatherHistory('7d'); // 1h windows
     // Guard: the generated tempQuery must request window-start timestamps so that
-    // condByTime.get(r._time) matches bucketConditions output (which floors to start).
-    // If timeSrc: "_start" is removed, this assertion fails before the merge ever runs.
+    // the bucket instants line up with bucketConditions output (which floors to start).
+    // If timeSrc: "_start" is removed, the buckets no longer share an instant.
     expect(queryApiStub.collectRows.mock.calls[0][0]).toContain('timeSrc: "_start"');
     expect(out).toEqual([
-      { time: '2026-05-20T10:00:00.000Z', value: 24, conditionCode: 1000, condition: 'Sunny' },
-      { time: '2026-05-20T11:00:00.000Z', value: 25, conditionCode: 1006, condition: 'Cloudy' },
+      { time: '2026-05-20T10:00:00Z', value: 24, conditionCode: 1000, condition: 'Sunny' },
+      { time: '2026-05-20T11:00:00Z', value: 25, conditionCode: 1006, condition: 'Cloudy' },
     ]);
   });
 
   it('omits condition fields when a temp bucket has no condition samples', async () => {
     queryApiStub.collectRows
-      .mockResolvedValueOnce([{ _time: '2026-05-20T10:00:00.000Z', _value: 24 }])
+      .mockResolvedValueOnce([{ _time: '2026-05-20T10:00:00Z', _value: 24 }])
       .mockResolvedValueOnce([]);
     expect(await queryWeatherHistory('7d')).toEqual([
-      { time: '2026-05-20T10:00:00.000Z', value: 24 },
+      { time: '2026-05-20T10:00:00Z', value: 24 },
     ]);
   });
 })

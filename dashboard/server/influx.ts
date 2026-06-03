@@ -429,16 +429,23 @@ export async function queryWeatherHistory(range: string): Promise<WeatherHistory
       |> keep(columns: ["_time", "_value", "condition"])
   `
 
-  const tempRows = await api.collectRows<{ _time: string; _value: number }>(tempQuery)
-  const condRows = await api.collectRows<{ _time: string; _value: number; condition: string }>(condQuery)
+  // Independent queries — run concurrently to halve endpoint latency.
+  const [tempRows, condRows] = await Promise.all([
+    api.collectRows<{ _time: string; _value: number }>(tempQuery),
+    api.collectRows<{ _time: string; _value: number; condition?: string }>(condQuery),
+  ])
 
   const samples: ConditionSample[] = condRows.map((r) => ({
-    time: r._time, code: r._value, label: r.condition,
+    time: r._time, code: r._value, label: r.condition ?? '',
   }))
-  const condByTime = new Map(bucketConditions(samples, range).map((c) => [c.time, c]))
+  // Key by epoch INSTANT, not raw string: InfluxDB returns boundary times as
+  // "...:00Z" (no fractional seconds) while bucketConditions keys via
+  // Date.toISOString() ("...:00.000Z"). Comparing strings would never match in
+  // production even though both denote the same window-start instant.
+  const condByTime = new Map(bucketConditions(samples, range).map((c) => [new Date(c.time).getTime(), c]))
 
   return tempRows.map((r) => {
-    const cond = condByTime.get(r._time)
+    const cond = condByTime.get(new Date(r._time).getTime())
     const point: WeatherHistoryPoint = { time: r._time, value: r._value }
     if (cond) { point.conditionCode = cond.conditionCode; point.condition = cond.condition }
     return point

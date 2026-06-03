@@ -68,7 +68,7 @@ export function ChemChart({
   return (
     <div className={isFull ? styles.full : styles.mini} data-testid={`chem-chart-${chemKey}`}>
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} margin={isFull ? { top: 8, right: 8, bottom: 4, left: 0 } : { top: 4, right: 4, bottom: 0, left: 0 }}>
+        <ComposedChart data={data} margin={isFull ? { top: lanePoints.length > 0 ? 22 : 8, right: 8, bottom: 4, left: 0 } : { top: 4, right: 4, bottom: 0, left: 0 }}>
           <XAxis
             dataKey="t"
             type="number"

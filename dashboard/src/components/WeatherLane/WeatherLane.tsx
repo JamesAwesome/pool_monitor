@@ -30,7 +30,7 @@ export function selectLaneIcons(points: WeatherHistoryPoint[], plotWidth: number
   return mapped.filter((_, i) => i % step === 0);
 }
 
-interface CustomizedProps {
+export interface CustomizedProps {
   xAxisMap?: Record<string, { scale: (v: string | number) => number; x: number; width: number }>;
   offset?: { top: number; left: number; width: number; height: number };
 }
@@ -49,7 +49,7 @@ interface WeatherLaneProps {
  * plot offset and draws each kept icon at its time's pixel-x, in a band just
  * below the top margin. Aligns to the plot (not the axis) automatically.
  */
-function LaneLayer({ xAxisMap, offset, points, iconSize = 18, xValue = (t) => t }: CustomizedProps & WeatherLaneProps) {
+export function LaneLayer({ xAxisMap, offset, points, iconSize = 18, xValue = (t) => t }: CustomizedProps & WeatherLaneProps) {
   if (!xAxisMap || !offset) return null;
   const axis = Object.values(xAxisMap)[0];
   if (!axis) return null;

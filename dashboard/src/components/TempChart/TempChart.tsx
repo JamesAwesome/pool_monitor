@@ -150,7 +150,10 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
           <div className={styles.loading}>Loading chart...</div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={chartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
+            {/* Reserve top headroom for the weather lane (18px icons + gap) only
+                when it renders, so icons sit in a clean band above the plot
+                rather than overlapping the chart lines. */}
+            <ComposedChart data={chartData} margin={{ top: hasAir ? 26 : 8, right: 16, bottom: 0, left: 0 }}>
               <defs>
                 <linearGradient id="tempGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.4} />
