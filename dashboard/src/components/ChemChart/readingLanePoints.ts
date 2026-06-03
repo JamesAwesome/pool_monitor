@@ -11,6 +11,11 @@ import type { ChemistryReading, WeatherHistoryPoint } from '../../types';
  * point (fail-silent). `value` is unused by the lane (set to 0); the lane reads
  * only `time` (= reading id, which equals the chart's epoch x category) and the
  * condition fields.
+ *
+ * Caveat: matching is by UTC day, but the user sees `reading.date` (app-local
+ * tz). For a late-evening-local reading that falls on the next UTC day, the icon
+ * can reflect that next UTC day's weather. Acceptable for a decorative,
+ * fail-silent lane; revisit with tz-aware day grouping if it ever matters.
  */
 export function readingLanePoints(
   readings: ChemistryReading[],
