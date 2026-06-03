@@ -94,7 +94,7 @@ pnpm typecheck        # TypeScript only
   - `/api/season-history?sensor=X` — year-over-year avg/peak/low comparison
   - `/api/stat-detail?range=3d&stat=average|peak&sensor=X` — period-over-period breakdown (current + 2 previous equal-length periods)
   - `/api/weather/current` — latest air temperature, feels-like, humidity, condition
-  - `/api/weather/history?range=...` — aggregated air temperature time series
+  - `/api/weather/history?range=...` — aggregated air temperature time series; each point also carries the **dominant weather condition** for its bucket (`{ time, value, conditionCode?, condition? }`, mode of `condition_code` over the window). Drives the chart weather-icon lane.
   - `/api/health` — health check
   - `/api/chemistry?range=...` — GET readings `{ id, date, time, ph?, fc?, cc?, ta?, cya?, ch? }[]` (id = the reading's ISO-UTC timestamp; date/time derived in `TIMEZONE`). POST a reading `{ date, time, <values> }` → `201 { id }`. PUT `{ id, date, time, <values> }` edits it (delete-old-timestamp + write-new, so time changes and field-clearing work). DELETE `?id=<iso>` removes one. POST/PUT/DELETE are Basic-Auth gated + rate-limited; GET is public. Ranges: `30d`/`90d`/`season`/`all`/`custom:`. Partial readings (≥1 of the six values) allowed; storage is InfluxDB with the point's UTC timestamp as its id (two tests on one day = two distinct points; legacy noon-logged readings display as 12:00 until edited).
   - `/api/chemistry/auth-check` — GET, Basic-Auth gated; returns `{ ok: true }` (used by the unlock sheet to validate credentials without writing).
@@ -102,6 +102,7 @@ pnpm typecheck        # TypeScript only
   - All data endpoints accept optional `?sensor=<id>` to filter by sensor; omit for averaged "all sensors" view.
 - **OG image**: `server/og-image.ts` generates a social preview image using `@napi-rs/canvas`. Inter font files bundled in `server/fonts/`. Dynamic OG meta tags injected into HTML in production.
 - **Data flow**: All API data is in Celsius. F/C conversion happens client-side via `src/utils/temperature.ts`.
+- **Weather lane**: `src/components/WeatherLane/` renders a Recharts `<Customized>` layer of sky-condition icons aligned to the chart x-axis (TempChart for every range; ChemFocusSheet full chart, one icon per reading-day). Condition per bucket is computed server-side (`server/weatherBuckets.ts`, mode per `windowPeriod`). The lane takes an optional `xValue` mapper because the two hosts differ: TempChart's x-axis is categorical (time strings) while ChemChart's is numeric (`type="number"`, epoch ms). Fail-silent when condition data is absent.
 - **Theming**: CSS custom properties in `src/styles/tokens.css` with `[data-theme="dark"]` overrides. OS detection via `prefers-color-scheme` + manual toggle persisted in localStorage. Light mode uses blue-tinted pool water palette.
 - **Multi-sensor**: `GET /api/sensors` returns available sensors (id + model). `SensorSelector` component shows pill chips; hidden when only 1 sensor exists.
 - **Interactive details**: All 4 stat cards and battery indicators are tappable:
