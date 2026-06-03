@@ -1,6 +1,8 @@
 import { InfluxDB, Point } from '@influxdata/influxdb-client'
 import { CHEM_FIELDS, dateTimeToUtc, utcToZonedParts } from './chemistry.js'
 import type { ChemField } from './chemistry.js'
+import { bucketConditions } from './weatherBuckets.js'
+import type { ConditionSample } from './weatherBuckets.js'
 
 const url = process.env.INFLUXDB_URL ?? 'http://localhost:8086'
 const token = process.env.INFLUXDB_TOKEN ?? ''
@@ -394,10 +396,18 @@ export async function queryWeatherCurrent(): Promise<WeatherCurrent | null> {
   }
 }
 
-export async function queryWeatherHistory(range: string): Promise<Array<{ time: string; value: number }>> {
+export interface WeatherHistoryPoint {
+  time: string
+  value: number
+  conditionCode?: number
+  condition?: string
+}
+
+export async function queryWeatherHistory(range: string): Promise<WeatherHistoryPoint[]> {
   const api = getQueryApi()
   const period = windowPeriod(range)
-  const query = `
+
+  const tempQuery = `
     from(bucket: "${bucket}")
       |> range(${parseRange(range)})
       |> filter(fn: (r) => r._measurement == "weather")
@@ -406,8 +416,30 @@ export async function queryWeatherHistory(range: string): Promise<Array<{ time: 
       |> aggregateWindow(every: ${period}, fn: mean, createEmpty: false)
       |> yield(name: "weather_history")
   `
-  const rows = await api.collectRows<HistoryRow>(query)
-  return rows.map((r) => ({ time: r._time, value: r._value }))
+  // Raw condition samples (un-windowed); bucketed + mode-picked in JS so the
+  // bucket boundaries match the temp line exactly.
+  const condQuery = `
+    from(bucket: "${bucket}")
+      |> range(${parseRange(range)})
+      |> filter(fn: (r) => r._measurement == "weather")
+      |> filter(fn: (r) => r._field == "condition_code")
+      |> keep(columns: ["_time", "_value", "condition"])
+  `
+
+  const tempRows = await api.collectRows<{ _time: string; _value: number }>(tempQuery)
+  const condRows = await api.collectRows<{ _time: string; _value: number; condition: string }>(condQuery)
+
+  const samples: ConditionSample[] = condRows.map((r) => ({
+    time: r._time, code: r._value, label: r.condition,
+  }))
+  const condByTime = new Map(bucketConditions(samples, range).map((c) => [c.time, c]))
+
+  return tempRows.map((r) => {
+    const cond = condByTime.get(r._time)
+    const point: WeatherHistoryPoint = { time: r._time, value: r._value }
+    if (cond) { point.conditionCode = cond.conditionCode; point.condition = cond.condition }
+    return point
+  })
 }
 
 export function getWriteApi() {

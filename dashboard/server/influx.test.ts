@@ -219,26 +219,33 @@ describe('queryWeatherCurrent', () => {
 })
 
 describe('queryWeatherHistory', () => {
-  it('returns time/value pairs from rows', async () => {
-    const rows = [
-      { _time: '2026-04-14T10:00:00Z', _value: 19.5 },
-      { _time: '2026-04-14T11:00:00Z', _value: 20.1 },
-    ]
-    queryApiStub.collectRows.mockResolvedValueOnce(rows)
+  it('merges the mode condition per bucket onto the temp points', async () => {
+    // First collectRows call = temp aggregation; second = raw condition samples.
+    queryApiStub.collectRows
+      .mockResolvedValueOnce([
+        { _time: '2026-05-20T10:00:00.000Z', _value: 24 },
+        { _time: '2026-05-20T11:00:00.000Z', _value: 25 },
+      ])
+      .mockResolvedValueOnce([
+        { _time: '2026-05-20T10:05:00Z', _value: 1000, condition: 'Sunny' },
+        { _time: '2026-05-20T10:25:00Z', _value: 1000, condition: 'Sunny' },
+        { _time: '2026-05-20T11:30:00Z', _value: 1006, condition: 'Cloudy' },
+      ]);
+    const out = await queryWeatherHistory('7d'); // 1h windows
+    expect(out).toEqual([
+      { time: '2026-05-20T10:00:00.000Z', value: 24, conditionCode: 1000, condition: 'Sunny' },
+      { time: '2026-05-20T11:00:00.000Z', value: 25, conditionCode: 1006, condition: 'Cloudy' },
+    ]);
+  });
 
-    const result = await queryWeatherHistory('24h')
-
-    expect(result).toEqual([
-      { time: '2026-04-14T10:00:00Z', value: 19.5 },
-      { time: '2026-04-14T11:00:00Z', value: 20.1 },
-    ])
-  })
-
-  it('returns empty array when no rows', async () => {
-    queryApiStub.collectRows.mockResolvedValueOnce([])
-    const result = await queryWeatherHistory('3d')
-    expect(result).toEqual([])
-  })
+  it('omits condition fields when a temp bucket has no condition samples', async () => {
+    queryApiStub.collectRows
+      .mockResolvedValueOnce([{ _time: '2026-05-20T10:00:00.000Z', _value: 24 }])
+      .mockResolvedValueOnce([]);
+    expect(await queryWeatherHistory('7d')).toEqual([
+      { time: '2026-05-20T10:00:00.000Z', value: 24 },
+    ]);
+  });
 })
 
 describe('queryChemistry', () => {
