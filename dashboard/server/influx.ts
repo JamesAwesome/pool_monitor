@@ -157,7 +157,10 @@ export async function queryHistory(range: string, sensorId?: string): Promise<Ar
       |> filter(fn: (r) => r._measurement == "mqtt_consumer")
       |> filter(fn: (r) => r._field == "temperature_C")${sensorFilter}
       |> ${groupClause}
-      |> aggregateWindow(every: ${period}, fn: mean, createEmpty: true)
+      // timeSrc: "_start" stamps each bucket with its window START so pool
+      // history aligns with the air line and weather lane (queryWeatherHistory
+      // + bucketConditions also key on window start). All three must agree.
+      |> aggregateWindow(every: ${period}, fn: mean, createEmpty: true, timeSrc: "_start")
       |> fill(column: "_value", usePrevious: true)
       |> filter(fn: (r) => exists r._value)
       |> yield(name: "history")

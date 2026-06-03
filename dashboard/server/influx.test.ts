@@ -179,12 +179,26 @@ vi.mock('@influxdata/influxdb-client', () => {
   return { InfluxDB, Point }
 })
 
-const { queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry } = await import('./influx')
+const { queryHistory, queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry } = await import('./influx')
 
 beforeEach(() => {
   queryApiStub.collectRows.mockReset()
   writeApiStub.writePoint.mockReset()
   writeApiStub.flush.mockClear()
+})
+
+describe('queryHistory', () => {
+  it('stamps buckets with window start so pool/air/lane share one time axis', async () => {
+    // Pool history must use timeSrc: "_start" to match the air line and weather
+    // lane (both window-start keyed). Otherwise the air line renders shifted by
+    // one window on TempChart, which merges pool/air points by exact time string.
+    queryApiStub.collectRows.mockResolvedValueOnce([
+      { _time: '2026-05-20T10:00:00.000Z', _value: 24 },
+    ]);
+    const out = await queryHistory('7d');
+    expect(queryApiStub.collectRows.mock.calls[0][0]).toContain('timeSrc: "_start"');
+    expect(out).toEqual([{ time: '2026-05-20T10:00:00.000Z', value: 24 }]);
+  });
 })
 
 describe('queryWeatherCurrent', () => {
