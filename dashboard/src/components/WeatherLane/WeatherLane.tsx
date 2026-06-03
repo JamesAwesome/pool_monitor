@@ -31,13 +31,17 @@ export function selectLaneIcons(points: WeatherHistoryPoint[], plotWidth: number
 }
 
 interface CustomizedProps {
-  xAxisMap?: Record<string, { scale: (v: string) => number; x: number; width: number }>;
+  xAxisMap?: Record<string, { scale: (v: string | number) => number; x: number; width: number }>;
   offset?: { top: number; left: number; width: number; height: number };
 }
 
 interface WeatherLaneProps {
   points: WeatherHistoryPoint[];
   iconSize?: number;
+  /** Map a point's `time` string to the host x-axis scale input. Default: identity
+   *  (categorical string axes, e.g. TempChart). Numeric time axes (e.g. ChemChart,
+   *  dataKey="t" epoch ms) pass `(t) => new Date(t).getTime()`. */
+  xValue?: (time: string) => string | number;
 }
 
 /**
@@ -45,7 +49,7 @@ interface WeatherLaneProps {
  * plot offset and draws each kept icon at its time's pixel-x, in a band just
  * below the top margin. Aligns to the plot (not the axis) automatically.
  */
-function LaneLayer({ xAxisMap, offset, points, iconSize = 18 }: CustomizedProps & WeatherLaneProps) {
+function LaneLayer({ xAxisMap, offset, points, iconSize = 18, xValue = (t) => t }: CustomizedProps & WeatherLaneProps) {
   if (!xAxisMap || !offset) return null;
   const axis = Object.values(xAxisMap)[0];
   if (!axis) return null;
@@ -54,9 +58,10 @@ function LaneLayer({ xAxisMap, offset, points, iconSize = 18 }: CustomizedProps 
   return (
     <g className="weather-lane" pointerEvents="none">
       {icons.map((ic) => {
-        // Categorical x-axis: pass the raw time STRING (matches a chart category).
-        // Passing an epoch number would return NaN. See WeatherLane investigation.
-        const cx = axis.scale(ic.time);
+        // Map the time string to the host axis's scale input: identity for
+        // categorical string axes (TempChart), epoch ms for numeric time axes
+        // (ChemChart). Non-finite (off-domain) results are skipped (fail-silent).
+        const cx = axis.scale(xValue(ic.time));
         if (!Number.isFinite(cx)) return null;
         return (
           <foreignObject key={ic.time} x={cx - iconSize / 2} y={y} width={iconSize} height={iconSize}>
@@ -70,8 +75,8 @@ function LaneLayer({ xAxisMap, offset, points, iconSize = 18 }: CustomizedProps 
   );
 }
 
-export function WeatherLane({ points, iconSize }: WeatherLaneProps) {
+export function WeatherLane({ points, iconSize, xValue }: WeatherLaneProps) {
   return <Customized component={(props: CustomizedProps) => (
-    <LaneLayer {...props} points={points} iconSize={iconSize} />
+    <LaneLayer {...props} points={points} iconSize={iconSize} xValue={xValue} />
   )} />;
 }

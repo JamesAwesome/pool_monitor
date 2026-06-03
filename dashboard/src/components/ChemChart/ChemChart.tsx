@@ -8,8 +8,10 @@ import {
   YAxis,
 } from 'recharts';
 import { useTheme } from '../../context/ThemeContext';
-import type { ChemistryReading, ChemKey, TimeSeriesPoint } from '../../types';
+import type { ChemistryReading, ChemKey, TimeSeriesPoint, WeatherHistoryPoint } from '../../types';
 import { buildChartData, type ChartPoint } from './buildChartData';
+import { WeatherLane } from '../WeatherLane';
+import { readingLanePoints } from './readingLanePoints';
 import styles from './ChemChart.module.css';
 
 interface ChemChartProps {
@@ -18,7 +20,7 @@ interface ChemChartProps {
   color: string;
   decimals: number;
   poolHistory: TimeSeriesPoint[];
-  airHistory: TimeSeriesPoint[];
+  airHistory: WeatherHistoryPoint[];
   showPool: boolean;
   showAir: boolean;
   variant: 'mini' | 'full';
@@ -49,6 +51,11 @@ export function ChemChart({
   const chemDomain = useMemo<[number, number]>(
     () => (chemValues.length ? padDomain([Math.min(...chemValues), Math.max(...chemValues)]) : [0, 1]),
     [chemValues],
+  );
+
+  const lanePoints = useMemo(
+    () => (isFull ? readingLanePoints(readings, airHistory) : []),
+    [isFull, readings, airHistory],
   );
 
   const lastChemT = useMemo(() => {
@@ -99,6 +106,9 @@ export function ChemChart({
               return <circle cx={cx} cy={cy} r={isLast ? 3.4 : 2.2} fill={color} />;
             }}
             activeDot={{ r: 3.4, fill: color }} />
+          {isFull && lanePoints.length > 0 && (
+            <WeatherLane points={lanePoints} iconSize={16} xValue={(t) => new Date(t).getTime()} />
+          )}
         </ComposedChart>
       </ResponsiveContainer>
     </div>

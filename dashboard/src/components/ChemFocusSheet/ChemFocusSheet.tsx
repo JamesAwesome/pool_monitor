@@ -4,7 +4,7 @@ import { ChemChart } from '../ChemChart';
 import { DeltaTag } from '../DeltaTag';
 import { OverlayPill } from '../OverlayPill';
 import type { ChemMeta } from '../../constants/chemicals';
-import type { ChemistryReading, TimeSeriesPoint } from '../../types';
+import type { ChemistryReading, TimeSeriesPoint, WeatherHistoryPoint } from '../../types';
 import { latestReading, computeDelta, computeStats, formatChemValue } from '../../utils/chemistry';
 import { formatTemperature } from '../../utils/temperature';
 import { useTheme } from '../../context/ThemeContext';
@@ -14,7 +14,7 @@ interface ChemFocusSheetProps {
   meta: ChemMeta;
   readings: ChemistryReading[];
   poolHistory: TimeSeriesPoint[];
-  airHistory: TimeSeriesPoint[];
+  airHistory: WeatherHistoryPoint[];
   onClose: () => void;
 }
 
