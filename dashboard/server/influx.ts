@@ -413,7 +413,7 @@ export async function queryWeatherHistory(range: string): Promise<WeatherHistory
       |> filter(fn: (r) => r._measurement == "weather")
       |> filter(fn: (r) => r._field == "temperature_C")
       |> group()
-      |> aggregateWindow(every: ${period}, fn: mean, createEmpty: false)
+      |> aggregateWindow(every: ${period}, fn: mean, createEmpty: false, timeSrc: "_start")
       |> yield(name: "weather_history")
   `
   // Raw condition samples (un-windowed); bucketed + mode-picked in JS so the
