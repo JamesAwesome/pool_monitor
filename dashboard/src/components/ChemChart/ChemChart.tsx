@@ -104,6 +104,29 @@ export function ChemChart({
     () => data.map((d) => ({ t: d.t, value: typeof d.chem === 'number' ? d.chem : undefined })),
     [data],
   );
+
+  // Marker (swim/event) timestamps. Chem data can end before a recently-logged
+  // marker (sparse readings; coarse season buckets stamped at day-start), which
+  // would push the marker past the x-domain and the lanes' off-domain skip would
+  // drop it. Extend the x-domain + the lanes' positioning series to cover markers
+  // so they render at the chart edge instead of disappearing.
+  const markerEpochs = useMemo(
+    () => [...(swims ?? []), ...(events ?? [])]
+      .map((m) => new Date(m.id).getTime())
+      .filter((t) => Number.isFinite(t)),
+    [swims, events],
+  );
+  const xDomain = useMemo<[number, number] | ['dataMin', 'dataMax']>(() => {
+    if (data.length === 0) return ['dataMin', 'dataMax'];
+    return [Math.min(data[0].t, ...markerEpochs), Math.max(data[data.length - 1].t, ...markerEpochs)];
+  }, [data, markerEpochs]);
+  const markerSeries = useMemo(() => {
+    if (data.length === 0 || typeof xDomain[0] !== 'number' || typeof xDomain[1] !== 'number') return swimSeries;
+    const out = [...swimSeries];
+    if (xDomain[0] < out[0].t) out.unshift({ t: xDomain[0], value: undefined });
+    if (xDomain[1] > out[out.length - 1].t) out.push({ t: xDomain[1], value: undefined });
+    return out;
+  }, [swimSeries, xDomain, data.length]);
   const chemDomain = useMemo<[number, number]>(
     () => (chemValues.length ? padDomain([Math.min(...chemValues), Math.max(...chemValues)]) : [0, 1]),
     [chemValues],
@@ -142,8 +165,9 @@ export function ChemChart({
           <XAxis
             dataKey="t"
             type="number"
-            domain={['dataMin', 'dataMax']}
+            domain={xDomain}
             scale="time"
+            allowDataOverflow
             hide={!isFull}
             tickFormatter={formatDateTick}
             tick={{ fontSize: 10, fill: 'var(--color-text-secondary)' }}
@@ -187,11 +211,11 @@ export function ChemChart({
             <WeatherLane points={readingLanePoints} iconSize={16} xValue={(t) => new Date(t).getTime()} />
           )}
           {swims && swims.length > 0 && (
-            <SwimLane swims={swims} series={swimSeries} xMode="scale" color={color} yAxisId="chem"
+            <SwimLane swims={swims} series={markerSeries} xMode="scale" color={color} yAxisId="chem"
               compact={!isFull} iconSize={isFull ? 22 : 16} />
           )}
           {events && events.length > 0 && (
-            <EventLane events={events} series={swimSeries} xMode="scale" yAxisId="chem"
+            <EventLane events={events} series={markerSeries} xMode="scale" yAxisId="chem"
               compact={!isFull} iconSize={isFull ? 23 : 17} />
           )}
         </ComposedChart>
