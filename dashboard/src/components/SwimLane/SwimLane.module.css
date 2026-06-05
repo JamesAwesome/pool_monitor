@@ -1,0 +1,65 @@
+/* SwimLane pin marker — ported from the prototype `.swim-marker.pin` CSS.
+   The foreignObject fills a box of width=bubbleW, height=markerH, with its
+   vertical centre aligned to the curve y-point. Absolute positioning within
+   the marker div mirrors the prototype's coordinate model exactly:
+     - .foot    : 50% / 50% (centred on the foreignObject → sits on the curve)
+     - .stem    : left 50%, bottom 50% (grows upward from the foot centre)
+     - .chrome  : absolute, bottom = 50% + stemHeight (floats above the stem) */
+
+.lane { /* no additional styles needed; g element inherits color prop */ }
+
+/* The inner container that fills the foreignObject and anchors all three
+   pin parts with absolute positioning. */
+.marker {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* The emoji bubble — sits just above the stem top.
+   bottom: 50% puts it at the curve point; + 18px clears the stem; a further
+   2px gap gives breathing room between stem top and bubble bottom. */
+.chrome {
+  position: absolute;
+  left: 50%;
+  bottom: calc(50% + 20px); /* 18px stem + 2px gap above stem */
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  padding: 1.5px 5px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  box-shadow: var(--shadow-sm);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Stem — 1.5px × 18px vertical line, grows upward from the foot (bottom: 50%). */
+.stem {
+  position: absolute;
+  left: 50%;
+  bottom: 50%;
+  transform: translateX(-50%);
+  display: block;
+  width: 1.5px;
+  height: 18px;
+  background: currentColor;
+  opacity: 0.45;
+}
+
+/* Foot — 6px ring centred exactly on the foreignObject midpoint (= curve point).
+   box-sizing: border-box keeps the outer diameter at exactly 6px. */
+.foot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 2px solid currentColor;
+  box-sizing: border-box;
+}

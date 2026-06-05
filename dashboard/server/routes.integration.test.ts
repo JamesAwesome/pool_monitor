@@ -26,7 +26,7 @@ vi.mock('./influx.js', () => ({
 }));
 vi.mock('./og-image.js', () => ({ generateOgImage: vi.fn(async () => Buffer.from('')) }));
 
-import { writeChemistry, deleteChemistryPoint, querySwims, writeSwim, deletePoint } from './influx.js';
+import { writeChemistry, deleteChemistryPoint, querySwims as _querySwims, writeSwim as _writeSwim, deletePoint } from './influx.js';
 
 const router = (await import('./routes')).default;
 
