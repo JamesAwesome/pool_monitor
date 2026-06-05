@@ -59,6 +59,29 @@ describe('ChemFocusSheet', () => {
     expect(swimPill).toHaveAttribute('aria-pressed', 'false');
   });
 
+  const sampleEvents = [
+    { id: '2026-05-29T16:00:00Z', date: '2026-05-29', time: '12:00', kind: 'chemical' as const },
+  ];
+
+  it('does not render the Events overlay pill when no events are provided', () => {
+    render(
+      <ChemFocusSheet meta={CHEM_BY_KEY.fc} readings={readings}
+        poolHistory={[]} airHistory={[]} onClose={vi.fn()} />,
+    );
+    expect(screen.queryByRole('button', { name: 'Events' })).toBeNull();
+  });
+
+  it('renders the Events overlay pill only when events exist, and toggles it', async () => {
+    render(
+      <ChemFocusSheet meta={CHEM_BY_KEY.fc} readings={readings}
+        poolHistory={[]} airHistory={[]} events={sampleEvents} onClose={vi.fn()} />,
+    );
+    const eventsPill = screen.getByRole('button', { name: 'Events' });
+    expect(eventsPill).toHaveAttribute('aria-pressed', 'true'); // default on
+    await userEvent.click(eventsPill);
+    expect(eventsPill).toHaveAttribute('aria-pressed', 'false');
+  });
+
   it('shows pool now legend when Pool overlay is on and poolHistory has data', () => {
     // poolHistory last value: 28.89°C → 84.0°F (unit mock returns 'F')
     const poolHistory = [

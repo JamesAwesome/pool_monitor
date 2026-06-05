@@ -14,6 +14,14 @@ vi.mock('../../hooks/useSwimData', () => ({
   useSwimData: () => ({ swims: swimMock.swims, loading: false, error: null, refetch: vi.fn() }),
 }));
 
+// useEventData drives whether the Events overlay pill and Log event row render.
+// Mock it so tests can control the events list without network calls.
+import type { PoolEvent } from '../../types';
+const eventMock = vi.hoisted(() => ({ events: [] as PoolEvent[] }));
+vi.mock('../../hooks/useEventData', () => ({
+  useEventData: () => ({ events: eventMock.events, loading: false, error: null, refetch: vi.fn() }),
+}));
+
 function jsonResponse(data: unknown) { return { ok: true, json: async () => data } as Response; }
 
 describe('ChemistryTab', () => {
@@ -27,7 +35,7 @@ describe('ChemistryTab', () => {
       return Promise.resolve(jsonResponse([]));
     }));
   });
-  afterEach(() => { vi.unstubAllGlobals(); swimMock.swims = []; });
+  afterEach(() => { vi.unstubAllGlobals(); swimMock.swims = []; eventMock.events = []; });
 
   it('renders the six chemical cards', async () => {
     render(<ChemistryTab />);
@@ -76,6 +84,38 @@ describe('ChemistryTab', () => {
     expect(swim).toHaveAttribute('aria-pressed', 'true');
     await userEvent.click(swim);
     expect(swim).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('does not render the Events overlay pill when there are no events', async () => {
+    render(<ChemistryTab />);
+    await waitFor(() => expect(screen.getByText('PH')).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: 'Events' })).toBeNull();
+  });
+
+  it('renders the Events overlay pill (default on) only when events exist, and toggles it', async () => {
+    eventMock.events = [{ id: '2026-05-29T16:00:00.000Z', date: '2026-05-29', time: '12:00', kind: 'chemical' }];
+    render(<ChemistryTab />);
+    await waitFor(() => expect(screen.getByText('PH')).toBeInTheDocument());
+    const eventsPill = screen.getByRole('button', { name: 'Events' });
+    expect(eventsPill).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.click(eventsPill);
+    expect(eventsPill).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('renders all four Log event kind buttons in the log-event row', async () => {
+    render(<ChemistryTab />);
+    await waitFor(() => expect(screen.getByText('PH')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /chemical/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /water/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /backwash/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /note/i })).toBeInTheDocument();
+  });
+
+  it('clicking a Log event kind button opens the event log flow (unlock sheet when locked)', async () => {
+    render(<ChemistryTab />);
+    await waitFor(() => expect(screen.getByText('PH')).toBeInTheDocument());
+    await userEvent.click(screen.getByRole('button', { name: /chemical/i }));
+    expect(await screen.findByText(/Unlock to log an event/i)).toBeInTheDocument();
   });
 
   it('opens the unlock sheet from Log test when locked', async () => {
