@@ -56,7 +56,9 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory, swi
 
   const [showCustom, setShowCustom] = useState(false);
   const [airVisible, setAirVisible] = useState(true);
+  const [swimVisible, setSwimVisible] = useState(true);
   const hasAir = !!airHistory && airHistory.length > 0;
+  const hasSwims = !!swims && swims.length > 0;
 
   const condByTime = useMemo(
     () => new Map((airHistory ?? []).filter((p) => p.condition).map((p) => [p.time, p.condition!])),
@@ -137,13 +139,20 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory, swi
         </button>
       </div>
 
-      {(hasAir || (swims && swims.length > 0)) && (
+      {(hasAir || hasSwims) && (
         <div className={styles.overlayRow}>
           {hasAir && (
             <OverlayPill label="Air" variant="air" active={airVisible} onToggle={() => setAirVisible((v) => !v)} />
           )}
-          {swims && swims.length > 0 && (
-            <span className={styles.swimKey} aria-hidden="true">🦦 Swim</span>
+          {hasSwims && (
+            <button
+              type="button"
+              aria-pressed={swimVisible}
+              className={`${styles.swimToggle} ${swimVisible ? styles.swimToggleOn : ''}`}
+              onClick={() => setSwimVisible((v) => !v)}
+            >
+              🦦 Swim
+            </button>
           )}
         </div>
       )}
@@ -175,7 +184,7 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory, swi
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" strokeOpacity={0.5} vertical={false} />
               {hasAir && <WeatherLane points={airHistory!} iconSize={18} collapse />}
-              {swims && swims.length > 0 && (
+              {hasSwims && swimVisible && (
                 <SwimLane swims={swims} series={swimSeries} xMode="index" color="#38bdf8" />
               )}
               <XAxis
