@@ -95,7 +95,7 @@ export function ChemistryTab() {
 
       {selected && (
         <ChemFocusSheet meta={CHEM_BY_KEY[selected]} readings={readings}
-          poolHistory={poolHistory} airHistory={airHistory} swims={swimOn ? swims : undefined} onClose={() => setSelected(null)} />
+          poolHistory={poolHistory} airHistory={airHistory} swims={swims} onClose={() => setSelected(null)} />
       )}
 
       <HistorySheet
