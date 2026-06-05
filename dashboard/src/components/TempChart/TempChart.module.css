@@ -50,8 +50,14 @@
 
 .overlayRow {
   display: flex;
+  align-items: center;
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-md);
+}
+
+.swimKey {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
 }
 
 .chartWrap {
