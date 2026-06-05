@@ -18,10 +18,12 @@ vi.mock('recharts', () => ({
   Tooltip: () => null,
   CartesianGrid: () => null,
   ReferenceLine: () => null,
-  // WeatherLane reads these hooks; under the mock they return undefined so the
-  // lane renders nothing here (its real rendering is covered in
-  // WeatherLane.render.test.tsx). The lane's *presence* in the tree is harmless.
+  // WeatherLane / SwimLane read these hooks; under the mock they return undefined
+  // so the lanes render nothing here (their real rendering is covered in
+  // WeatherLane.render.test.tsx / SwimLane.render.test.tsx). The lanes' *presence*
+  // in the tree is harmless.
   useXAxisScale: () => undefined,
+  useYAxisScale: () => undefined,
   usePlotArea: () => undefined,
 }));
 
@@ -101,6 +103,43 @@ describe('TempChart', () => {
       <TempChart data={sampleData} range="24h" onRangeChange={vi.fn()} loading={false} airHistory={[]} />
     );
     expect(screen.queryByRole('button', { name: 'Air' })).toBeNull();
+  });
+
+  const sampleSwims = [
+    { id: '2025-07-01T12:30:00Z', date: '2025-07-01', time: '08:30', people: ['🦦'] },
+  ];
+
+  it('renders the Swim overlay pill only when swims is non-empty', () => {
+    render(
+      <TempChart data={sampleData} range="24h" onRangeChange={vi.fn()} loading={false} swims={sampleSwims} />
+    );
+    expect(screen.getByRole('button', { name: 'Swim' })).toBeTruthy();
+  });
+
+  it('does not render the Swim overlay pill when swims is empty', () => {
+    render(
+      <TempChart data={sampleData} range="24h" onRangeChange={vi.fn()} loading={false} swims={[]} />
+    );
+    expect(screen.queryByRole('button', { name: 'Swim' })).toBeNull();
+  });
+
+  it('does not render the Swim overlay pill when swims is undefined', () => {
+    render(
+      <TempChart data={sampleData} range="24h" onRangeChange={vi.fn()} loading={false} />
+    );
+    expect(screen.queryByRole('button', { name: 'Swim' })).toBeNull();
+  });
+
+  it('Swim overlay pill starts active and toggles on click', () => {
+    render(
+      <TempChart data={sampleData} range="24h" onRangeChange={vi.fn()} loading={false} swims={sampleSwims} />
+    );
+    const pill = screen.getByRole('button', { name: 'Swim' });
+    expect(pill.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(pill);
+    expect(pill.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(pill);
+    expect(pill.getAttribute('aria-pressed')).toBe('true');
   });
 
   it('Custom button opens the bottom sheet', () => {

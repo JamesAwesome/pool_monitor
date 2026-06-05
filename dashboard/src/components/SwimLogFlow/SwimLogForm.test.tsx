@@ -59,6 +59,39 @@ describe('SwimLogForm', () => {
     await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/swims', expect.objectContaining({ method: 'POST' })));
   });
 
+  it('POST body carries the picked people, date, time, and Authorization header', async () => {
+    const { onSaved } = renderForm();
+
+    // Pick the first swimmer tile; capture which emoji it is so we can assert it
+    // lands in the POST body.
+    const tile = screen.getAllByTestId('swim-tile')[0];
+    const picked = tile.textContent ?? '';
+    expect(picked.length).toBeGreaterThan(0);
+    fireEvent.click(tile);
+
+    const log = screen.getByRole('button', { name: /log swim/i });
+    await waitFor(() => expect(log).not.toBeDisabled());
+    fireEvent.click(log);
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
+
+    const fetchMock = vi.mocked(fetch);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/swims');
+    expect(init.method).toBe('POST');
+
+    const body = JSON.parse(init.body as string);
+    expect(body.people).toEqual([picked]);
+    expect(typeof body.date).toBe('string');
+    expect(body.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(typeof body.time).toBe('string');
+    expect(body.time).toMatch(/^\d{2}:\d{2}$/);
+    // New entry → no id in the body (POST, not PUT)
+    expect(body).not.toHaveProperty('id');
+
+    expect((init.headers as Record<string, string>)['Authorization']).toBe('Basic dGVzdDp0ZXN0');
+  });
+
   describe('edit mode', () => {
     it('pre-fills date and time inputs from editEntry', () => {
       renderForm({ editEntry: EDIT_ENTRY });
