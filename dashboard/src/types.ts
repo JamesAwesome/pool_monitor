@@ -69,3 +69,10 @@ export interface ChemistryReading {
   time: string; // HH:mm 24h in app timezone
   ph?: number; fc?: number; cc?: number; ta?: number; cya?: number; ch?: number;
 }
+
+export interface SwimSession {
+  id: string;        // ISO-UTC instant of the point (stable id)
+  date: string;      // YYYY-MM-DD in app timezone
+  time: string;      // HH:mm 24h in app timezone
+  people: string[];  // emoji, 1..N (e.g. ['🦦','🐢'])
+}
