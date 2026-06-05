@@ -8,10 +8,11 @@ import {
   YAxis,
 } from 'recharts';
 import { useTheme } from '../../context/ThemeContext';
-import type { ChemistryReading, ChemKey, TimeSeriesPoint, WeatherHistoryPoint, SwimSession } from '../../types';
+import type { ChemistryReading, ChemKey, TimeSeriesPoint, WeatherHistoryPoint, SwimSession, PoolEvent } from '../../types';
 import { buildChartData, type ChartPoint } from './buildChartData';
 import { WeatherLane, collapseRuns } from '../WeatherLane';
 import { SwimLane } from '../SwimLane';
+import { EventLane } from '../EventLane';
 import styles from './ChemChart.module.css';
 
 /**
@@ -73,6 +74,7 @@ interface ChemChartProps {
   showAir: boolean;
   variant: 'mini' | 'full';
   swims?: SwimSession[];
+  events?: PoolEvent[];
 }
 
 function padDomain([min, max]: [number, number]): [number, number] {
@@ -82,7 +84,7 @@ function padDomain([min, max]: [number, number]): [number, number] {
 }
 
 export function ChemChart({
-  readings, chemKey, color, decimals, poolHistory, airHistory, showPool, showAir, variant, swims,
+  readings, chemKey, color, decimals, poolHistory, airHistory, showPool, showAir, variant, swims, events,
 }: ChemChartProps) {
   const { unit } = useTheme();
   const isF = unit === 'F';
@@ -187,6 +189,10 @@ export function ChemChart({
           {swims && swims.length > 0 && (
             <SwimLane swims={swims} series={swimSeries} xMode="scale" color={color} yAxisId="chem"
               compact={!isFull} iconSize={isFull ? 22 : 16} />
+          )}
+          {events && events.length > 0 && (
+            <EventLane events={events} series={swimSeries} xMode="scale" yAxisId="chem"
+              compact={!isFull} iconSize={isFull ? 23 : 17} />
           )}
         </ComposedChart>
       </ResponsiveContainer>
