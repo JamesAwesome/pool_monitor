@@ -145,14 +145,7 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory, swi
             <OverlayPill label="Air" variant="air" active={airVisible} onToggle={() => setAirVisible((v) => !v)} />
           )}
           {hasSwims && (
-            <button
-              type="button"
-              aria-pressed={swimVisible}
-              className={`${styles.swimToggle} ${swimVisible ? styles.swimToggleOn : ''}`}
-              onClick={() => setSwimVisible((v) => !v)}
-            >
-              🦦 Swim
-            </button>
+            <OverlayPill label="Swim" variant="swim" active={swimVisible} onToggle={() => setSwimVisible((v) => !v)} />
           )}
         </div>
       )}
