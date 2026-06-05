@@ -26,6 +26,7 @@ export function ChemistryTab() {
   const [showCustom, setShowCustom] = useState(false);
   const [poolOn, setPoolOn] = useState(true);
   const [airOn, setAirOn] = useState(true);
+  const [swimOn, setSwimOn] = useState(true);
   const [selected, setSelected] = useState<ChemKey | null>(null);
   const [logOpen, setLogOpen] = useState(false);
   const [histOpen, setHistOpen] = useState(false);
@@ -61,6 +62,9 @@ export function ChemistryTab() {
           <span className={styles.overlayLabel}>OVERLAY TEMP</span>
           <OverlayPill label="Pool" variant="pool" active={poolOn} onToggle={() => setPoolOn((v) => !v)} />
           <OverlayPill label="Air" variant="air" active={airOn} onToggle={() => setAirOn((v) => !v)} />
+          {swims.length > 0 && (
+            <OverlayPill label="Swim" variant="swim" active={swimOn} onToggle={() => setSwimOn((v) => !v)} />
+          )}
         </div>
         <div className={styles.rangeRow}>
           {RANGES.map((r) => (
@@ -90,7 +94,7 @@ export function ChemistryTab() {
 
       {selected && (
         <ChemFocusSheet meta={CHEM_BY_KEY[selected]} readings={readings}
-          poolHistory={poolHistory} airHistory={airHistory} swims={swims} onClose={() => setSelected(null)} />
+          poolHistory={poolHistory} airHistory={airHistory} swims={swimOn ? swims : undefined} onClose={() => setSelected(null)} />
       )}
 
       <HistorySheet
