@@ -6,9 +6,10 @@ interface UnlockSheetProps {
   open: boolean;
   onClose: () => void;
   onUnlocked: (authHeader: string) => void;
+  unlockTitle?: string;
 }
 
-export function UnlockSheet({ open, onClose, onUnlocked }: UnlockSheetProps) {
+export function UnlockSheet({ open, onClose, onUnlocked, unlockTitle = 'Unlock to log a test' }: UnlockSheetProps) {
   const [user, setUser] = useState('');
   const [pass, setPass] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +46,7 @@ export function UnlockSheet({ open, onClose, onUnlocked }: UnlockSheetProps) {
             <path d="M8 11V7a4 4 0 0 1 8 0v4" />
           </svg>
         </div>
-        <p className={styles.unlockTitle}>Unlock to log a test</p>
+        <p className={styles.unlockTitle}>{unlockTitle}</p>
 
         <label className={styles.field}>
           <span className={styles.fieldLabel}>Username</span>

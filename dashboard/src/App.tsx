@@ -10,10 +10,24 @@ import { BatteryStatus } from './components/BatteryStatus';
 import { SensorSelector } from './components/SensorSelector';
 import { TabBar, type TabKey } from './components/TabBar';
 import { ChemistryTab } from './components/ChemistryTab';
+import { useSwimData } from './hooks/useSwimData';
+import { SwimLogFlow } from './components/SwimLogFlow';
+import { SwimHistorySheet } from './components/SwimHistorySheet';
+import { Toast } from './components/Toast';
+import type { SwimSession } from './types';
 import styles from './App.module.css';
 
 function TemperatureTab() {
   const { stats, history, batteries, range, setRange, loading, error, sensors, selectedSensor, setSelectedSensor, airCurrent, airHistory } = usePoolData();
+  // Chart markers follow the selected chart range; History + the log form's
+  // "recent swimmers" use a season-wide set so the log doesn't shrink with zoom.
+  const { swims, refetch: refetchSwims } = useSwimData(range);
+  const { swims: seasonSwims, refetch: refetchSeasonSwims } = useSwimData('season');
+  const refetchAllSwims = () => { refetchSwims(); refetchSeasonSwims(); };
+  const [logOpen, setLogOpen] = useState(false);
+  const [histOpen, setHistOpen] = useState(false);
+  const [editEntry, setEditEntry] = useState<SwimSession | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   return (
     <>
@@ -21,8 +35,31 @@ function TemperatureTab() {
       <SensorSelector sensors={sensors} selected={selectedSensor} onSelect={setSelectedSensor} />
       <CurrentTemp value={stats?.current ?? null} loading={loading} airCurrent={airCurrent} />
       <StatsGrid stats={stats} loading={loading} selectedSensor={selectedSensor} range={range} />
-      <TempChart data={history} range={range} onRangeChange={setRange} loading={loading} airHistory={airHistory} />
+
+      <div className={styles.swimActions}>
+        <button type="button" className={styles.histBtn} onClick={() => setHistOpen(true)}>History</button>
+        <button type="button" className={styles.logBtn} onClick={() => { setEditEntry(null); setLogOpen(true); }}>＋ Log swim</button>
+      </div>
+
+      <TempChart data={history} range={range} onRangeChange={setRange} loading={loading} airHistory={airHistory} swims={swims} />
       <BatteryStatus batteries={batteries} loading={loading} />
+
+      <SwimHistorySheet
+        open={histOpen}
+        swims={seasonSwims}
+        onClose={() => setHistOpen(false)}
+        onSelect={(s) => { setHistOpen(false); setEditEntry(s); setLogOpen(true); }}
+        onNew={() => { setHistOpen(false); setEditEntry(null); setLogOpen(true); }}
+      />
+      <SwimLogFlow
+        open={logOpen}
+        swims={seasonSwims}
+        editEntry={editEntry}
+        onClose={() => { setLogOpen(false); setEditEntry(null); }}
+        onSaved={() => { setLogOpen(false); setToast(editEntry ? 'Swim updated' : 'Swim logged'); setEditEntry(null); refetchAllSwims(); }}
+        onDeleted={() => { setLogOpen(false); setToast('Swim deleted'); setEditEntry(null); refetchAllSwims(); }}
+      />
+      <Toast open={toast !== null} message={toast ?? ''} onDismiss={() => setToast(null)} />
     </>
   );
 }

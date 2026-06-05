@@ -4,7 +4,7 @@ import { ChemChart } from '../ChemChart';
 import { DeltaTag } from '../DeltaTag';
 import { OverlayPill } from '../OverlayPill';
 import type { ChemMeta } from '../../constants/chemicals';
-import type { ChemistryReading, TimeSeriesPoint, WeatherHistoryPoint } from '../../types';
+import type { ChemistryReading, TimeSeriesPoint, WeatherHistoryPoint, SwimSession } from '../../types';
 import { latestReading, computeDelta, computeStats, formatChemValue } from '../../utils/chemistry';
 import { formatTemperature } from '../../utils/temperature';
 import { useTheme } from '../../context/ThemeContext';
@@ -15,12 +15,15 @@ interface ChemFocusSheetProps {
   readings: ChemistryReading[];
   poolHistory: TimeSeriesPoint[];
   airHistory: WeatherHistoryPoint[];
+  swims?: SwimSession[];
   onClose: () => void;
 }
 
-export function ChemFocusSheet({ meta, readings, poolHistory, airHistory, onClose }: ChemFocusSheetProps) {
+export function ChemFocusSheet({ meta, readings, poolHistory, airHistory, swims, onClose }: ChemFocusSheetProps) {
   const [poolOn, setPoolOn] = useState(true);
   const [airOn, setAirOn] = useState(true);
+  const [swimOn, setSwimOn] = useState(true);
+  const hasSwims = !!swims && swims.length > 0;
   const { unit } = useTheme();
   const unitSuffix = unit === 'F' ? '°F' : '°C';
 
@@ -51,10 +54,14 @@ export function ChemFocusSheet({ meta, readings, poolHistory, airHistory, onClos
           <span className={styles.overlayLabel}>Overlay</span>
           <OverlayPill label="Pool temp" variant="pool" active={poolOn} onToggle={() => setPoolOn((v) => !v)} />
           <OverlayPill label="Air temp" variant="air" active={airOn} onToggle={() => setAirOn((v) => !v)} />
+          {hasSwims && (
+            <OverlayPill label="Swim" variant="swim" active={swimOn} onToggle={() => setSwimOn((v) => !v)} />
+          )}
         </div>
 
         <ChemChart readings={readings} chemKey={meta.key} color={meta.color} decimals={meta.decimals}
-          poolHistory={poolHistory} airHistory={airHistory} showPool={poolOn} showAir={airOn} variant="full" />
+          poolHistory={poolHistory} airHistory={airHistory} showPool={poolOn} showAir={airOn} variant="full"
+          swims={swimOn ? swims : undefined} />
 
         {(poolOn && poolHistory.length > 0) || (airOn && airHistory.length > 0) ? (
           <div className={styles.legend}>

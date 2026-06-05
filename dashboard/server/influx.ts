@@ -511,4 +511,48 @@ export async function writeChemistry(
   return when.toISOString()
 }
 
-export { deleteChemistryPoint } from './influxDelete.js'
+export { deletePoint } from './influxDelete.js'
+
+export interface SwimSession {
+  id: string
+  date: string
+  time: string
+  people: string[]
+}
+
+export async function querySwims(
+  range: string,
+  timeZone = process.env.TIMEZONE ?? 'America/New_York',
+): Promise<SwimSession[]> {
+  const api = getQueryApi()
+  const query = `
+    from(bucket: "${bucket}")
+      |> range(${parseRange(range)})
+      |> filter(fn: (r) => r._measurement == "swim")
+      |> filter(fn: (r) => r._field == "people")
+      |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
+      |> sort(columns: ["_time"])
+  `
+  const rows = await api.collectRows<Record<string, unknown>>(query)
+  return rows.map((row) => {
+    const id = row._time as string
+    const { date, time } = utcToZonedParts(id, timeZone)
+    const raw = row.people
+    const people = typeof raw === 'string' && raw.length > 0
+      ? raw.split(',')
+      : []
+    return { id, date, time, people }
+  })
+}
+
+export async function writeSwim(
+  input: { date: string; time: string; people: string[] },
+  timeZone = process.env.TIMEZONE ?? 'America/New_York',
+): Promise<string> {
+  const writeApi = getWriteApi()
+  const when = dateTimeToUtc(input.date, input.time, timeZone)
+  const point = new Point('swim').timestamp(when).stringField('people', input.people.join(','))
+  writeApi.writePoint(point)
+  await writeApi.flush()
+  return when.toISOString()
+}

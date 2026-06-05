@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CHEMS, CHEM_BY_KEY } from '../../constants/chemicals';
 import { useChemistryData } from '../../hooks/useChemistryData';
+import { useSwimData } from '../../hooks/useSwimData';
 import { latestReading } from '../../utils/chemistry';
 import { ChemCard } from '../ChemCard';
 import { ChemFocusSheet } from '../ChemFocusSheet';
@@ -25,6 +26,7 @@ export function ChemistryTab() {
   const [showCustom, setShowCustom] = useState(false);
   const [poolOn, setPoolOn] = useState(true);
   const [airOn, setAirOn] = useState(true);
+  const [swimOn, setSwimOn] = useState(true);
   const [selected, setSelected] = useState<ChemKey | null>(null);
   const [logOpen, setLogOpen] = useState(false);
   const [histOpen, setHistOpen] = useState(false);
@@ -32,6 +34,7 @@ export function ChemistryTab() {
   const [toast, setToast] = useState<string | null>(null);
 
   const { readings, poolHistory, airHistory, loading, refetch } = useChemistryData(range);
+  const { swims } = useSwimData(range);
 
   const lastDate = readings.length ? new Date(readings[readings.length - 1].date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—';
 
@@ -59,6 +62,9 @@ export function ChemistryTab() {
           <span className={styles.overlayLabel}>OVERLAY TEMP</span>
           <OverlayPill label="Pool" variant="pool" active={poolOn} onToggle={() => setPoolOn((v) => !v)} />
           <OverlayPill label="Air" variant="air" active={airOn} onToggle={() => setAirOn((v) => !v)} />
+          {swims.length > 0 && (
+            <OverlayPill label="Swim" variant="swim" active={swimOn} onToggle={() => setSwimOn((v) => !v)} />
+          )}
         </div>
         <div className={styles.rangeRow}>
           {RANGES.map((r) => (
@@ -81,14 +87,15 @@ export function ChemistryTab() {
         <div className={styles.grid}>
           {CHEMS.map((c) => (
             <ChemCard key={c.key} meta={c} readings={readings}
-              poolHistory={poolHistory} airHistory={airHistory} showPool={poolOn} showAir={airOn} onOpen={setSelected} />
+              poolHistory={poolHistory} airHistory={airHistory} showPool={poolOn} showAir={airOn}
+              swims={swimOn ? swims : undefined} onOpen={setSelected} />
           ))}
         </div>
       )}
 
       {selected && (
         <ChemFocusSheet meta={CHEM_BY_KEY[selected]} readings={readings}
-          poolHistory={poolHistory} airHistory={airHistory} onClose={() => setSelected(null)} />
+          poolHistory={poolHistory} airHistory={airHistory} swims={swims} onClose={() => setSelected(null)} />
       )}
 
       <HistorySheet

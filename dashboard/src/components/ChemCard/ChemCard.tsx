@@ -1,5 +1,5 @@
 import type { ChemMeta } from '../../constants/chemicals';
-import type { ChemistryReading, ChemKey, TimeSeriesPoint } from '../../types';
+import type { ChemistryReading, ChemKey, TimeSeriesPoint, SwimSession } from '../../types';
 import { latestReading, computeDelta, formatChemValue } from '../../utils/chemistry';
 import { DeltaTag } from '../DeltaTag';
 import { ChemChart } from '../ChemChart';
@@ -12,10 +12,11 @@ interface ChemCardProps {
   airHistory: TimeSeriesPoint[];
   showPool: boolean;
   showAir: boolean;
+  swims?: SwimSession[];
   onOpen: (key: ChemKey) => void;
 }
 
-export function ChemCard({ meta, readings, poolHistory, airHistory, showPool, showAir, onOpen }: ChemCardProps) {
+export function ChemCard({ meta, readings, poolHistory, airHistory, showPool, showAir, swims, onOpen }: ChemCardProps) {
   const latest = latestReading(readings, meta.key);
   const delta = computeDelta(readings, meta.key, meta.decimals);
 
@@ -45,6 +46,7 @@ export function ChemCard({ meta, readings, poolHistory, airHistory, showPool, sh
         airHistory={airHistory}
         showPool={showPool}
         showAir={showAir}
+        swims={swims}
         variant="mini"
       />
     </button>

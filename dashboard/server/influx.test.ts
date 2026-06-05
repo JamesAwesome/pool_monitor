@@ -163,11 +163,12 @@ const writeApiStub = { writePoint: vi.fn(), flush: vi.fn().mockResolvedValue(und
 vi.mock('@influxdata/influxdb-client', () => {
   class Point {
     measurement: string
-    fields: Record<string, number> = {}
+    fields: Record<string, number | string> = {}
     ts: Date | undefined
     constructor(m: string) { this.measurement = m }
     timestamp(t: Date) { this.ts = t; return this }
     floatField(k: string, v: number) { this.fields[k] = v; return this }
+    stringField(k: string, v: string) { this.fields[k] = v; return this }
   }
   function InfluxDB(this: {
     getQueryApi: () => typeof queryApiStub
@@ -179,7 +180,7 @@ vi.mock('@influxdata/influxdb-client', () => {
   return { InfluxDB, Point }
 })
 
-const { queryHistory, queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry } = await import('./influx')
+const { queryHistory, queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry, querySwims, writeSwim } = await import('./influx')
 
 beforeEach(() => {
   queryApiStub.collectRows.mockReset()
@@ -301,5 +302,34 @@ describe('writeChemistry', () => {
     expect(writeApiStub.writePoint).toHaveBeenCalledOnce();
     expect(writeApiStub.flush).toHaveBeenCalledOnce();
     expect(id).toBe('2026-05-20T20:30:00.000Z');
+  });
+});
+
+describe('querySwims', () => {
+  it('maps each point to id + derived date/time + split people', async () => {
+    queryApiStub.collectRows.mockResolvedValueOnce([
+      { _time: '2026-05-20T18:30:00.000Z', people: '🦦,🐢' },  // 14:30 EDT
+      { _time: '2026-05-21T16:05:00.000Z', people: '🐬' },     // 12:05 EDT
+    ]);
+    const out = await querySwims('season', 'America/New_York');
+    expect(out).toEqual([
+      { id: '2026-05-20T18:30:00.000Z', date: '2026-05-20', time: '14:30', people: ['🦦', '🐢'] },
+      { id: '2026-05-21T16:05:00.000Z', date: '2026-05-21', time: '12:05', people: ['🐬'] },
+    ]);
+  });
+
+  it('filters the swim measurement', async () => {
+    queryApiStub.collectRows.mockResolvedValueOnce([]);
+    await querySwims('season', 'America/New_York');
+    expect(queryApiStub.collectRows.mock.calls.at(-1)![0]).toContain('_measurement == "swim"');
+  });
+});
+
+describe('writeSwim', () => {
+  it('writes a point at the date+time instant with a joined people field', async () => {
+    const id = await writeSwim({ date: '2026-05-20', time: '14:30', people: ['🦦', '🐢'] }, 'America/New_York');
+    expect(writeApiStub.writePoint).toHaveBeenCalledOnce();
+    expect(writeApiStub.flush).toHaveBeenCalledOnce();
+    expect(id).toBe('2026-05-20T18:30:00.000Z');
   });
 });

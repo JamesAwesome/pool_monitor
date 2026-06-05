@@ -15,7 +15,8 @@ import { DateRangePicker } from '../DateRangePicker';
 import { BottomSheet } from '../BottomSheet';
 import { OverlayPill } from '../OverlayPill';
 import { WeatherLane } from '../WeatherLane';
-import type { TimeSeriesPoint, WeatherHistoryPoint } from '../../types';
+import { SwimLane } from '../SwimLane';
+import type { TimeSeriesPoint, WeatherHistoryPoint, SwimSession } from '../../types';
 import styles from './TempChart.module.css';
 
 interface TempChartProps {
@@ -24,6 +25,7 @@ interface TempChartProps {
   onRangeChange: (range: string) => void;
   loading: boolean;
   airHistory?: WeatherHistoryPoint[];
+  swims?: SwimSession[];
 }
 
 const QUICK_RANGES = [
@@ -48,13 +50,15 @@ function formatXTick(time: string, range: string, spansMultipleDays: boolean): s
   return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
-export function TempChart({ data, range, onRangeChange, loading, airHistory }: TempChartProps) {
+export function TempChart({ data, range, onRangeChange, loading, airHistory, swims }: TempChartProps) {
   const { unit } = useTheme();
   const isFahrenheit = unit === 'F';
 
   const [showCustom, setShowCustom] = useState(false);
   const [airVisible, setAirVisible] = useState(true);
+  const [swimVisible, setSwimVisible] = useState(true);
   const hasAir = !!airHistory && airHistory.length > 0;
+  const hasSwims = !!swims && swims.length > 0;
 
   const condByTime = useMemo(
     () => new Map((airHistory ?? []).filter((p) => p.condition).map((p) => [p.time, p.condition!])),
@@ -99,6 +103,11 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
     return Array.from(poolMap.values()).sort((a, b) => a.time.localeCompare(b.time));
   }, [smoothedPool, airHistory, isFahrenheit]);
 
+  const swimSeries = useMemo(
+    () => chartData.map((d) => ({ t: new Date(d.time).getTime(), value: d.value })),
+    [chartData],
+  );
+
   const spansMultipleDays = useMemo(() => {
     if (data.length < 2) return false;
     const first = new Date(data[0].time);
@@ -130,9 +139,14 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
         </button>
       </div>
 
-      {hasAir && (
+      {(hasAir || hasSwims) && (
         <div className={styles.overlayRow}>
-          <OverlayPill label="Air" variant="air" active={airVisible} onToggle={() => setAirVisible((v) => !v)} />
+          {hasAir && (
+            <OverlayPill label="Air" variant="air" active={airVisible} onToggle={() => setAirVisible((v) => !v)} />
+          )}
+          {hasSwims && (
+            <OverlayPill label="Swim" variant="swim" active={swimVisible} onToggle={() => setSwimVisible((v) => !v)} />
+          )}
         </div>
       )}
 
@@ -163,6 +177,9 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory }: T
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" strokeOpacity={0.5} vertical={false} />
               {hasAir && <WeatherLane points={airHistory!} iconSize={18} collapse />}
+              {hasSwims && swimVisible && (
+                <SwimLane swims={swims} series={swimSeries} xMode="index" color="#38bdf8" />
+              )}
               <XAxis
                 dataKey="time"
                 tickFormatter={(t: string) => formatXTick(t, range, spansMultipleDays)}

@@ -19,16 +19,16 @@ vi.mock('@influxdata/influxdb-client', () => {
   return { InfluxDB };
 });
 
-const { deleteChemistryPoint } = await import('./influxDelete');
+const { deletePoint } = await import('./influxDelete');
 
 beforeEach(() => {
   postDeleteMock.mockClear();
 });
 
-describe('deleteChemistryPoint', () => {
-  it('calls postDelete once with start=id, stop=id+1ms, and the chemistry predicate', async () => {
+describe('deletePoint', () => {
+  it('calls postDelete once with start=id, stop=id+1ms, and the chemistry predicate by default', async () => {
     const id = '2026-05-20T20:30:00.000Z';
-    await deleteChemistryPoint(id);
+    await deletePoint(id);
 
     expect(postDeleteMock).toHaveBeenCalledOnce();
 
@@ -40,10 +40,22 @@ describe('deleteChemistryPoint', () => {
 
   it('passes org and bucket from env (or defaults to empty string)', async () => {
     const id = '2026-05-20T20:30:00.000Z';
-    await deleteChemistryPoint(id);
+    await deletePoint(id);
     const [arg] = postDeleteMock.mock.calls[0] as [{ org: string; bucket: string }];
     // In test environment the env vars are not set; they default to ''.
     expect(typeof arg.org).toBe('string');
     expect(typeof arg.bucket).toBe('string');
+  });
+
+  it('deletes from a custom measurement when given one', async () => {
+    await deletePoint('2026-05-20T20:30:00.000Z', 'swim');
+    const body = postDeleteMock.mock.calls.at(-1)![0].body;
+    expect(body.predicate).toBe('_measurement="swim"');
+  });
+
+  it('defaults to the chemistry measurement', async () => {
+    await deletePoint('2026-05-20T20:30:00.000Z');
+    const body = postDeleteMock.mock.calls.at(-1)![0].body;
+    expect(body.predicate).toBe('_measurement="chemistry"');
   });
 });

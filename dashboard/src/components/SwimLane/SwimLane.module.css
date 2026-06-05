@@ -1,0 +1,84 @@
+/* SwimLane pin marker — ported from the prototype `.swim-marker.pin` CSS.
+   The pin grows UPWARD from the curve point. The foreignObject box has its
+   BOTTOM edge FOOT_R(3)px below the curve point (so the foot's lower half isn't
+   clipped) and is tall enough to fully contain the bubble. Coordinate model
+   (all measured from the box bottom):
+     - .foot   : centred 3px up  → exactly on the curve point
+     - .stem   : 3px → 21px      → 18px line rising from the foot
+     - .chrome : from 23px up    → bubble floating 2px above the stem top */
+
+.lane { /* no additional styles needed; g element inherits color prop */ }
+
+/* The inner container that fills the foreignObject and anchors all three
+   pin parts with absolute positioning. */
+.marker {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* The emoji bubble — floats above the stem (2px gap above the 18px stem that
+   starts at the foot centre 3px from the box bottom: 3 + 18 + 2 = 23px). */
+.chrome {
+  position: absolute;
+  left: 50%;
+  bottom: 23px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  padding: 1.5px 5px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  box-shadow: var(--shadow-sm);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Compact bubble — centred exactly on the curve point (no stem/foot). Used on
+   the small chemistry preview cards where a full pin won't fit. */
+.chromeCompact {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5px 3px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  box-shadow: var(--shadow-sm);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Stem — 1.5px × 18px vertical line rising from the foot centre. */
+.stem {
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  transform: translateX(-50%);
+  display: block;
+  width: 1.5px;
+  height: 18px;
+  background: currentColor;
+  opacity: 0.45;
+}
+
+/* Foot — 6px ring whose centre sits exactly on the curve point. The box bottom
+   is 3px below the curve point, so bottom: 0 centres the 6px dot on the curve.
+   box-sizing: border-box keeps the outer diameter at exactly 6px. */
+.foot {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 2px solid currentColor;
+  box-sizing: border-box;
+}

@@ -24,6 +24,18 @@
   color: var(--color-air-temp);
 }
 
+.swimOn {
+  background: rgba(26, 111, 196, 0.1);
+  border-color: rgba(26, 111, 196, 0.3);
+  color: var(--color-primary);
+}
+
+.swatchSwim {
+  display: inline-block;
+  font-size: 0.9em;
+  line-height: 1;
+}
+
 .swatchPool,
 .swatchAir {
   width: 15px;

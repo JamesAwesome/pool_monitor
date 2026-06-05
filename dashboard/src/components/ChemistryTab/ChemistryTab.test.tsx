@@ -7,6 +7,13 @@ vi.mock('../../context/ThemeContext', () => ({
   useTheme: () => ({ theme: 'light', toggleTheme: vi.fn(), unit: 'F', toggleUnit: vi.fn() }),
 }));
 
+// useSwimData drives whether the Swim overlay pill renders. Mock it so tests can
+// control the swims list directly (the default returns an empty list → no pill).
+const swimMock = vi.hoisted(() => ({ swims: [] as { id: string; date: string; time: string; people: string[] }[] }));
+vi.mock('../../hooks/useSwimData', () => ({
+  useSwimData: () => ({ swims: swimMock.swims, loading: false, error: null, refetch: vi.fn() }),
+}));
+
 function jsonResponse(data: unknown) { return { ok: true, json: async () => data } as Response; }
 
 describe('ChemistryTab', () => {
@@ -20,7 +27,7 @@ describe('ChemistryTab', () => {
       return Promise.resolve(jsonResponse([]));
     }));
   });
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => { vi.unstubAllGlobals(); swimMock.swims = []; });
 
   it('renders the six chemical cards', async () => {
     render(<ChemistryTab />);
@@ -53,6 +60,22 @@ describe('ChemistryTab', () => {
     await userEvent.click(pool);
     expect(pool).toHaveAttribute('aria-pressed', 'false');
     expect(air).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('does not render the Swim overlay pill when there are no swims', async () => {
+    render(<ChemistryTab />);
+    await waitFor(() => expect(screen.getByText('PH')).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: 'Swim' })).toBeNull();
+  });
+
+  it('renders the Swim overlay pill (default on) only when swims exist, and toggles it', async () => {
+    swimMock.swims = [{ id: '2026-05-29T16:00:00.000Z', date: '2026-05-29', time: '12:00', people: ['🦦'] }];
+    render(<ChemistryTab />);
+    await waitFor(() => expect(screen.getByText('PH')).toBeInTheDocument());
+    const swim = screen.getByRole('button', { name: 'Swim' });
+    expect(swim).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.click(swim);
+    expect(swim).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('opens the unlock sheet from Log test when locked', async () => {

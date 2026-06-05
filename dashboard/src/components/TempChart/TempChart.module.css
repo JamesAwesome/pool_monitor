@@ -50,6 +50,7 @@
 
 .overlayRow {
   display: flex;
+  align-items: center;
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-md);
 }

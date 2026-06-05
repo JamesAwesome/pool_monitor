@@ -1,0 +1,210 @@
+/* Underline tab bar — mirrors TabBar.module.css look */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin: 14px 0 6px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tab {
+  flex: 1;
+  padding: 9px 0 11px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.tab.on {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* Hint text under the tabs */
+.hint {
+  margin: 14px 0 10px;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+/* All swims list */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  font: inherit;
+  color: inherit;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform 100ms;
+}
+
+.row:hover,
+.row:focus-visible {
+  border-color: rgba(26, 111, 196, 0.35);
+  box-shadow: var(--shadow-sm);
+  outline: none;
+}
+
+.row:active {
+  transform: scale(0.995);
+}
+
+.date {
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.time {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.multi {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(26, 111, 196, 0.12);
+  color: var(--color-primary);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.people {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-shrink: 0;
+}
+
+.peopleN {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.chevron {
+  font-size: 1.3rem;
+  color: var(--color-text-secondary);
+  opacity: 0.5;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* Leaderboard */
+.lbList {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.lbRow {
+  display: grid;
+  grid-template-columns: 26px 30px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 2px;
+}
+
+.lbRank {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Medal ranks get larger rank emoji */
+.lbRow:nth-child(-n+3) .lbRank {
+  font-size: 1.15rem;
+}
+
+.lbEmoji {
+  font-size: 1.3rem;
+  line-height: 1;
+  text-align: center;
+}
+
+/* Top 3 get larger emoji */
+.lbRow:nth-child(-n+3) .lbEmoji {
+  font-size: 1.5rem;
+}
+
+.lbBarWrap {
+  height: 9px;
+  background: var(--color-bg);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.lbBar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+  border-radius: 999px;
+  min-width: 6px;
+  transition: width 0.3s;
+}
+
+.lbCount {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  min-width: 16px;
+  text-align: right;
+}
+
+/* Footer action */
+.actions {
+  margin-top: var(--spacing-sm);
+}
+
+.primaryBtn {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  background: var(--color-primary, oklch(0.55 0.18 240));
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: center;
+}
+
+.primaryBtn:hover,
+.primaryBtn:focus-visible {
+  opacity: 0.9;
+  outline: 2px solid var(--color-primary, oklch(0.55 0.18 240));
+  outline-offset: 2px;
+}

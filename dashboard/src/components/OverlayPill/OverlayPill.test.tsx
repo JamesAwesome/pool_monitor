@@ -20,4 +20,25 @@ describe('OverlayPill', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Pool' }));
     expect(onToggle).toHaveBeenCalledOnce();
   });
+
+  describe('swim variant', () => {
+    it('renders the 🦦 swatch and reflects active via aria-pressed', () => {
+      render(<OverlayPill variant="swim" label="Swim" active onToggle={vi.fn()} />);
+      const pill = screen.getByRole('button', { name: 'Swim' });
+      expect(pill).toHaveAttribute('aria-pressed', 'true');
+      expect(pill).toHaveTextContent('🦦');
+    });
+
+    it('reflects the inactive state via aria-pressed', () => {
+      render(<OverlayPill variant="swim" label="Swim" active={false} onToggle={vi.fn()} />);
+      expect(screen.getByRole('button', { name: 'Swim' })).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('calls onToggle when clicked', async () => {
+      const onToggle = vi.fn();
+      render(<OverlayPill variant="swim" label="Swim" active onToggle={onToggle} />);
+      await userEvent.click(screen.getByRole('button', { name: 'Swim' }));
+      expect(onToggle).toHaveBeenCalledOnce();
+    });
+  });
 });

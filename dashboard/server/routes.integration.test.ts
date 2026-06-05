@@ -19,11 +19,13 @@ vi.mock('./influx.js', () => ({
   queryWeatherHistory: vi.fn(async () => []),
   queryChemistry: vi.fn(async () => []),
   writeChemistry: vi.fn(async () => '2026-05-20T20:30:00.000Z'),
-  deleteChemistryPoint: vi.fn(async () => {}),
+  querySwims: vi.fn(async () => []),
+  writeSwim: vi.fn(async () => '2026-05-20T18:30:00.000Z'),
+  deletePoint: vi.fn(async () => {}),
 }));
 vi.mock('./og-image.js', () => ({ generateOgImage: vi.fn(async () => Buffer.from('')) }));
 
-import { writeChemistry, deleteChemistryPoint } from './influx.js';
+import { writeChemistry, querySwims as _querySwims, writeSwim as _writeSwim, deletePoint } from './influx.js';
 
 const router = (await import('./routes')).default;
 
@@ -90,7 +92,7 @@ describe('chemistry write routes', () => {
   beforeEach(() => {
     // Reset invocation counters so order indices are clean for each test.
     (writeChemistry as Mock).mockClear();
-    (deleteChemistryPoint as Mock).mockClear();
+    (deletePoint as Mock).mockClear();
   });
 
   it('POST returns 201 with the new id', async () => {
@@ -129,12 +131,12 @@ describe('chemistry write routes', () => {
     });
     expect(res.status).toBe(200);
 
-    // Assert that deleteChemistryPoint was called BEFORE writeChemistry.
+    // Assert that deletePoint was called BEFORE writeChemistry.
     // invocationCallOrder values are monotonically increasing global counters, so
     // a lower value means the call happened first. If the route ever swaps to
     // write-then-delete, the delete order will be greater than the write order and
     // this assertion will fail.
-    const delOrder = (deleteChemistryPoint as Mock).mock.invocationCallOrder[0];
+    const delOrder = (deletePoint as Mock).mock.invocationCallOrder[0];
     const writeOrder = (writeChemistry as Mock).mock.invocationCallOrder.at(-1)!;
     expect(delOrder).toBeLessThan(writeOrder);
   });
@@ -184,8 +186,8 @@ describe('chemistry write routes', () => {
     expect(body.error).toBe('boom');
   });
 
-  it('DELETE 500 when deleteChemistryPoint rejects', async () => {
-    (deleteChemistryPoint as Mock).mockRejectedValueOnce(new Error('boom'));
+  it('DELETE 500 when deletePoint rejects', async () => {
+    (deletePoint as Mock).mockRejectedValueOnce(new Error('boom'));
     const res = await fetch(`${base}/api/chemistry?id=${encodeURIComponent('2026-05-20T11:50:00.000Z')}`, {
       method: 'DELETE',
       headers: { ...auth, 'CF-Connecting-IP': nextIp() },
@@ -198,7 +200,7 @@ describe('chemistry write routes', () => {
   // Non-transactional gap: if delete succeeds but write throws, the point is gone
   // and the response is still 500. This documents the known limitation.
   it('PUT 500 (non-transactional gap): delete succeeds but write throws — old point already gone', async () => {
-    (deleteChemistryPoint as Mock).mockResolvedValueOnce(undefined);
+    (deletePoint as Mock).mockResolvedValueOnce(undefined);
     (writeChemistry as Mock).mockRejectedValueOnce(new Error('write failed'));
     const res = await fetch(`${base}/api/chemistry`, {
       method: 'PUT',
@@ -206,5 +208,55 @@ describe('chemistry write routes', () => {
       body: JSON.stringify({ id: '2026-05-20T11:50:00.000Z', date: '2026-05-20', time: '16:30', fc: 6.8 }),
     });
     expect(res.status).toBe(500);
+  });
+});
+
+describe('/api/swims', () => {
+  const auth = 'Basic ' + Buffer.from('tester:secret').toString('base64');
+
+  it('GET is public and returns an array', async () => {
+    const res = await fetch(`${base}/api/swims?range=season`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(await res.json())).toBe(true);
+  });
+
+  it('GET rejects an injection-ish range with 400', async () => {
+    const res = await fetch(`${base}/api/swims?range=${encodeURIComponent('30d) |> evil')}`);
+    expect(res.status).toBe(400);
+  });
+
+  it('POST without auth is 401', async () => {
+    const res = await fetch(`${base}/api/swims`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: '2026-05-20', time: '14:30', people: ['🦦'] }),
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it('POST with auth + valid body is 201 with an id', async () => {
+    const res = await fetch(`${base}/api/swims`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: auth },
+      body: JSON.stringify({ date: '2026-05-20', time: '14:30', people: ['🦦', '🐢'] }),
+    });
+    expect(res.status).toBe(201);
+    expect(((await res.json()) as { id: string }).id).toBe('2026-05-20T18:30:00.000Z');
+  });
+
+  it('POST with auth + invalid body is 400', async () => {
+    const res = await fetch(`${base}/api/swims`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: auth },
+      body: JSON.stringify({ date: '2026-05-20', time: '14:30', people: [] }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('DELETE with a valid id + auth is 200', async () => {
+    const id = encodeURIComponent('2026-05-20T18:30:00.000Z');
+    const res = await fetch(`${base}/api/swims?id=${id}`, { method: 'DELETE', headers: { Authorization: auth } });
+    expect(res.status).toBe(200);
+    expect(deletePoint).toHaveBeenCalledWith('2026-05-20T18:30:00.000Z', 'swim');
   });
 });
