@@ -21,8 +21,3 @@ export async function deletePoint(id: string, measurement = 'chemistry'): Promis
     body: { start, stop, predicate: `_measurement="${measurement}"` },
   })
 }
-
-/** @deprecated use deletePoint(id) — kept for existing chemistry callers. */
-export function deleteChemistryPoint(id: string): Promise<void> {
-  return deletePoint(id, 'chemistry')
-}

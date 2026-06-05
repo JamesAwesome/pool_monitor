@@ -1,5 +1,5 @@
 import express, { Router } from 'express'
-import { querySensors, queryStats, queryHistory, queryBatteries, queryBatteryHistory, querySeasonHistory, queryStatDetail, queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry, deleteChemistryPoint, querySwims, writeSwim, deletePoint } from './influx.js'
+import { querySensors, queryStats, queryHistory, queryBatteries, queryBatteryHistory, querySeasonHistory, queryStatDetail, queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry, querySwims, writeSwim, deletePoint } from './influx.js'
 import { generateOgImage } from './og-image.js'
 import { requireAuth } from './auth.js'
 import { validateChemistryBody, isValidId } from './chemistry.js'
@@ -228,7 +228,7 @@ router.put('/api/chemistry', chemistryAuthLimiter, requireAuth, async (req, res)
     if (!isValidId(id)) { res.status(400).json({ error: 'Invalid or missing id' }); return }
     const result = validateChemistryBody(req.body)
     if (!result.ok) { res.status(400).json({ error: result.error }); return }
-    await deleteChemistryPoint(id as string)
+    await deletePoint(id as string, 'chemistry')
     const newId = await writeChemistry({ date: result.date, time: result.time, values: result.values })
     res.status(200).json({ id: newId })
   } catch (err) {
@@ -240,7 +240,7 @@ router.delete('/api/chemistry', chemistryAuthLimiter, requireAuth, async (req, r
   try {
     const id = typeof req.query.id === 'string' ? req.query.id : ''
     if (!isValidId(id)) { res.status(400).json({ error: 'Invalid or missing id' }); return }
-    await deleteChemistryPoint(id)
+    await deletePoint(id, 'chemistry')
     res.status(200).json({ ok: true })
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' })

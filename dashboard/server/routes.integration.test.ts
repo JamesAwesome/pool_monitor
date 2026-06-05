@@ -19,14 +19,13 @@ vi.mock('./influx.js', () => ({
   queryWeatherHistory: vi.fn(async () => []),
   queryChemistry: vi.fn(async () => []),
   writeChemistry: vi.fn(async () => '2026-05-20T20:30:00.000Z'),
-  deleteChemistryPoint: vi.fn(async () => {}),
   querySwims: vi.fn(async () => []),
   writeSwim: vi.fn(async () => '2026-05-20T18:30:00.000Z'),
   deletePoint: vi.fn(async () => {}),
 }));
 vi.mock('./og-image.js', () => ({ generateOgImage: vi.fn(async () => Buffer.from('')) }));
 
-import { writeChemistry, deleteChemistryPoint, querySwims as _querySwims, writeSwim as _writeSwim, deletePoint } from './influx.js';
+import { writeChemistry, querySwims as _querySwims, writeSwim as _writeSwim, deletePoint } from './influx.js';
 
 const router = (await import('./routes')).default;
 
@@ -93,7 +92,7 @@ describe('chemistry write routes', () => {
   beforeEach(() => {
     // Reset invocation counters so order indices are clean for each test.
     (writeChemistry as Mock).mockClear();
-    (deleteChemistryPoint as Mock).mockClear();
+    (deletePoint as Mock).mockClear();
   });
 
   it('POST returns 201 with the new id', async () => {
@@ -132,12 +131,12 @@ describe('chemistry write routes', () => {
     });
     expect(res.status).toBe(200);
 
-    // Assert that deleteChemistryPoint was called BEFORE writeChemistry.
+    // Assert that deletePoint was called BEFORE writeChemistry.
     // invocationCallOrder values are monotonically increasing global counters, so
     // a lower value means the call happened first. If the route ever swaps to
     // write-then-delete, the delete order will be greater than the write order and
     // this assertion will fail.
-    const delOrder = (deleteChemistryPoint as Mock).mock.invocationCallOrder[0];
+    const delOrder = (deletePoint as Mock).mock.invocationCallOrder[0];
     const writeOrder = (writeChemistry as Mock).mock.invocationCallOrder.at(-1)!;
     expect(delOrder).toBeLessThan(writeOrder);
   });
@@ -187,8 +186,8 @@ describe('chemistry write routes', () => {
     expect(body.error).toBe('boom');
   });
 
-  it('DELETE 500 when deleteChemistryPoint rejects', async () => {
-    (deleteChemistryPoint as Mock).mockRejectedValueOnce(new Error('boom'));
+  it('DELETE 500 when deletePoint rejects', async () => {
+    (deletePoint as Mock).mockRejectedValueOnce(new Error('boom'));
     const res = await fetch(`${base}/api/chemistry?id=${encodeURIComponent('2026-05-20T11:50:00.000Z')}`, {
       method: 'DELETE',
       headers: { ...auth, 'CF-Connecting-IP': nextIp() },
@@ -201,7 +200,7 @@ describe('chemistry write routes', () => {
   // Non-transactional gap: if delete succeeds but write throws, the point is gone
   // and the response is still 500. This documents the known limitation.
   it('PUT 500 (non-transactional gap): delete succeeds but write throws — old point already gone', async () => {
-    (deleteChemistryPoint as Mock).mockResolvedValueOnce(undefined);
+    (deletePoint as Mock).mockResolvedValueOnce(undefined);
     (writeChemistry as Mock).mockRejectedValueOnce(new Error('write failed'));
     const res = await fetch(`${base}/api/chemistry`, {
       method: 'PUT',

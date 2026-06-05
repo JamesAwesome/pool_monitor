@@ -48,13 +48,25 @@ export function SwimLane({ swims, series, xMode, color, iconSize = 22, yAxisId, 
   // bubble(~iconSize) + headroom; the 6px foot's lower half is kept in-box by
   // offsetting the box bottom FOOT_R px below the curve point.
   // Compact mode: a small bubble centred on the curve point — box height = iconSize.
+  // `iconSize` sets the box geometry (height + width floor); the emoji size is
+  // `avatarSize` — scaled from iconSize in compact mode, fixed at 13 for the full pin.
   const FOOT_R = 3;
   const markerH = compact ? iconSize : iconSize + 40;
+  const avatarSize = compact ? Math.round(iconSize * 0.72) : 13;
+
+  // The series is sorted ascending by t (both hosts build it from sorted chart
+  // data), so [0] / [n-1] are the visible time domain. Skip swims outside it so
+  // markers never extrapolate off-plot — the numeric x-scale does not clamp.
+  const tMin = series[0].t;
+  const tMax = series[n - 1].t;
 
   return (
     <g className={styles.lane} style={{ color }} pointerEvents="none">
       {swims.map((s) => {
         const e = swimEpoch(s);
+        // Off-domain → skip (fail-silent), so markers stay inside the plot in
+        // both modes (scale-mode xScale would otherwise extrapolate off-plot).
+        if (e < tMin || e > tMax) return null;
 
         // y-position: interpolate the curve value at this epoch → pixel y
         const yVal = interpolateValueAt(series, e);
@@ -73,8 +85,8 @@ export function SwimLane({ swims, series, xMode, color, iconSize = 22, yAxisId, 
         }
         if (cx == null || !Number.isFinite(cx)) return null;
 
-        // bubble width grows with the number of swimmers
-        const bubbleW = Math.max(iconSize * 1.2, 13 * 0.66 * s.people.length * 1.3 + 20);
+        // bubble width grows with the number of swimmers (uses the actual emoji size)
+        const bubbleW = Math.max(iconSize * 1.2, avatarSize * 0.66 * s.people.length * 1.3 + 20);
 
         return (
           <foreignObject
@@ -87,12 +99,12 @@ export function SwimLane({ swims, series, xMode, color, iconSize = 22, yAxisId, 
             <div className={styles.marker}>
               {compact ? (
                 <span className={styles.chromeCompact}>
-                  <Avatars people={s.people} size={Math.round(iconSize * 0.72)} />
+                  <Avatars people={s.people} size={avatarSize} />
                 </span>
               ) : (
                 <>
                   <span className={styles.chrome}>
-                    <Avatars people={s.people} size={13} />
+                    <Avatars people={s.people} size={avatarSize} />
                   </span>
                   <span className={styles.stem} aria-hidden="true" />
                   <span className={styles.foot} aria-hidden="true" />

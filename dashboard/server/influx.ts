@@ -511,7 +511,6 @@ export async function writeChemistry(
   return when.toISOString()
 }
 
-export { deleteChemistryPoint } from './influxDelete.js'
 export { deletePoint } from './influxDelete.js'
 
 export interface SwimSession {

@@ -19,7 +19,11 @@ import styles from './App.module.css';
 
 function TemperatureTab() {
   const { stats, history, batteries, range, setRange, loading, error, sensors, selectedSensor, setSelectedSensor, airCurrent, airHistory } = usePoolData();
+  // Chart markers follow the selected chart range; History + the log form's
+  // "recent swimmers" use a season-wide set so the log doesn't shrink with zoom.
   const { swims, refetch: refetchSwims } = useSwimData(range);
+  const { swims: seasonSwims, refetch: refetchSeasonSwims } = useSwimData('season');
+  const refetchAllSwims = () => { refetchSwims(); refetchSeasonSwims(); };
   const [logOpen, setLogOpen] = useState(false);
   const [histOpen, setHistOpen] = useState(false);
   const [editEntry, setEditEntry] = useState<SwimSession | null>(null);
@@ -42,18 +46,18 @@ function TemperatureTab() {
 
       <SwimHistorySheet
         open={histOpen}
-        swims={swims}
+        swims={seasonSwims}
         onClose={() => setHistOpen(false)}
         onSelect={(s) => { setHistOpen(false); setEditEntry(s); setLogOpen(true); }}
         onNew={() => { setHistOpen(false); setEditEntry(null); setLogOpen(true); }}
       />
       <SwimLogFlow
         open={logOpen}
-        swims={swims}
+        swims={seasonSwims}
         editEntry={editEntry}
         onClose={() => { setLogOpen(false); setEditEntry(null); }}
-        onSaved={() => { setLogOpen(false); setToast(editEntry ? 'Swim updated' : 'Swim logged'); setEditEntry(null); refetchSwims(); }}
-        onDeleted={() => { setLogOpen(false); setToast('Swim deleted'); setEditEntry(null); refetchSwims(); }}
+        onSaved={() => { setLogOpen(false); setToast(editEntry ? 'Swim updated' : 'Swim logged'); setEditEntry(null); refetchAllSwims(); }}
+        onDeleted={() => { setLogOpen(false); setToast('Swim deleted'); setEditEntry(null); refetchAllSwims(); }}
       />
       <Toast open={toast !== null} message={toast ?? ''} onDismiss={() => setToast(null)} />
     </>
