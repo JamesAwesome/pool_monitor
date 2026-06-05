@@ -22,9 +22,17 @@ const pad2 = (n: number) => String(n).padStart(2, '0');
 
 export function SwimLogForm({ open, authHeader, swims, editEntry, onSaved, onDeleted, onClose, onAuthExpired }: SwimLogFormProps) {
   const editing = !!editEntry;
-  const now = new Date();
-  const [date, setDate] = useState(editEntry ? editEntry.date : `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`);
-  const [time, setTime] = useState(editEntry ? editEntry.time : `${pad2(now.getHours())}:${pad2(now.getMinutes())}`);
+  // Lazy initializers so `new Date()` is snapshotted once on mount, matching LogForm.
+  const [date, setDate] = useState(() => {
+    if (editEntry) return editEntry.date;
+    const now = new Date();
+    return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+  });
+  const [time, setTime] = useState(() => {
+    if (editEntry) return editEntry.time;
+    const now = new Date();
+    return `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
+  });
   const [people, setPeople] = useState<string[]>(editEntry ? [...editEntry.people] : []);
   const [kbOpen, setKbOpen] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);

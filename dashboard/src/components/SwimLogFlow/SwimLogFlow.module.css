@@ -245,6 +245,12 @@
   cursor: pointer;
 }
 
+/* In the main actions row, Cancel shares width equally with Log swim
+   (matching LogTestFlow). The delete-confirm ghost button stays content-sized. */
+.actions .ghostBtn {
+  flex: 1;
+}
+
 /* ── Delete section ──────────────────────────────────────────────────────── */
 
 .delLink {
