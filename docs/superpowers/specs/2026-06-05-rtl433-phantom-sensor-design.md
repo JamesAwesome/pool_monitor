@@ -105,24 +105,29 @@ retained messages persist on the broker and keep being re-delivered until explic
 This runbook is documented in `docs/deployment.md` (Troubleshooting) so it is repeatable and
 discoverable, not just a one-off.
 
-### 3. Telegraf flapping investigation (`telegraf/telegraf.conf`)
+### 3. Telegraf flapping — FINDING (resolved as data-resilience + infra, not a telegraf.conf bug)
 
-`telegraf-pool` reconnects ~6×/hour, which is what repeatedly re-triggers retained-message
-re-delivery. The fix is investigation-led:
+Logs (gathered 2026-06-05) showed the actual cause:
+- Telegraf: `connection lost: pingresp not received, disconnecting`.
+- Mosquitto: `Client telegraf-pool has exceeded timeout, disconnecting` (keepalive `k60`).
+- Telegraf connects from `10.47.0.172` to a broker at `10.47.0.108` → **split mode across two
+  machines**; the MQTT keepalive is being lost on the cross-host LAN link (flaky Wi-Fi / busy
+  Pi). Telegraf then reconnects with a multi-minute backoff.
 
-1. Gather evidence: `docker compose logs --since 1h telegraf` (disconnect reasons) and
-   `docker compose logs --since 1h mosquitto` (disconnect/keepalive-timeout lines).
-2. Apply the remediation the logs point to, in `[[inputs.mqtt_consumer]]`. Likely candidates
-   (to be confirmed, not all applied blindly):
-   - set an explicit **`keepalive`** and **`connection_timeout`**;
-   - re-evaluate **`persistent_session = true`** + QoS 1 (a persistent session with a flapping
-     client amplifies redelivery; if the session is not actually needed, `persistent_session =
-     false` avoids server-side subscription state).
-3. Success = reconnects drop to roughly the Telegraf flush cadence / near-zero idle reconnects.
+This is an **infrastructure problem, not a `telegraf.conf` bug** — no Telegraf setting prevents
+cross-host packet loss. Worse, an InfluxDB check showed **severe data loss** (most 30-min
+buckets empty over 4h): rtl_433 published at its default **`qos=0`**, so Mosquitto dropped
+messages for the offline (flapping) Telegraf subscriber instead of queuing them.
 
-If the logs show the flapping originates outside Telegraf's config (e.g. the broker's
-`max_keepalive`, or a network/DNS issue between server and Pi in split mode), document the
-finding and the corresponding fix rather than forcing a `telegraf.conf` change.
+**Fix applied (repo-side, the real win):** publish rtl_433 at **`qos=1`** (add `qos=1` to the
+`-F mqtt://…` URL). Combined with Telegraf's existing `persistent_session = true` + `qos = 1`
+subscription, Mosquitto now **queues** messages while Telegraf is offline and delivers them on
+reconnect — so readings survive the flapping. No `telegraf.conf` change is needed (it already
+has the persistent-session + qos=1 subscription).
+
+**Recommended (infra, on the Pi — documented, not code):** wired Ethernet over Wi-Fi / disable
+Wi-Fi power-save; ensure the Pi isn't CPU/IO-starved; raise Mosquitto `max_queued_messages` if
+outages ever exceed the default 1000-message buffer. See `docs/deployment.md` Troubleshooting.
 
 ### 4. Docs (`docs/deployment.md`)
 

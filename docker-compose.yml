@@ -37,12 +37,16 @@ services:
     # Telegraf's rtl_433/+/events) so recreates never spawn new topics. retain is
     # intentionally OFF: the dashboard reads from InfluxDB, not MQTT, so a retained
     # last value adds no value and would be re-ingested on every Telegraf reconnect.
+    # qos=1: publish at least-once so Mosquitto QUEUES messages for Telegraf's
+    # persistent session while it is disconnected (e.g. during cross-host keepalive
+    # flapping in split mode) and delivers them on reconnect. With the rtl_433
+    # default qos=0, Mosquitto drops messages for an offline subscriber → data loss.
     # NOTE: after changing credentials, recreate the container (docker compose
     # up -d --force-recreate rtl_433) — `restart` keeps the old definition.
     command: >
       -f 433.92M
       -R 194
-      -F mqtt://mosquitto:1883,user=${MQTT_USER},pass=${MQTT_PASSWORD},events=rtl_433/sensor/events
+      -F mqtt://mosquitto:1883,user=${MQTT_USER},pass=${MQTT_PASSWORD},events=rtl_433/sensor/events,qos=1
 
   influxdb:
     image: influxdb:2.9.1

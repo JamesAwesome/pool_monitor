@@ -227,5 +227,32 @@ Fix:
    dashboard, or query InfluxDB for distinct `topic` tags over the last few minutes).
 
 Related: if Telegraf reconnects frequently (`docker compose logs --since 1h mosquitto |
-grep <telegraf-client-id>`), each reconnect re-triggers retained re-delivery — worth
-fixing the reconnect cause (keepalive/connection settings in `telegraf.conf`) too.
+grep <telegraf-client-id>`), each reconnect re-triggers retained re-delivery — see the next
+entry.
+
+**Telegraf reconnect flapping + missing data (split mode)**
+
+Symptoms: Telegraf logs `connection lost: pingresp not received, disconnecting`; Mosquitto
+logs `Client telegraf-pool has exceeded timeout, disconnecting`; the dashboard updates in
+sparse bursts with long gaps.
+
+Cause: in split mode Telegraf (server) talks to Mosquitto (Pi) **across the LAN**. When that
+link drops the MQTT keepalive ping (PINGREQ/PINGRESP) — flaky Wi-Fi, RF interference, or a
+busy/under-powered Pi — both ends time out the keepalive and Telegraf disconnects, then
+reconnects with a multi-minute backoff. This is an **infrastructure problem, not a config
+bug**, so there is no `telegraf.conf` setting that prevents it.
+
+Data resilience (already configured): rtl_433 publishes at **`qos=1`** and Telegraf uses a
+**persistent session** (`persistent_session = true`, fixed `client_id`, subscription
+`qos = 1`). Together these make Mosquitto **queue** messages for Telegraf while it is offline
+and deliver them on reconnect, so readings survive the flapping. (With rtl_433's default
+`qos=0`, Mosquitto drops messages for an offline subscriber → permanent data loss. If you
+ever see gaps despite reconnects, confirm rtl_433's `-F mqtt://…` URL still includes `qos=1`.)
+
+Reduce the flapping itself (infra, on the Pi):
+- Prefer **wired Ethernet** over Wi-Fi for the Pi, or improve Wi-Fi signal / disable Wi-Fi
+  power-save (`iw dev wlan0 set power_save off`).
+- Check the Pi isn't CPU/IO-starved (`docker stats`, `top`) — a busy broker host is slow to
+  answer keepalive pings.
+- If queues ever overflow during long outages, raise Mosquitto's `max_queued_messages`
+  (default 1000; at ~1 reading/min that is ~16 h of buffer).
