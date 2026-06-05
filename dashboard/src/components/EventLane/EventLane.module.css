@@ -1,0 +1,88 @@
+/* EventLane chip marker — ported from the prototype `.ev-marker` CSS and the
+   shipped SwimLane geometry. The pin grows UPWARD from the curve point. The
+   foreignObject box has its BOTTOM edge FOOT_R(3)px below the curve point (so
+   the foot's lower half isn't clipped) and is tall enough to contain the chip.
+   Coordinate model (all measured from the box bottom):
+     - .foot : centred 3px up  → exactly on the curve point
+     - .stem : 3px → 21px      → 18px line rising from the foot
+     - .chip : from 23px up    → square kind chip floating 2px above the stem.
+   The marker's per-event `color` (set inline from the kind) flows to the stem,
+   foot ring, and chip border via currentColor. */
+
+.lane { /* no additional styles needed; per-marker color is set inline */ }
+
+/* The inner container that fills the foreignObject and anchors all parts. */
+.marker {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* The square kind chip — floats above the stem (2px gap above the 18px stem
+   that starts at the foot centre 3px from the box bottom: 3 + 18 + 2 = 23px).
+   Background (kind tint) + borderColor (kind color) are set inline. */
+.chip {
+  position: absolute;
+  left: 50%;
+  bottom: 23px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 23px;
+  height: 23px;
+  border-radius: 7px;
+  border: 1.5px solid currentColor;
+  box-shadow: var(--shadow-sm);
+  line-height: 1;
+}
+
+/* Compact chip — centred exactly on the curve point (no stem/foot). Used on the
+   small chemistry preview cards where a full pin won't fit. */
+.chipCompact {
+  bottom: auto;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 17px;
+  height: 17px;
+  border-radius: 6px;
+}
+
+.ico {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.chipCompact .ico {
+  font-size: 9px;
+}
+
+/* Stem — 1.5px × 18px vertical line rising from the foot centre. */
+.stem {
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  transform: translateX(-50%);
+  display: block;
+  width: 1.5px;
+  height: 18px;
+  background: currentColor;
+  opacity: 0.45;
+}
+
+/* Foot — 6px ring whose centre sits exactly on the curve point. The box bottom
+   is 3px below the curve point, so bottom: 0 centres the 6px dot on the curve.
+   box-sizing: border-box keeps the outer diameter at exactly 6px. */
+.foot {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 2px solid currentColor;
+  box-sizing: border-box;
+}
