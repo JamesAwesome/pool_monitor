@@ -16,9 +16,9 @@ interface EventLogFormProps {
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
-function Segmented({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) {
+function Segmented({ options, value, onChange, accent }: { options: string[]; value: string; onChange: (v: string) => void; accent: string }) {
   return (
-    <div className={styles.seg}>
+    <div className={styles.seg} style={{ '--accent': accent } as React.CSSProperties}>
       {options.map((o) => (
         <button
           key={o}
@@ -180,7 +180,7 @@ export function EventLogForm({ kind, authHeader, editEntry, onSaved, onDeleted, 
             </label>
             <div className={styles.field}>
               <span className={styles.fieldLabel}>Unit</span>
-              <Segmented options={CHEM_UNITS} value={cUnit} onChange={setCUnit} />
+              <Segmented options={CHEM_UNITS} value={cUnit} onChange={setCUnit} accent={meta.color} />
             </div>
           </div>
         </>
@@ -204,7 +204,7 @@ export function EventLogForm({ kind, authHeader, editEntry, onSaved, onDeleted, 
             </label>
             <div className={styles.field}>
               <span className={styles.fieldLabel}>Unit<span className={styles.fieldHint}>{waterHint(wUnit)}</span></span>
-              <Segmented options={WATER_UNITS} value={wUnit} onChange={setWUnit} />
+              <Segmented options={WATER_UNITS} value={wUnit} onChange={setWUnit} accent={meta.color} />
             </div>
           </div>
         </>
