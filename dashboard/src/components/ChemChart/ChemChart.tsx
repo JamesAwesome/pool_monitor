@@ -136,7 +136,7 @@ export function ChemChart({
   return (
     <div className={isFull ? styles.full : styles.mini} data-testid={`chem-chart-${chemKey}`}>
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} margin={isFull ? { top: topMargin, right: 8, bottom: 4, left: 0 } : { top: 4, right: 4, bottom: 0, left: 0 }}>
+        <ComposedChart data={data} margin={isFull ? { top: topMargin, right: 8, bottom: 4, left: 0 } : { top: swims && swims.length > 0 ? 12 : 4, right: 4, bottom: 0, left: 0 }}>
           <XAxis
             dataKey="t"
             type="number"
@@ -184,8 +184,9 @@ export function ChemChart({
           {isFull && readingLanePoints.length > 0 && (
             <WeatherLane points={readingLanePoints} iconSize={16} xValue={(t) => new Date(t).getTime()} />
           )}
-          {isFull && swims && swims.length > 0 && (
-            <SwimLane swims={swims} series={swimSeries} xMode="scale" color={color} yAxisId="chem" />
+          {swims && swims.length > 0 && (
+            <SwimLane swims={swims} series={swimSeries} xMode="scale" color={color} yAxisId="chem"
+              compact={!isFull} iconSize={isFull ? 22 : 16} />
           )}
         </ComposedChart>
       </ResponsiveContainer>

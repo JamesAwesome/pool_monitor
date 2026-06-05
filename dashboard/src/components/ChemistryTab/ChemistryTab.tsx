@@ -87,7 +87,8 @@ export function ChemistryTab() {
         <div className={styles.grid}>
           {CHEMS.map((c) => (
             <ChemCard key={c.key} meta={c} readings={readings}
-              poolHistory={poolHistory} airHistory={airHistory} showPool={poolOn} showAir={airOn} onOpen={setSelected} />
+              poolHistory={poolHistory} airHistory={airHistory} showPool={poolOn} showAir={airOn}
+              swims={swimOn ? swims : undefined} onOpen={setSelected} />
           ))}
         </div>
       )}

@@ -35,6 +35,24 @@
   white-space: nowrap;
 }
 
+/* Compact bubble — centred exactly on the curve point (no stem/foot). Used on
+   the small chemistry preview cards where a full pin won't fit. */
+.chromeCompact {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5px 3px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  box-shadow: var(--shadow-sm);
+  line-height: 1;
+  white-space: nowrap;
+}
+
 /* Stem — 1.5px × 18px vertical line rising from the foot centre. */
 .stem {
   position: absolute;

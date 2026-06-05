@@ -15,6 +15,9 @@ interface SwimLaneProps {
   /** The recharts yAxisId the series plots against. Default 0 (TempChart's
    *  implicit axis); ChemChart's chem values live on yAxisId="chem". */
   yAxisId?: string | number;
+  /** Compact mode: a small emoji bubble centred ON the curve point, no stem/foot.
+   *  For tiny charts (the 66px chemistry preview cards) where a full pin won't fit. */
+  compact?: boolean;
 }
 
 /** The swim's id IS its ISO-UTC instant — directly comparable to the chart
@@ -29,7 +32,7 @@ function swimEpoch(s: SwimSession): number {
  * renders one floating pin per in-domain swim. Hooks run unconditionally before
  * any early return, as required by React rules.
  */
-export function SwimLane({ swims, series, xMode, color, iconSize = 22, yAxisId }: SwimLaneProps) {
+export function SwimLane({ swims, series, xMode, color, iconSize = 22, yAxisId, compact = false }: SwimLaneProps) {
   // All hooks unconditionally first — required by React rules of hooks.
   const xScale = useXAxisScale();
   const yScale = useYAxisScale(yAxisId);
@@ -38,14 +41,15 @@ export function SwimLane({ swims, series, xMode, color, iconSize = 22, yAxisId }
   if (!xScale || !yScale || !plot || series.length === 0) return null;
 
   const n = series.length;
-  // The pin grows UPWARD from the curve point: the foot sits at the box bottom
-  // (on the curve) and the stem + bubble stack above it. The box must be tall
-  // enough to fully contain the bubble, or the foreignObject clips it (the cause
-  // of the "only the bottom half shows" bug). Height = stem(18) + gap(2) +
+  // Full mode: the pin grows UPWARD from the curve point — the foot sits at the
+  // box bottom (on the curve) and the stem + bubble stack above it. The box must
+  // be tall enough to fully contain the bubble, or the foreignObject clips it (the
+  // cause of the "only the bottom half shows" bug). Height = stem(18) + gap(2) +
   // bubble(~iconSize) + headroom; the 6px foot's lower half is kept in-box by
   // offsetting the box bottom FOOT_R px below the curve point.
+  // Compact mode: a small bubble centred on the curve point — box height = iconSize.
   const FOOT_R = 3;
-  const markerH = iconSize + 40;
+  const markerH = compact ? iconSize : iconSize + 40;
 
   return (
     <g className={styles.lane} style={{ color }} pointerEvents="none">
@@ -76,16 +80,24 @@ export function SwimLane({ swims, series, xMode, color, iconSize = 22, yAxisId }
           <foreignObject
             key={s.id}
             x={cx - bubbleW / 2}
-            y={cy + FOOT_R - markerH}
+            y={compact ? cy - markerH / 2 : cy + FOOT_R - markerH}
             width={bubbleW}
             height={markerH}
           >
             <div className={styles.marker}>
-              <span className={styles.chrome}>
-                <Avatars people={s.people} size={13} />
-              </span>
-              <span className={styles.stem} aria-hidden="true" />
-              <span className={styles.foot} aria-hidden="true" />
+              {compact ? (
+                <span className={styles.chromeCompact}>
+                  <Avatars people={s.people} size={Math.round(iconSize * 0.72)} />
+                </span>
+              ) : (
+                <>
+                  <span className={styles.chrome}>
+                    <Avatars people={s.people} size={13} />
+                  </span>
+                  <span className={styles.stem} aria-hidden="true" />
+                  <span className={styles.foot} aria-hidden="true" />
+                </>
+              )}
             </div>
           </foreignObject>
         );
