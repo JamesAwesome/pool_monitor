@@ -16,6 +16,12 @@ services:
     # digest for reproducibility. Update the digest deliberately when upgrading.
     image: hertzg/rtl_433:master-alpine-3.23.4@sha256:a775b5b7b98aff241ba6f361d13a4265ed3fd3a59d12aacf00dcd5f4a2cacd29
     container_name: rtl_433
+    # Pin the hostname so the default MQTT topic prefix (devices/states topics)
+    # is stable across recreates. The events topic is pinned explicitly below.
+    # Without this, the topic embeds the random container ID, and a recreate
+    # leaves an orphaned topic whose retained message Telegraf keeps re-ingesting
+    # as a phantom flat-value "sensor" (see docs/deployment.md troubleshooting).
+    hostname: rtl_433
     restart: unless-stopped
     profiles: ["standalone", "edge"]
     privileged: true
@@ -27,12 +33,16 @@ services:
     # output URL below (${MQTT_USER}/${MQTT_PASSWORD} substituted from .env by
     # docker compose). rtl_433 also honors MQTT_USERNAME/MQTT_PASSWORD env vars,
     # but the explicit URL options are self-documenting and unambiguous.
+    # The events topic is pinned to rtl_433/sensor/events (still matched by
+    # Telegraf's rtl_433/+/events) so recreates never spawn new topics. retain is
+    # intentionally OFF: the dashboard reads from InfluxDB, not MQTT, so a retained
+    # last value adds no value and would be re-ingested on every Telegraf reconnect.
     # NOTE: after changing credentials, recreate the container (docker compose
     # up -d --force-recreate rtl_433) — `restart` keeps the old definition.
     command: >
       -f 433.92M
       -R 194
-      -F mqtt://mosquitto:1883,user=${MQTT_USER},pass=${MQTT_PASSWORD},retain=1
+      -F mqtt://mosquitto:1883,user=${MQTT_USER},pass=${MQTT_PASSWORD},events=rtl_433/sensor/events
 
   influxdb:
     image: influxdb:2.9.1
