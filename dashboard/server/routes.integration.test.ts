@@ -292,7 +292,7 @@ describe('/api/events', () => {
       body: JSON.stringify({ date: '2026-05-20', time: '14:30', kind: 'chemical', product: 'Cal-hypo', amount: 16, unit: 'oz' }),
     });
     expect(res.status).toBe(201);
-    expect((await res.json()).id).toBe('2026-05-20T18:30:00.000Z');
+    expect(((await res.json()) as { id: string }).id).toBe('2026-05-20T18:30:00.000Z');
   });
   it('POST with auth + invalid body is 400', async () => {
     const res = await fetch(`${base}/api/events`, {
