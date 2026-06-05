@@ -193,3 +193,66 @@ password file doesn't accept. Two distinct causes — check both:
 - Check rtl_433 is receiving: `docker logs --since 5m rtl_433` on the Pi
 - Check sensor is in range and has battery
 - Run `./scripts/verify.sh` on both machines
+
+**Phantom / duplicate sensor — a flat, never-changing second reading for an existing sensor id**
+
+Symptom: an existing sensor id shows a second data stream that sits at one frozen value
+(e.g. a flat 22 °C) and drags stats toward it, even though you only own one device.
+
+Cause: rtl_433's MQTT topic embeds its container hostname (`rtl_433/<hostname>/events`). If
+the container is **recreated** (e.g. `--force-recreate`), it gets a new hostname → a new
+topic, and the **old topic keeps its last *retained* message** on the broker. Telegraf
+re-subscribes on every reconnect, so the broker re-delivers that frozen retained value, which
+Telegraf ingests with a fresh timestamp — a phantom "sensor" that never changes. (This repo
+now pins the topic to `rtl_433/sensor/events` and disables `retain`, so new deployments don't
+create orphan topics; the steps below clean up any that already exist.)
+
+Fix:
+1. Make sure you're on a build with the pinned topic + retain disabled, then recreate:
+   ```bash
+   git pull
+   docker compose up -d --force-recreate rtl_433
+   ```
+2. Identify the orphan topic(s): the phantom's topic is `rtl_433/<old-hostname>/events`
+   (the hex segment that is **not** `sensor`). List active topics with:
+   ```bash
+   docker compose exec mosquitto mosquitto_sub -t 'rtl_433/+/events' -v -u "$MQTT_USER" -P "$MQTT_PASSWORD" -W 5
+   ```
+3. Clear the retained message on each orphan topic (empty payload + retain flag deletes it):
+   ```bash
+   docker compose exec mosquitto mosquitto_pub -r -n -u "$MQTT_USER" -P "$MQTT_PASSWORD" \
+     -t 'rtl_433/<old-hostname>/events'
+   ```
+4. Confirm only `rtl_433/sensor/events` produces new points for the sensor id (check the
+   dashboard, or query InfluxDB for distinct `topic` tags over the last few minutes).
+
+Related: if Telegraf reconnects frequently (`docker compose logs --since 1h mosquitto |
+grep <telegraf-client-id>`), each reconnect re-triggers retained re-delivery — see the next
+entry.
+
+**Telegraf reconnect flapping + missing data (split mode)**
+
+Symptoms: Telegraf logs `connection lost: pingresp not received, disconnecting`; Mosquitto
+logs `Client telegraf-pool has exceeded timeout, disconnecting`; the dashboard updates in
+sparse bursts with long gaps.
+
+Cause: in split mode Telegraf (server) talks to Mosquitto (Pi) **across the LAN**. When that
+link drops the MQTT keepalive ping (PINGREQ/PINGRESP) — flaky Wi-Fi, RF interference, or a
+busy/under-powered Pi — both ends time out the keepalive and Telegraf disconnects, then
+reconnects with a multi-minute backoff. This is an **infrastructure problem, not a config
+bug**, so there is no `telegraf.conf` setting that prevents it.
+
+Data resilience (already configured): rtl_433 publishes at **`qos=1`** and Telegraf uses a
+**persistent session** (`persistent_session = true`, fixed `client_id`, subscription
+`qos = 1`). Together these make Mosquitto **queue** messages for Telegraf while it is offline
+and deliver them on reconnect, so readings survive the flapping. (With rtl_433's default
+`qos=0`, Mosquitto drops messages for an offline subscriber → permanent data loss. If you
+ever see gaps despite reconnects, confirm rtl_433's `-F mqtt://…` URL still includes `qos=1`.)
+
+Reduce the flapping itself (infra, on the Pi):
+- Prefer **wired Ethernet** over Wi-Fi for the Pi, or improve Wi-Fi signal / disable Wi-Fi
+  power-save (`iw dev wlan0 set power_save off`).
+- Check the Pi isn't CPU/IO-starved (`docker stats`, `top`) — a busy broker host is slow to
+  answer keepalive pings.
+- If queues ever overflow during long outages, raise Mosquitto's `max_queued_messages`
+  (default 1000; at ~1 reading/min that is ~16 h of buffer).
