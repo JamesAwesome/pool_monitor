@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { OverlayPill } from './OverlayPill';
 
@@ -40,5 +40,15 @@ describe('OverlayPill', () => {
       await userEvent.click(screen.getByRole('button', { name: 'Swim' }));
       expect(onToggle).toHaveBeenCalledOnce();
     });
+  });
+
+  it('renders the events variant with a 🧰 swatch and reflects active', () => {
+    const onToggle = vi.fn();
+    render(<OverlayPill label="Events" variant="events" active onToggle={onToggle} />);
+    const btn = screen.getByRole('button', { name: /events/i });
+    expect(btn).toHaveTextContent('🧰');
+    expect(btn).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(btn);
+    expect(onToggle).toHaveBeenCalled();
   });
 });
