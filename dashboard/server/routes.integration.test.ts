@@ -20,10 +20,13 @@ vi.mock('./influx.js', () => ({
   queryChemistry: vi.fn(async () => []),
   writeChemistry: vi.fn(async () => '2026-05-20T20:30:00.000Z'),
   deleteChemistryPoint: vi.fn(async () => {}),
+  querySwims: vi.fn(async () => []),
+  writeSwim: vi.fn(async () => '2026-05-20T18:30:00.000Z'),
+  deletePoint: vi.fn(async () => {}),
 }));
 vi.mock('./og-image.js', () => ({ generateOgImage: vi.fn(async () => Buffer.from('')) }));
 
-import { writeChemistry, deleteChemistryPoint } from './influx.js';
+import { writeChemistry, deleteChemistryPoint, querySwims, writeSwim, deletePoint } from './influx.js';
 
 const router = (await import('./routes')).default;
 
@@ -206,5 +209,55 @@ describe('chemistry write routes', () => {
       body: JSON.stringify({ id: '2026-05-20T11:50:00.000Z', date: '2026-05-20', time: '16:30', fc: 6.8 }),
     });
     expect(res.status).toBe(500);
+  });
+});
+
+describe('/api/swims', () => {
+  const auth = 'Basic ' + Buffer.from('tester:secret').toString('base64');
+
+  it('GET is public and returns an array', async () => {
+    const res = await fetch(`${base}/api/swims?range=season`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(await res.json())).toBe(true);
+  });
+
+  it('GET rejects an injection-ish range with 400', async () => {
+    const res = await fetch(`${base}/api/swims?range=${encodeURIComponent('30d) |> evil')}`);
+    expect(res.status).toBe(400);
+  });
+
+  it('POST without auth is 401', async () => {
+    const res = await fetch(`${base}/api/swims`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: '2026-05-20', time: '14:30', people: ['🦦'] }),
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it('POST with auth + valid body is 201 with an id', async () => {
+    const res = await fetch(`${base}/api/swims`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: auth },
+      body: JSON.stringify({ date: '2026-05-20', time: '14:30', people: ['🦦', '🐢'] }),
+    });
+    expect(res.status).toBe(201);
+    expect((await res.json()).id).toBe('2026-05-20T18:30:00.000Z');
+  });
+
+  it('POST with auth + invalid body is 400', async () => {
+    const res = await fetch(`${base}/api/swims`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: auth },
+      body: JSON.stringify({ date: '2026-05-20', time: '14:30', people: [] }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('DELETE with a valid id + auth is 200', async () => {
+    const id = encodeURIComponent('2026-05-20T18:30:00.000Z');
+    const res = await fetch(`${base}/api/swims?id=${id}`, { method: 'DELETE', headers: { Authorization: auth } });
+    expect(res.status).toBe(200);
+    expect(deletePoint).toHaveBeenCalledWith('2026-05-20T18:30:00.000Z', 'swim');
   });
 });
