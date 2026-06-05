@@ -21,11 +21,13 @@ vi.mock('./influx.js', () => ({
   writeChemistry: vi.fn(async () => '2026-05-20T20:30:00.000Z'),
   querySwims: vi.fn(async () => []),
   writeSwim: vi.fn(async () => '2026-05-20T18:30:00.000Z'),
+  queryEvents: vi.fn(async () => []),
+  writeEvent: vi.fn(async () => '2026-05-20T18:30:00.000Z'),
   deletePoint: vi.fn(async () => {}),
 }));
 vi.mock('./og-image.js', () => ({ generateOgImage: vi.fn(async () => Buffer.from('')) }));
 
-import { writeChemistry, querySwims as _querySwims, writeSwim as _writeSwim, deletePoint } from './influx.js';
+import { writeChemistry, querySwims as _querySwims, writeSwim as _writeSwim, queryEvents as _queryEvents, writeEvent as _writeEvent, deletePoint } from './influx.js';
 
 const router = (await import('./routes')).default;
 
@@ -49,6 +51,11 @@ afterAll(() => {
   delete process.env.CHEM_AUTH_USER;
   delete process.env.CHEM_AUTH_PASSWORD;
 });
+
+// Shared unique-IP helper: gives each rate-limited request a distinct CF-Connecting-IP
+// so the module-level rate-limiter bucket is never exhausted across the whole suite.
+let _ipSeq = 0;
+function nextIp(): string { _ipSeq += 1; return `198.51.100.${_ipSeq}`; }
 
 // Each entry: a label, the path (with any required non-range params), and the
 // query separator to append the range with.
@@ -258,5 +265,46 @@ describe('/api/swims', () => {
     const res = await fetch(`${base}/api/swims?id=${id}`, { method: 'DELETE', headers: { Authorization: auth } });
     expect(res.status).toBe(200);
     expect(deletePoint).toHaveBeenCalledWith('2026-05-20T18:30:00.000Z', 'swim');
+  });
+});
+
+describe('/api/events', () => {
+  const auth = 'Basic ' + Buffer.from('tester:secret').toString('base64');
+  it('GET is public and returns an array', async () => {
+    const res = await fetch(`${base}/api/events?range=season`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(await res.json())).toBe(true);
+  });
+  it('GET rejects an injection-ish range with 400', async () => {
+    const res = await fetch(`${base}/api/events?range=${encodeURIComponent('30d) |> evil')}`);
+    expect(res.status).toBe(400);
+  });
+  it('POST without auth is 401', async () => {
+    const res = await fetch(`${base}/api/events`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': nextIp() },
+      body: JSON.stringify({ date: '2026-05-20', time: '14:30', kind: 'backwash' }),
+    });
+    expect(res.status).toBe(401);
+  });
+  it('POST with auth + valid chemical is 201 with id', async () => {
+    const res = await fetch(`${base}/api/events`, {
+      method: 'POST', headers: { Authorization: auth, 'Content-Type': 'application/json', 'CF-Connecting-IP': nextIp() },
+      body: JSON.stringify({ date: '2026-05-20', time: '14:30', kind: 'chemical', product: 'Cal-hypo', amount: 16, unit: 'oz' }),
+    });
+    expect(res.status).toBe(201);
+    expect((await res.json()).id).toBe('2026-05-20T18:30:00.000Z');
+  });
+  it('POST with auth + invalid body is 400', async () => {
+    const res = await fetch(`${base}/api/events`, {
+      method: 'POST', headers: { Authorization: auth, 'Content-Type': 'application/json', 'CF-Connecting-IP': nextIp() },
+      body: JSON.stringify({ date: '2026-05-20', time: '14:30', kind: 'chemical' }),
+    });
+    expect(res.status).toBe(400);
+  });
+  it('DELETE with a valid id + auth is 200', async () => {
+    const id = encodeURIComponent('2026-05-20T18:30:00.000Z');
+    const res = await fetch(`${base}/api/events?id=${id}`, { method: 'DELETE', headers: { Authorization: auth, 'CF-Connecting-IP': nextIp() } });
+    expect(res.status).toBe(200);
+    expect(deletePoint).toHaveBeenCalledWith('2026-05-20T18:30:00.000Z', 'event');
   });
 });
