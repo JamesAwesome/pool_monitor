@@ -98,6 +98,7 @@ pnpm typecheck        # TypeScript only
   - `/api/health` — health check
   - `/api/chemistry?range=...` — GET readings `{ id, date, time, ph?, fc?, cc?, ta?, cya?, ch? }[]` (id = the reading's ISO-UTC timestamp; date/time derived in `TIMEZONE`). POST a reading `{ date, time, <values> }` → `201 { id }`. PUT `{ id, date, time, <values> }` edits it (delete-old-timestamp + write-new, so time changes and field-clearing work). DELETE `?id=<iso>` removes one. POST/PUT/DELETE are Basic-Auth gated + rate-limited; GET is public. Ranges: `30d`/`90d`/`season`/`all`/`custom:`. Partial readings (≥1 of the six values) allowed; storage is InfluxDB with the point's UTC timestamp as its id (two tests on one day = two distinct points; legacy noon-logged readings display as 12:00 until edited).
   - `/api/chemistry/auth-check` — GET, Basic-Auth gated; returns `{ ok: true }` (used by the unlock sheet to validate credentials without writing).
+  - `/api/swims?range=...` — GET swim sessions `{ id, date, time, people }[]` (id = the swim's ISO-UTC timestamp; `people` = emoji array). POST `{ date, time, people }` → `201 { id }`. PUT `{ id, date, time, people }` edits (delete-old + write-new). DELETE `?id=<iso>` removes one. **POST/PUT/DELETE share the chemistry Basic-Auth gate + rate limiter** (`CHEM_AUTH_USER`/`CHEM_AUTH_PASSWORD`, `chemistryAuthLimiter`); GET is public. Storage is a separate InfluxDB `swim` measurement; `people` is a comma-joined string field (`server/swim.ts`, `querySwims`/`writeSwim` in `server/influx.ts`). See **Swim logging** below.
   - `/og-image.png` — dynamically generated 1200x630 PNG with current temp (for iMessage/social previews, cached 5 min)
   - All data endpoints accept optional `?sensor=<id>` to filter by sensor; omit for averaged "all sensors" view.
 - **OG image**: `server/og-image.ts` generates a social preview image using `@napi-rs/canvas`. Inter font files bundled in `server/fonts/`. Dynamic OG meta tags injected into HTML in production.
@@ -142,6 +143,36 @@ numbers and trends only.
   credential on a personal, read-only-public dashboard; it gates only writes, and
   XSS would already be game-over. If the model ever broadens (multiple users,
   sensitive writes), switch to a short-lived server-issued token instead.
+
+### Swim logging
+
+An anonymous **swim log**: who went in the pool (one or more **emoji** avatars —
+never names, for privacy on the public dashboard) and when. Lives on the
+**Temperature tab** (its own History + ＋ Log swim actions, separate from the
+chemistry tab's). Three parts:
+
+- **Markers riding the curve** — a `SwimLane` overlay (`src/components/SwimLane/`)
+  renders an emoji pin on the pool-temp curve (TempChart) and on each chemical's
+  curve (ChemFocusSheet full chart) at the swim's time. It is a Recharts child
+  (same pattern as `WeatherLane`) reading `useXAxisScale`/`useYAxisScale`/
+  `usePlotArea`. x is positioned by **index interpolation** on the categorical
+  TempChart axis (`xMode="index"`) and by the numeric scale on ChemChart
+  (`xMode="scale"`); y interpolates the host series value at the swim time
+  (`src/utils/markerPositions.ts`). Because ChemChart has two y-axes, SwimLane
+  takes a `yAxisId` prop (`"chem"` there; default for TempChart). Fail-silent when
+  a swim falls outside the plotted domain. Markers are informational (not tappable).
+- **Log/edit/delete flow** (`src/components/SwimLogFlow/`) — unlock gate → form with
+  a recent-swimmers grid + a ＋ tile opening a categorized `EmojiKeyboard`
+  (`src/constants/swim.ts`). **Reuses the chemistry unlock** (`useChemAuth`, same
+  shared credential) — unlocking one unlocks both.
+- **Swim History sheet** (`src/components/SwimHistorySheet/`) — two tabs: **All
+  swims** (newest-first, tap to edit) and a **Leaderboard** of total dips per
+  emoji. Pure helpers (`sortedSwims`/`totalDips`/`recentEmoji`/`leaderboard`) in
+  `src/utils/swim.ts`; data via `useSwimData(range)`.
+
+Storage is a separate InfluxDB `swim` measurement (point timestamp = the swim's
+date+time in `TIMEZONE`, also its stable id; `people` stored comma-joined). No
+names/accounts — "same emoji = same person" is a soft convention only.
 
 ### Query aggregation strategy
 All time-series queries use `aggregateWindow` with `fn: mean` (temperature) or `fn: last` (battery). Note: `aggregateWindow` `location` parameter is not available in InfluxDB OSS 2.x (Cloud only), so windows align to UTC.
