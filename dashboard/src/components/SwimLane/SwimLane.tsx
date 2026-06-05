@@ -38,11 +38,14 @@ export function SwimLane({ swims, series, xMode, color, iconSize = 22, yAxisId }
   if (!xScale || !yScale || !plot || series.length === 0) return null;
 
   const n = series.length;
-  // foreignObject height: bubble (~iconSize px) + stem (18px) centred over foot.
-  // The marker uses absolute positioning with the foot at 50% of the foreignObject,
-  // so we set y = cy - markerH/2 to land the foot exactly on the curve point.
-  const markerH = iconSize + 30; // enough room for chrome + 18px stem + 6px foot
-  const markerHalf = Math.round(markerH / 2);
+  // The pin grows UPWARD from the curve point: the foot sits at the box bottom
+  // (on the curve) and the stem + bubble stack above it. The box must be tall
+  // enough to fully contain the bubble, or the foreignObject clips it (the cause
+  // of the "only the bottom half shows" bug). Height = stem(18) + gap(2) +
+  // bubble(~iconSize) + headroom; the 6px foot's lower half is kept in-box by
+  // offsetting the box bottom FOOT_R px below the curve point.
+  const FOOT_R = 3;
+  const markerH = iconSize + 40;
 
   return (
     <g className={styles.lane} style={{ color }} pointerEvents="none">
@@ -73,7 +76,7 @@ export function SwimLane({ swims, series, xMode, color, iconSize = 22, yAxisId }
           <foreignObject
             key={s.id}
             x={cx - bubbleW / 2}
-            y={cy - markerHalf}
+            y={cy + FOOT_R - markerH}
             width={bubbleW}
             height={markerH}
           >

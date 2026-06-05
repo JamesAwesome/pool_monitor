@@ -1,10 +1,11 @@
 /* SwimLane pin marker — ported from the prototype `.swim-marker.pin` CSS.
-   The foreignObject fills a box of width=bubbleW, height=markerH, with its
-   vertical centre aligned to the curve y-point. Absolute positioning within
-   the marker div mirrors the prototype's coordinate model exactly:
-     - .foot    : 50% / 50% (centred on the foreignObject → sits on the curve)
-     - .stem    : left 50%, bottom 50% (grows upward from the foot centre)
-     - .chrome  : absolute, bottom = 50% + stemHeight (floats above the stem) */
+   The pin grows UPWARD from the curve point. The foreignObject box has its
+   BOTTOM edge FOOT_R(3)px below the curve point (so the foot's lower half isn't
+   clipped) and is tall enough to fully contain the bubble. Coordinate model
+   (all measured from the box bottom):
+     - .foot   : centred 3px up  → exactly on the curve point
+     - .stem   : 3px → 21px      → 18px line rising from the foot
+     - .chrome : from 23px up    → bubble floating 2px above the stem top */
 
 .lane { /* no additional styles needed; g element inherits color prop */ }
 
@@ -16,13 +17,12 @@
   height: 100%;
 }
 
-/* The emoji bubble — sits just above the stem top.
-   bottom: 50% puts it at the curve point; + 18px clears the stem; a further
-   2px gap gives breathing room between stem top and bubble bottom. */
+/* The emoji bubble — floats above the stem (2px gap above the 18px stem that
+   starts at the foot centre 3px from the box bottom: 3 + 18 + 2 = 23px). */
 .chrome {
   position: absolute;
   left: 50%;
-  bottom: calc(50% + 20px); /* 18px stem + 2px gap above stem */
+  bottom: 23px;
   transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
@@ -35,11 +35,11 @@
   white-space: nowrap;
 }
 
-/* Stem — 1.5px × 18px vertical line, grows upward from the foot (bottom: 50%). */
+/* Stem — 1.5px × 18px vertical line rising from the foot centre. */
 .stem {
   position: absolute;
   left: 50%;
-  bottom: 50%;
+  bottom: 3px;
   transform: translateX(-50%);
   display: block;
   width: 1.5px;
@@ -48,13 +48,14 @@
   opacity: 0.45;
 }
 
-/* Foot — 6px ring centred exactly on the foreignObject midpoint (= curve point).
+/* Foot — 6px ring whose centre sits exactly on the curve point. The box bottom
+   is 3px below the curve point, so bottom: 0 centres the 6px dot on the curve.
    box-sizing: border-box keeps the outer diameter at exactly 6px. */
 .foot {
   position: absolute;
   left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  bottom: 0;
+  transform: translateX(-50%);
   display: block;
   width: 6px;
   height: 6px;
