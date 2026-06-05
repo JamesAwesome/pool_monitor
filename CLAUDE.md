@@ -99,6 +99,7 @@ pnpm typecheck        # TypeScript only
   - `/api/chemistry?range=...` — GET readings `{ id, date, time, ph?, fc?, cc?, ta?, cya?, ch? }[]` (id = the reading's ISO-UTC timestamp; date/time derived in `TIMEZONE`). POST a reading `{ date, time, <values> }` → `201 { id }`. PUT `{ id, date, time, <values> }` edits it (delete-old-timestamp + write-new, so time changes and field-clearing work). DELETE `?id=<iso>` removes one. POST/PUT/DELETE are Basic-Auth gated + rate-limited; GET is public. Ranges: `30d`/`90d`/`season`/`all`/`custom:`. Partial readings (≥1 of the six values) allowed; storage is InfluxDB with the point's UTC timestamp as its id (two tests on one day = two distinct points; legacy noon-logged readings display as 12:00 until edited).
   - `/api/chemistry/auth-check` — GET, Basic-Auth gated; returns `{ ok: true }` (used by the unlock sheet to validate credentials without writing).
   - `/api/swims?range=...` — GET swim sessions `{ id, date, time, people }[]` (id = the swim's ISO-UTC timestamp; `people` = emoji array). POST `{ date, time, people }` → `201 { id }`. PUT `{ id, date, time, people }` edits (delete-old + write-new). DELETE `?id=<iso>` removes one. **POST/PUT/DELETE share the chemistry Basic-Auth gate + rate limiter** (`CHEM_AUTH_USER`/`CHEM_AUTH_PASSWORD`, `chemistryAuthLimiter`); GET is public. Storage is a separate InfluxDB `swim` measurement; `people` is a comma-joined string field (`server/swim.ts`, `querySwims`/`writeSwim` in `server/influx.ts`). See **Swim logging** below.
+  - `/api/events?range=...` — GET maintenance events `{ id, date, time, kind, product?, amount?, unit?, note? }[]` (id = the event's ISO-UTC timestamp; `kind` ∈ `chemical|water|backwash|note`). POST a `{ date, time, kind, …payload }` → `201 { id }`. PUT edits (delete-old + write-new). DELETE `?id=<iso>` removes one. Same shared chemistry Basic-Auth gate + rate limiter as swims; GET is public. Storage is a separate InfluxDB `event` measurement (`kind` + per-kind sparse fields; `server/event.ts` validation, `queryEvents`/`writeEvent` in `server/influx.ts`). See **Maintenance events** below.
   - `/og-image.png` — dynamically generated 1200x630 PNG with current temp (for iMessage/social previews, cached 5 min)
   - All data endpoints accept optional `?sensor=<id>` to filter by sensor; omit for averaged "all sensors" view.
 - **OG image**: `server/og-image.ts` generates a social preview image using `@napi-rs/canvas`. Inter font files bundled in `server/fonts/`. Dynamic OG meta tags injected into HTML in production.
@@ -173,6 +174,35 @@ chemistry tab's). Three parts:
 Storage is a separate InfluxDB `swim` measurement (point timestamp = the swim's
 date+time in `TIMEZONE`, also its stable id; `people` stored comma-joined). No
 names/accounts — "same emoji = same person" is a soft convention only.
+
+### Maintenance events
+
+A **maintenance log** of four event kinds — **chemical** (🧪 product/amount/unit),
+**water** (💧 amount/unit), **backwash** (🔄), **note** (📝) — surfaced on the charts
+exactly like swims. **Built as a structural twin of swim logging** (`EventLane` ≈
+`SwimLane`, `EventLogFlow` ≈ `SwimLogFlow`, `LogBookSheet` ≈ `SwimHistorySheet`,
+`useEventData`/`utils/events.ts`/`constants/events.ts` ≈ the swim equivalents). Unlike
+swims, the **logging UI lives on the Chemistry tab** (a "Log event" row of four kind
+buttons + a "Log book ›" link, under the existing History / ＋ Log test); the temperature
+chart shows only the markers + the Events pill.
+
+- **Markers** — `EventLane` (`src/components/EventLane/`) draws a **square kind-colored
+  chip** on a stem+foot pin (compact chip on the 66px preview cards), riding the pool-temp
+  curve (TempChart, index mode) and the chemistry curves (ChemChart full + mini, scale
+  mode, `yAxisId="chem"`). Reuses `markerPositions.ts` + the same off-domain-skip and
+  compact-mode logic as `SwimLane`; color per `EVENT_KINDS[kind]`.
+- **Events `OverlayPill`** (🧰, teal) toggles all maintenance markers — on the temp chart,
+  the chem tab (gates the preview cards), and the chem focus sheet — only when events exist.
+- **Log flow** (`src/components/EventLogFlow/`) — `EventLogForm` (one component, fields
+  switch on kind), `EventKindChooser`, behind the shared chemistry unlock (`useChemAuth`).
+- **Log book** (`src/components/LogBookSheet/`) — chronological entries, filterable by kind,
+  tap to edit/delete; fed a season-wide `useEventData('season')` so it doesn't shrink with
+  the chart range.
+
+Storage is a separate InfluxDB `event` measurement: point timestamp = the event's date+time
+in `TIMEZONE` (stable id); `kind` is stored on every point plus only the sparse fields that
+kind uses (`product`/`unit`/`note` strings, `amount` float). `server/event.ts` does per-kind
+validation; `queryEvents`/`writeEvent` in `server/influx.ts`.
 
 ### Query aggregation strategy
 All time-series queries use `aggregateWindow` with `fn: mean` (temperature) or `fn: last` (battery). Note: `aggregateWindow` `location` parameter is not available in InfluxDB OSS 2.x (Cloud only), so windows align to UTC.
