@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CHEMS, CHEM_BY_KEY } from '../../constants/chemicals';
 import { useChemistryData } from '../../hooks/useChemistryData';
+import { useSwimData } from '../../hooks/useSwimData';
 import { latestReading } from '../../utils/chemistry';
 import { ChemCard } from '../ChemCard';
 import { ChemFocusSheet } from '../ChemFocusSheet';
@@ -32,6 +33,7 @@ export function ChemistryTab() {
   const [toast, setToast] = useState<string | null>(null);
 
   const { readings, poolHistory, airHistory, loading, refetch } = useChemistryData(range);
+  const { swims } = useSwimData(range);
 
   const lastDate = readings.length ? new Date(readings[readings.length - 1].date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—';
 
@@ -88,7 +90,7 @@ export function ChemistryTab() {
 
       {selected && (
         <ChemFocusSheet meta={CHEM_BY_KEY[selected]} readings={readings}
-          poolHistory={poolHistory} airHistory={airHistory} onClose={() => setSelected(null)} />
+          poolHistory={poolHistory} airHistory={airHistory} swims={swims} onClose={() => setSelected(null)} />
       )}
 
       <HistorySheet

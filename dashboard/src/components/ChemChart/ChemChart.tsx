@@ -8,9 +8,10 @@ import {
   YAxis,
 } from 'recharts';
 import { useTheme } from '../../context/ThemeContext';
-import type { ChemistryReading, ChemKey, TimeSeriesPoint, WeatherHistoryPoint } from '../../types';
+import type { ChemistryReading, ChemKey, TimeSeriesPoint, WeatherHistoryPoint, SwimSession } from '../../types';
 import { buildChartData, type ChartPoint } from './buildChartData';
 import { WeatherLane, collapseRuns } from '../WeatherLane';
+import { SwimLane } from '../SwimLane';
 import styles from './ChemChart.module.css';
 
 /**
@@ -71,6 +72,7 @@ interface ChemChartProps {
   showPool: boolean;
   showAir: boolean;
   variant: 'mini' | 'full';
+  swims?: SwimSession[];
 }
 
 function padDomain([min, max]: [number, number]): [number, number] {
@@ -80,7 +82,7 @@ function padDomain([min, max]: [number, number]): [number, number] {
 }
 
 export function ChemChart({
-  readings, chemKey, color, decimals, poolHistory, airHistory, showPool, showAir, variant,
+  readings, chemKey, color, decimals, poolHistory, airHistory, showPool, showAir, variant, swims,
 }: ChemChartProps) {
   const { unit } = useTheme();
   const isF = unit === 'F';
@@ -93,6 +95,11 @@ export function ChemChart({
 
   const chemValues = useMemo(
     () => data.map((d) => d.chem).filter((v): v is number => typeof v === 'number'),
+    [data],
+  );
+
+  const swimSeries = useMemo(
+    () => data.map((d) => ({ t: d.t, value: typeof d.chem === 'number' ? d.chem : undefined })),
     [data],
   );
   const chemDomain = useMemo<[number, number]>(
@@ -176,6 +183,9 @@ export function ChemChart({
           {/* Bottom row: weather at each recorded reading timestamp. */}
           {isFull && readingLanePoints.length > 0 && (
             <WeatherLane points={readingLanePoints} iconSize={16} xValue={(t) => new Date(t).getTime()} />
+          )}
+          {isFull && swims && swims.length > 0 && (
+            <SwimLane swims={swims} series={swimSeries} xMode="scale" color={color} yAxisId="chem" />
           )}
         </ComposedChart>
       </ResponsiveContainer>

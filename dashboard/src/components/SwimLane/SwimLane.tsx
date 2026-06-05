@@ -12,6 +12,9 @@ interface SwimLaneProps {
   xMode: 'index' | 'scale';
   color: string;
   iconSize?: number;
+  /** The recharts yAxisId the series plots against. Default 0 (TempChart's
+   *  implicit axis); ChemChart's chem values live on yAxisId="chem". */
+  yAxisId?: string | number;
 }
 
 /** The swim's id IS its ISO-UTC instant — directly comparable to the chart
@@ -26,10 +29,10 @@ function swimEpoch(s: SwimSession): number {
  * renders one floating pin per in-domain swim. Hooks run unconditionally before
  * any early return, as required by React rules.
  */
-export function SwimLane({ swims, series, xMode, color, iconSize = 22 }: SwimLaneProps) {
+export function SwimLane({ swims, series, xMode, color, iconSize = 22, yAxisId }: SwimLaneProps) {
   // All hooks unconditionally first — required by React rules of hooks.
   const xScale = useXAxisScale();
-  const yScale = useYAxisScale();
+  const yScale = useYAxisScale(yAxisId);
   const plot = usePlotArea();
 
   if (!xScale || !yScale || !plot || series.length === 0) return null;

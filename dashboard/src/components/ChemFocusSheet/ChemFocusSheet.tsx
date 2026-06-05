@@ -4,7 +4,7 @@ import { ChemChart } from '../ChemChart';
 import { DeltaTag } from '../DeltaTag';
 import { OverlayPill } from '../OverlayPill';
 import type { ChemMeta } from '../../constants/chemicals';
-import type { ChemistryReading, TimeSeriesPoint, WeatherHistoryPoint } from '../../types';
+import type { ChemistryReading, TimeSeriesPoint, WeatherHistoryPoint, SwimSession } from '../../types';
 import { latestReading, computeDelta, computeStats, formatChemValue } from '../../utils/chemistry';
 import { formatTemperature } from '../../utils/temperature';
 import { useTheme } from '../../context/ThemeContext';
@@ -15,10 +15,11 @@ interface ChemFocusSheetProps {
   readings: ChemistryReading[];
   poolHistory: TimeSeriesPoint[];
   airHistory: WeatherHistoryPoint[];
+  swims?: SwimSession[];
   onClose: () => void;
 }
 
-export function ChemFocusSheet({ meta, readings, poolHistory, airHistory, onClose }: ChemFocusSheetProps) {
+export function ChemFocusSheet({ meta, readings, poolHistory, airHistory, swims, onClose }: ChemFocusSheetProps) {
   const [poolOn, setPoolOn] = useState(true);
   const [airOn, setAirOn] = useState(true);
   const { unit } = useTheme();
@@ -54,7 +55,7 @@ export function ChemFocusSheet({ meta, readings, poolHistory, airHistory, onClos
         </div>
 
         <ChemChart readings={readings} chemKey={meta.key} color={meta.color} decimals={meta.decimals}
-          poolHistory={poolHistory} airHistory={airHistory} showPool={poolOn} showAir={airOn} variant="full" />
+          poolHistory={poolHistory} airHistory={airHistory} showPool={poolOn} showAir={airOn} variant="full" swims={swims} />
 
         {(poolOn && poolHistory.length > 0) || (airOn && airHistory.length > 0) ? (
           <div className={styles.legend}>
