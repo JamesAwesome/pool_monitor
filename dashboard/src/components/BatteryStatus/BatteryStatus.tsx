@@ -87,10 +87,11 @@ function BatteryChart({ history, loading: chartLoading }: { history: TimeSeriesP
             }}
             labelFormatter={(label) => new Date(String(label)).toLocaleDateString()}
             contentStyle={{
-              background: 'rgba(15, 23, 42, 0.9)',
-              border: '1px solid rgba(34, 197, 94, 0.3)',
+              // backgroundColor (not `background`) to cleanly override recharts'
+              // default; #1e293b is distinct from --color-bg (#0f1729) so it reads solid.
+              backgroundColor: '#1e293b',
+              border: '1px solid rgba(34, 197, 94, 0.4)',
               borderRadius: '12px',
-              backdropFilter: 'blur(12px)',
               color: '#e2e8f0',
               fontSize: '13px',
               padding: '10px 14px',

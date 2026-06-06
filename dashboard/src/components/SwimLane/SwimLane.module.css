@@ -33,6 +33,10 @@
   box-shadow: var(--shadow-sm);
   line-height: 1;
   white-space: nowrap;
+  /* The lane <g> is pointer-events:none so markers don't block the chart's own
+     hover; re-enable just the bubble so its hover box / title shows. */
+  pointer-events: auto;
+  cursor: default;
 }
 
 /* Compact bubble — centred exactly on the curve point (no stem/foot). Used on
@@ -51,6 +55,31 @@
   box-shadow: var(--shadow-sm);
   line-height: 1;
   white-space: nowrap;
+  pointer-events: auto;
+  cursor: default;
+}
+
+/* Hover box on the full charts — matches the maintenance-event hover box and the
+   temperature chart's tooltip so swim time reads in a consistent panel. */
+.tip {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  /* Distinct from --color-bg (#0f1729): #0c1626 was ~the page background, so the
+     box looked invisible/transparent. A lighter solid panel reads as opaque. */
+  background: #1e293b;
+  border: 1px solid rgba(56, 189, 248, 0.55);
+  border-radius: 10px;
+  color: #f1f5f9;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  padding: 6px 10px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
 }
 
 /* Stem — 1.5px × 18px vertical line rising from the foot centre. */

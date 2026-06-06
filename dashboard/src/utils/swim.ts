@@ -10,6 +10,13 @@ export function totalDips(list: SwimSession[]): number {
   return list.reduce((n, s) => n + s.people.length, 0);
 }
 
+/** "Sat, May 16 · 2:00 PM" — localized date + time label for a swim. */
+export function whenLabel(s: SwimSession): string {
+  const d = new Date(`${s.date}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  const t = new Date(`2000-01-01T${s.time}:00`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return `${d} · ${t}`;
+}
+
 /** Emoji most-recently-used first (unique), then seeded with the starter roster. */
 export function recentEmoji(list: SwimSession[], seed: string[], limit = 11): string[] {
   const seen: string[] = [];

@@ -184,12 +184,6 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory, swi
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" strokeOpacity={0.5} vertical={false} />
               {hasAir && <WeatherLane points={airHistory!} iconSize={18} collapse />}
-              {hasSwims && swimVisible && (
-                <SwimLane swims={swims} series={swimSeries} xMode="index" color="#38bdf8" />
-              )}
-              {hasEvents && eventsVisible && (
-                <EventLane events={events} series={swimSeries} xMode="index" />
-              )}
               <XAxis
                 dataKey="time"
                 tickFormatter={(t: string) => formatXTick(t, range, spansMultipleDays)}
@@ -221,10 +215,12 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory, swi
                   return cond ? `${base} · ${cond}` : base;
                 }}
                 contentStyle={{
-                  background: 'rgba(15, 23, 42, 0.9)',
-                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  // backgroundColor (not `background`) to cleanly override recharts'
+                  // default contentStyle.backgroundColor:'#fff'. #1e293b is distinct
+                  // from --color-bg (#0f1729) so the box doesn't blend into the page.
+                  backgroundColor: '#1e293b',
+                  border: '1px solid rgba(56, 189, 248, 0.4)',
                   borderRadius: '12px',
-                  backdropFilter: 'blur(12px)',
                   color: '#e2e8f0',
                   fontSize: '13px',
                   padding: '10px 14px',
@@ -256,6 +252,15 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory, swi
                   isAnimationActive={false}
                   hide={!airVisible}
                 />
+              )}
+              {/* Marker lanes render AFTER the series so the pin/chip + hover box
+                  paint ON TOP of the pool area and air line (SVG paints in document
+                  order) — otherwise the air line draws over the marker boxes. */}
+              {hasSwims && swimVisible && (
+                <SwimLane swims={swims} series={swimSeries} xMode="index" color="#38bdf8" />
+              )}
+              {hasEvents && eventsVisible && (
+                <EventLane events={events} series={swimSeries} xMode="index" />
               )}
             </ComposedChart>
           </ResponsiveContainer>
