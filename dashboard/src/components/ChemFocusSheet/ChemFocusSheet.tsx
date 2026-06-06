@@ -71,7 +71,8 @@ export function ChemFocusSheet({ meta, readings, poolHistory, airHistory, poolCu
         </div>
 
         <ChemChart readings={readings} chemKey={meta.key} color={meta.color} decimals={meta.decimals}
-          poolHistory={poolHistory} airHistory={airHistory} showPool={poolOn} showAir={airOn} variant="full"
+          poolHistory={poolHistory} airHistory={airHistory} poolCurrent={poolCurrent} airCurrent={airCurrent}
+          showPool={poolOn} showAir={airOn} variant="full"
           swims={swimOn ? swims : undefined} events={eventsOn ? events : undefined} />
 
         {(() => {
