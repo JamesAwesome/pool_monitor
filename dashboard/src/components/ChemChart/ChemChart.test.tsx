@@ -11,6 +11,7 @@ vi.mock('../../context/ThemeContext', () => ({
 // Mock recharts so we can assert chart wiring (margin headroom) deterministically.
 // The real lane glyph rendering on a numeric time axis is covered against real
 // Recharts in ../WeatherLane/WeatherLane.render.test.tsx.
+const { tooltipSpy } = vi.hoisted(() => ({ tooltipSpy: vi.fn(() => null) }));
 vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   ComposedChart: ({ children, margin }: { children: React.ReactNode; margin?: { top?: number } }) => (
@@ -20,7 +21,7 @@ vi.mock('recharts', () => ({
   Line: () => null,
   XAxis: () => null,
   YAxis: () => null,
-  Tooltip: () => null,
+  Tooltip: tooltipSpy,
   useXAxisScale: () => undefined,
   usePlotArea: () => undefined,
 }));
@@ -37,6 +38,22 @@ describe('ChemChart', () => {
         poolHistory={[]} airHistory={[]} showPool={false} showAir={false} variant="mini" />,
     );
     expect(screen.getByTestId('chem-chart-ph')).toBeInTheDocument();
+  });
+
+  it('renders the hover Tooltip only on the full variant', () => {
+    tooltipSpy.mockClear();
+    render(
+      <ChemChart readings={readings} chemKey="ph" color="#000" decimals={1}
+        poolHistory={[]} airHistory={[]} showPool={false} showAir={false} variant="mini" />,
+    );
+    expect(tooltipSpy).not.toHaveBeenCalled();
+
+    tooltipSpy.mockClear();
+    render(
+      <ChemChart readings={readings} chemKey="ph" color="#000" decimals={1}
+        poolHistory={[]} airHistory={[]} showPool={false} showAir={false} variant="full" />,
+    );
+    expect(tooltipSpy).toHaveBeenCalled();
   });
 
   it('reserves headroom scaling with the number of weather lane rows', () => {
