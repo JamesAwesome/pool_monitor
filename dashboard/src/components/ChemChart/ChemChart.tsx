@@ -190,6 +190,9 @@ export function ChemChart({
 
           {isFull && (
             <Tooltip
+              // Stack above the SVG marker foreignObjects (iOS/WebKit composites
+              // foreignObject content above sibling HTML overlays otherwise).
+              wrapperStyle={{ zIndex: 1000 }}
               labelFormatter={(label) => formatChemTooltipLabel(Number(label))}
               formatter={(value, name) => {
                 const row = formatChemTooltipItem(String(name), Number(value), {
