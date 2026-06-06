@@ -6,10 +6,13 @@ import {
   Line,
   XAxis,
   YAxis,
+  Tooltip,
 } from 'recharts';
 import { useTheme } from '../../context/ThemeContext';
 import type { ChemistryReading, ChemKey, TimeSeriesPoint, WeatherHistoryPoint, SwimSession, PoolEvent } from '../../types';
 import { buildChartData, type ChartPoint } from './buildChartData';
+import { CHEM_BY_KEY } from '../../constants/chemicals';
+import { formatChemTooltipItem, formatChemTooltipLabel } from './chemTooltip';
 import { WeatherLane, collapseRuns } from '../WeatherLane';
 import { SwimLane } from '../SwimLane';
 import { EventLane } from '../EventLane';
@@ -89,6 +92,8 @@ export function ChemChart({
   const { unit } = useTheme();
   const isF = unit === 'F';
   const isFull = variant === 'full';
+  const tempUnit = isF ? '°F' : '°C';
+  const cmeta = CHEM_BY_KEY[chemKey];
 
   const data = useMemo<ChartPoint[]>(
     () => buildChartData(readings, chemKey, poolHistory, airHistory, showPool, showAir, isF),
@@ -183,6 +188,26 @@ export function ChemChart({
             tick={{ fontSize: 10, fill: 'var(--color-text-secondary)' }}
             tickLine={false} axisLine={false} ticks={isFull ? [chemDomain[0], (chemDomain[0] + chemDomain[1]) / 2, chemDomain[1]] : undefined} />
 
+          {isFull && (
+            <Tooltip
+              labelFormatter={(label) => formatChemTooltipLabel(Number(label))}
+              formatter={(value, name) => {
+                const row = formatChemTooltipItem(String(name), Number(value), {
+                  name: cmeta.name, decimals, unit: cmeta.unit, tempUnit,
+                });
+                return row ?? [String(value), String(name)];
+              }}
+              contentStyle={{
+                backgroundColor: '#1e293b',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                borderRadius: '12px',
+                color: '#e2e8f0',
+                fontSize: '13px',
+                padding: '10px 14px',
+              }}
+              cursor={{ stroke: 'rgba(56, 189, 248, 0.3)', strokeWidth: 1 }}
+            />
+          )}
           {showPool && (
             <Area yAxisId="temp" type="monotone" dataKey="pool" stroke="var(--ghost-stroke)" strokeWidth={1.5}
               strokeDasharray="2 3" fill="var(--ghost-fill)" dot={false} connectNulls isAnimationActive={false} />

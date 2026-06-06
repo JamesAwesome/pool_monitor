@@ -20,6 +20,7 @@ vi.mock('recharts', () => ({
   Line: () => null,
   XAxis: () => null,
   YAxis: () => null,
+  Tooltip: () => null,
   useXAxisScale: () => undefined,
   usePlotArea: () => undefined,
 }));
