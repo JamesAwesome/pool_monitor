@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useXAxisScale, useYAxisScale, usePlotArea } from 'recharts';
 import type { PoolEvent } from '../../types';
 import { interpolateValueAt, indexFractionAt, type ChartPointTV } from '../../utils/markerPositions';
@@ -37,8 +38,11 @@ export function EventLane({ events, series, xMode, iconSize = 23, yAxisId, compa
   const xScale = useXAxisScale();
   const yScale = useYAxisScale(yAxisId);
   const plot = usePlotArea();
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   if (!xScale || !yScale || !plot || series.length === 0) return null;
+
+  const TIP_W = 200; // styled hover box (full charts only)
 
   const n = series.length;
   // Full mode: the pin grows UPWARD from the curve point — the foot sits at the
@@ -83,27 +87,44 @@ export function EventLane({ events, series, xMode, iconSize = 23, yAxisId, compa
         const k = EVENT_KINDS[ev.kind];
         const boxW = compact ? iconSize : iconSize + 2;
 
+        const label = `${summary(ev)} · ${whenLabel(ev)}`;
         return (
-          <foreignObject
-            key={ev.id}
-            x={cx - boxW / 2}
-            y={compact ? cy - markerH / 2 : cy + FOOT_R - markerH}
-            width={boxW}
-            height={markerH}
-          >
-            {/* color flows to currentColor on the stem/foot/chip border */}
-            <div className={styles.marker} style={{ color: k.color }}>
-              {!compact && <span className={styles.stem} aria-hidden="true" />}
-              {!compact && <span className={styles.foot} aria-hidden="true" />}
-              <span
-                className={`${styles.chip} ${compact ? styles.chipCompact : ''}`}
-                style={{ background: k.tint, borderColor: k.color }}
-                title={`${summary(ev)} · ${whenLabel(ev)}`}
+          <g key={ev.id}>
+            <foreignObject
+              x={cx - boxW / 2}
+              y={compact ? cy - markerH / 2 : cy + FOOT_R - markerH}
+              width={boxW}
+              height={markerH}
+            >
+              {/* color flows to currentColor on the stem/foot/chip border */}
+              <div className={styles.marker} style={{ color: k.color }}>
+                {!compact && <span className={styles.stem} aria-hidden="true" />}
+                {!compact && <span className={styles.foot} aria-hidden="true" />}
+                <span
+                  className={`${styles.chip} ${compact ? styles.chipCompact : ''}`}
+                  style={{ background: k.tint, borderColor: k.color }}
+                  // Compact cards have no room for the styled box → native tooltip.
+                  // Full charts show the styled box (below) on hover.
+                  title={compact ? label : undefined}
+                  onMouseEnter={compact ? undefined : () => setHoveredId(ev.id)}
+                  onMouseLeave={compact ? undefined : () => setHoveredId(null)}
+                >
+                  <span className={styles.ico}>{k.icon}</span>
+                </span>
+              </div>
+            </foreignObject>
+            {!compact && hoveredId === ev.id && (
+              <foreignObject
+                x={Math.max(plot.x, Math.min(cx - TIP_W / 2, plot.x + plot.width - TIP_W))}
+                y={cy - markerH - 46}
+                width={TIP_W}
+                height={48}
+                style={{ overflow: 'visible' }}
               >
-                <span className={styles.ico}>{k.icon}</span>
-              </span>
-            </div>
-          </foreignObject>
+                <div className={styles.tip} role="tooltip">{label}</div>
+              </foreignObject>
+            )}
+          </g>
         );
       })}
     </g>
