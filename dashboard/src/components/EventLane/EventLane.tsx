@@ -42,7 +42,8 @@ export function EventLane({ events, series, xMode, iconSize = 23, yAxisId, compa
 
   if (!xScale || !yScale || !plot || series.length === 0) return null;
 
-  const TIP_W = 200; // styled hover box (full charts only)
+  const TIP_W = 220; // styled hover box (full charts only)
+  const TIP_H = 46;
 
   const n = series.length;
   // Full mode: the pin grows UPWARD from the curve point — the foot sits at the
@@ -88,6 +89,13 @@ export function EventLane({ events, series, xMode, iconSize = 23, yAxisId, compa
         const boxW = compact ? iconSize : iconSize + 2;
 
         const label = `${summary(ev)} · ${whenLabel(ev)}`;
+        // Box sits above the pin; flip below if it would clip the plot top, then
+        // clamp fully inside the plot rect so a parent (chart svg / focus sheet)
+        // can't cut it off. Horizontal: keep within the plot width.
+        let tipY = cy - markerH - TIP_H;
+        if (tipY < plot.y) tipY = cy + 10;
+        tipY = Math.max(plot.y, Math.min(tipY, plot.y + plot.height - TIP_H));
+        const tipX = Math.max(plot.x, Math.min(cx - TIP_W / 2, plot.x + plot.width - TIP_W));
         return (
           <g key={ev.id}>
             <foreignObject
@@ -114,13 +122,7 @@ export function EventLane({ events, series, xMode, iconSize = 23, yAxisId, compa
               </div>
             </foreignObject>
             {!compact && hoveredId === ev.id && (
-              <foreignObject
-                x={Math.max(plot.x, Math.min(cx - TIP_W / 2, plot.x + plot.width - TIP_W))}
-                y={cy - markerH - 46}
-                width={TIP_W}
-                height={48}
-                style={{ overflow: 'visible' }}
-              >
+              <foreignObject x={tipX} y={tipY} width={TIP_W} height={TIP_H}>
                 <div className={styles.tip} role="tooltip">{label}</div>
               </foreignObject>
             )}
