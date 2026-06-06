@@ -221,8 +221,8 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory, swi
                   return cond ? `${base} · ${cond}` : base;
                 }}
                 contentStyle={{
-                  background: 'rgba(15, 23, 42, 0.9)',
-                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  background: 'rgba(15, 23, 42, 0.97)',
+                  border: '1px solid rgba(56, 189, 248, 0.4)',
                   borderRadius: '12px',
                   backdropFilter: 'blur(12px)',
                   color: '#e2e8f0',
