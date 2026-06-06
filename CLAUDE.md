@@ -121,7 +121,9 @@ A second tab (local `activeTab` state in `App`) logs six manual chemical reading
 (`ph`, `fc`, `cc`, `ta`, `cya`, `ch`) to a new InfluxDB `chemistry` measurement and
 shows each as a small-multiple trend card correlated against pool/air temperature.
 Tapping a card opens a focus `BottomSheet` (full chart + Low/Avg/High + recent
-readings). Logging is gated by an Express Basic-Auth middleware (`server/auth.ts`)
+readings). The focus chart has a Recharts hover tooltip (full variant only) showing
+the hovered reading's value + date, plus pool/air temp when those overlays are on;
+its formatters live in `ChemChart/chemTooltip.ts`. Logging is gated by an Express Basic-Auth middleware (`server/auth.ts`)
 on the chemistry write routes; the UI uses a custom unlock sheet (the 401 response
 intentionally omits `WWW-Authenticate` to suppress the native browser dialog).
 Readings carry a real timestamp (date + time), so two tests on the same day are
