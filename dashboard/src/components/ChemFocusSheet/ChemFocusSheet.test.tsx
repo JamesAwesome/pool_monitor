@@ -96,4 +96,22 @@ describe('ChemFocusSheet', () => {
     // 28.89°C → 84.0°F
     expect(screen.getByText(/84\.0°F/)).toBeInTheDocument();
   });
+
+  it('uses live current temps for the now legend, not the last (aggregated) history bucket', () => {
+    // History last points are coarse daily-mean buckets (season/all range), which
+    // lag the real "now" — especially air on a hot afternoon.
+    const poolHistory = [{ time: '2026-06-06T00:00:00Z', value: 24.9 }]; // → 76.8°F
+    const airHistory = [{ time: '2026-06-06T00:00:00Z', value: 25.7 }];  // → 78.3°F
+    render(
+      <ChemFocusSheet meta={CHEM_BY_KEY.fc} readings={readings}
+        poolHistory={poolHistory} airHistory={airHistory}
+        poolCurrent={25.3} airCurrent={30.8} onClose={vi.fn()} />,
+    );
+    // Live values win: 25.3°C → 77.5°F, 30.8°C → 87.4°F
+    expect(screen.getByText(/77\.5°F/)).toBeInTheDocument();
+    expect(screen.getByText(/87\.4°F/)).toBeInTheDocument();
+    // Stale daily-mean values must not be shown as "now"
+    expect(screen.queryByText(/76\.8°F/)).toBeNull();
+    expect(screen.queryByText(/78\.3°F/)).toBeNull();
+  });
 });
