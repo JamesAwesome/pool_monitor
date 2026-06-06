@@ -15,12 +15,17 @@ interface ChemFocusSheetProps {
   readings: ChemistryReading[];
   poolHistory: TimeSeriesPoint[];
   airHistory: WeatherHistoryPoint[];
+  /** Live current pool/air temps (°C) for the "now" legend. The history arrays
+   *  are aggregateWindow-bucketed (1d for season/all), so their last point is a
+   *  partial-day mean — stale relative to the real current reading. */
+  poolCurrent?: number | null;
+  airCurrent?: number | null;
   swims?: SwimSession[];
   events?: PoolEvent[];
   onClose: () => void;
 }
 
-export function ChemFocusSheet({ meta, readings, poolHistory, airHistory, swims, events, onClose }: ChemFocusSheetProps) {
+export function ChemFocusSheet({ meta, readings, poolHistory, airHistory, poolCurrent, airCurrent, swims, events, onClose }: ChemFocusSheetProps) {
   const [poolOn, setPoolOn] = useState(true);
   const [airOn, setAirOn] = useState(true);
   const [swimOn, setSwimOn] = useState(true);
@@ -66,25 +71,35 @@ export function ChemFocusSheet({ meta, readings, poolHistory, airHistory, swims,
         </div>
 
         <ChemChart readings={readings} chemKey={meta.key} color={meta.color} decimals={meta.decimals}
-          poolHistory={poolHistory} airHistory={airHistory} showPool={poolOn} showAir={airOn} variant="full"
+          poolHistory={poolHistory} airHistory={airHistory} poolCurrent={poolCurrent} airCurrent={airCurrent}
+          showPool={poolOn} showAir={airOn} variant="full"
           swims={swimOn ? swims : undefined} events={eventsOn ? events : undefined} />
 
-        {(poolOn && poolHistory.length > 0) || (airOn && airHistory.length > 0) ? (
-          <div className={styles.legend}>
-            {poolOn && poolHistory.length > 0 && (
-              <span className={styles.legendItem}>
-                <span className={styles.legendVal}>{formatTemperature(poolHistory[poolHistory.length - 1].value, unit)}{unitSuffix}</span>
-                pool now
-              </span>
-            )}
-            {airOn && airHistory.length > 0 && (
-              <span className={styles.legendItem} style={{ color: 'var(--color-air-temp)' }}>
-                <span className={styles.legendVal}>{formatTemperature(airHistory[airHistory.length - 1].value, unit)}{unitSuffix}</span>
-                air now
-              </span>
-            )}
-          </div>
-        ) : null}
+        {(() => {
+          // "Now" = the real latest reading, falling back to the last history
+          // bucket only when the live current is unavailable.
+          const poolNow = poolCurrent ?? (poolHistory.length > 0 ? poolHistory[poolHistory.length - 1].value : null);
+          const airNow = airCurrent ?? (airHistory.length > 0 ? airHistory[airHistory.length - 1].value : null);
+          const showPoolNow = poolOn && poolNow !== null;
+          const showAirNow = airOn && airNow !== null;
+          if (!showPoolNow && !showAirNow) return null;
+          return (
+            <div className={styles.legend}>
+              {showPoolNow && (
+                <span className={styles.legendItem}>
+                  <span className={styles.legendVal}>{formatTemperature(poolNow, unit)}{unitSuffix}</span>
+                  pool now
+                </span>
+              )}
+              {showAirNow && (
+                <span className={styles.legendItem} style={{ color: 'var(--color-air-temp)' }}>
+                  <span className={styles.legendVal}>{formatTemperature(airNow, unit)}{unitSuffix}</span>
+                  air now
+                </span>
+              )}
+            </div>
+          );
+        })()}
 
         <div className={styles.stats}>
           {(['low', 'avg', 'high'] as const).map((k) => (

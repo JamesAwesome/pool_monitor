@@ -43,7 +43,7 @@ export function ChemistryTab() {
   const [evEntry, setEvEntry] = useState<PoolEvent | null>(null);
   const [bookOpen, setBookOpen] = useState(false);
 
-  const { readings, poolHistory, airHistory, loading, refetch } = useChemistryData(range);
+  const { readings, poolHistory, airHistory, poolCurrent, airCurrent, loading, refetch } = useChemistryData(range);
   const { swims } = useSwimData(range);
   const { events, refetch: refetchEvents } = useEventData(range);
   const { events: seasonEvents, refetch: refetchSeasonEvents } = useEventData('season');
@@ -122,7 +122,8 @@ export function ChemistryTab() {
         <div className={styles.grid}>
           {CHEMS.map((c) => (
             <ChemCard key={c.key} meta={c} readings={readings}
-              poolHistory={poolHistory} airHistory={airHistory} showPool={poolOn} showAir={airOn}
+              poolHistory={poolHistory} airHistory={airHistory} poolCurrent={poolCurrent} airCurrent={airCurrent}
+              showPool={poolOn} showAir={airOn}
               swims={swimOn ? swims : undefined} events={eventsOn ? events : undefined} onOpen={setSelected} />
           ))}
         </div>
@@ -130,7 +131,8 @@ export function ChemistryTab() {
 
       {selected && (
         <ChemFocusSheet meta={CHEM_BY_KEY[selected]} readings={readings}
-          poolHistory={poolHistory} airHistory={airHistory} swims={swims} events={events} onClose={() => setSelected(null)} />
+          poolHistory={poolHistory} airHistory={airHistory} poolCurrent={poolCurrent} airCurrent={airCurrent}
+          swims={swims} events={events} onClose={() => setSelected(null)} />
       )}
 
       <HistorySheet

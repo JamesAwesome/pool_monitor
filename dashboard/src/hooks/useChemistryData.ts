@@ -5,6 +5,10 @@ export interface UseChemistryDataReturn {
   readings: ChemistryReading[];
   poolHistory: TimeSeriesPoint[];
   airHistory: TimeSeriesPoint[];
+  /** Live current pool/air temps (°C). The history arrays are bucket-aggregated,
+   *  so their last point lags "now"; these drive the focus-sheet "now" legend. */
+  poolCurrent: number | null;
+  airCurrent: number | null;
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
@@ -14,6 +18,8 @@ export function useChemistryData(range: string, refreshInterval = 30000): UseChe
   const [readings, setReadings] = useState<ChemistryReading[]>([]);
   const [poolHistory, setPoolHistory] = useState<TimeSeriesPoint[]>([]);
   const [airHistory, setAirHistory] = useState<TimeSeriesPoint[]>([]);
+  const [poolCurrent, setPoolCurrent] = useState<number | null>(null);
+  const [airCurrent, setAirCurrent] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,6 +44,17 @@ export function useChemistryData(range: string, refreshInterval = 30000): UseChe
     } finally {
       setLoading(false);
     }
+
+    // Live current temps for the "now" legend — fetched independently and
+    // fail-silent so a weather/stats hiccup never blanks the chem trends.
+    fetch(`/api/stats?range=${encodeURIComponent(range)}`)
+      .then((res) => (res.ok ? (res.json() as Promise<{ current: number | null }>) : null))
+      .then((d) => setPoolCurrent(d?.current ?? null))
+      .catch(() => setPoolCurrent(null));
+    fetch('/api/weather/current')
+      .then((res) => (res.ok ? (res.json() as Promise<{ temperature_C: number | null }>) : null))
+      .then((d) => setAirCurrent(d?.temperature_C ?? null))
+      .catch(() => setAirCurrent(null));
   }, [range]);
 
   useEffect(() => {
@@ -51,5 +68,5 @@ export function useChemistryData(range: string, refreshInterval = 30000): UseChe
     return () => clearInterval(id);
   }, [fetchData, refreshInterval]);
 
-  return { readings, poolHistory, airHistory, loading, error, refetch: fetchData };
+  return { readings, poolHistory, airHistory, poolCurrent, airCurrent, loading, error, refetch: fetchData };
 }

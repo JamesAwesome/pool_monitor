@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ChemChart, laneFromAirHistory, weatherAtReadings } from './ChemChart';
-import { buildChartData } from './buildChartData';
+import { buildChartData, extendTempToEdge, type ChartPoint } from './buildChartData';
 import type { WeatherHistoryPoint } from '../../types';
 
 vi.mock('../../context/ThemeContext', () => ({
@@ -162,5 +162,46 @@ describe('buildChartData', () => {
     const data = buildChartData(readings, 'ph', [], [], false, false, false);
     expect(data).toHaveLength(2);
     expect(data[0].t).not.toBe(data[1].t);
+  });
+});
+
+describe('extendTempToEdge', () => {
+  const t = (s: string) => new Date(s).getTime();
+  // Daily-mean temp buckets end at UTC midnight; the chart edge is later (a chem
+  // reading / marker), so the temp curves stop short of the edge.
+  const base: ChartPoint[] = [
+    { t: t('2026-06-05T00:00:00Z'), pool: 74, air: 70 },
+    { t: t('2026-06-06T00:00:00Z'), pool: 76.8, air: 78.3 },
+    { t: t('2026-06-06T14:24:00Z'), chem: 7.3 }, // latest reading defines the edge
+  ];
+  const edge = t('2026-06-06T14:44:00Z');
+
+  it('appends a temp point at the edge using the live current values', () => {
+    const out = extendTempToEdge(base, edge, { poolValue: 77.5, airValue: 89.1 });
+    const last = out[out.length - 1];
+    expect(last.t).toBe(edge);
+    expect(last.pool).toBe(77.5);
+    expect(last.air).toBe(89.1);
+  });
+
+  it('merges into an existing point when one already sits at the edge', () => {
+    const out = extendTempToEdge(base, t('2026-06-06T14:24:00Z'), { poolValue: 77.5, airValue: 89.1 });
+    const atReading = out.filter((p) => p.t === t('2026-06-06T14:24:00Z'));
+    expect(atReading).toHaveLength(1); // no duplicate x
+    expect(atReading[0].chem).toBe(7.3); // chem preserved
+    expect(atReading[0].pool).toBe(77.5);
+  });
+
+  it('does not extend when the temp series already reaches the edge', () => {
+    const reach: ChartPoint[] = [{ t: t('2026-06-06T14:44:00Z'), pool: 77.5, air: 89.1 }];
+    expect(extendTempToEdge(reach, edge, { poolValue: 77.5, airValue: 89.1 })).toEqual(reach);
+  });
+
+  it('is a no-op when no temp values are available', () => {
+    expect(extendTempToEdge(base, edge, { poolValue: null, airValue: null })).toBe(base);
+  });
+
+  it('is a no-op when the edge is not numeric', () => {
+    expect(extendTempToEdge(base, null, { poolValue: 77.5, airValue: 89.1 })).toBe(base);
   });
 });

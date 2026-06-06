@@ -10,6 +10,8 @@ interface ChemCardProps {
   readings: ChemistryReading[];
   poolHistory: TimeSeriesPoint[];
   airHistory: TimeSeriesPoint[];
+  poolCurrent?: number | null;
+  airCurrent?: number | null;
   showPool: boolean;
   showAir: boolean;
   swims?: SwimSession[];
@@ -17,7 +19,7 @@ interface ChemCardProps {
   onOpen: (key: ChemKey) => void;
 }
 
-export function ChemCard({ meta, readings, poolHistory, airHistory, showPool, showAir, swims, events, onOpen }: ChemCardProps) {
+export function ChemCard({ meta, readings, poolHistory, airHistory, poolCurrent, airCurrent, showPool, showAir, swims, events, onOpen }: ChemCardProps) {
   const latest = latestReading(readings, meta.key);
   const delta = computeDelta(readings, meta.key, meta.decimals);
 
@@ -45,6 +47,8 @@ export function ChemCard({ meta, readings, poolHistory, airHistory, showPool, sh
         decimals={meta.decimals}
         poolHistory={poolHistory}
         airHistory={airHistory}
+        poolCurrent={poolCurrent}
+        airCurrent={airCurrent}
         showPool={showPool}
         showAir={showAir}
         swims={swims}

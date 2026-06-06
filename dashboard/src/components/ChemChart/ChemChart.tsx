@@ -9,8 +9,9 @@ import {
   Tooltip,
 } from 'recharts';
 import { useTheme } from '../../context/ThemeContext';
+import { celsiusToFahrenheit } from '../../utils/temperature';
 import type { ChemistryReading, ChemKey, TimeSeriesPoint, WeatherHistoryPoint, SwimSession, PoolEvent } from '../../types';
-import { buildChartData, type ChartPoint } from './buildChartData';
+import { buildChartData, extendTempToEdge, type ChartPoint } from './buildChartData';
 import { CHEM_BY_KEY } from '../../constants/chemicals';
 import { formatChemTooltipItem, formatChemTooltipLabel } from './chemTooltip';
 import { WeatherLane, collapseRuns } from '../WeatherLane';
@@ -73,6 +74,10 @@ interface ChemChartProps {
   decimals: number;
   poolHistory: TimeSeriesPoint[];
   airHistory: WeatherHistoryPoint[];
+  /** Live current pool/air temps (°C) used to carry the overlay curves to the
+   *  chart's right edge (history buckets lag "now" — see extendTempToEdge). */
+  poolCurrent?: number | null;
+  airCurrent?: number | null;
   showPool: boolean;
   showAir: boolean;
   variant: 'mini' | 'full';
@@ -87,7 +92,7 @@ function padDomain([min, max]: [number, number]): [number, number] {
 }
 
 export function ChemChart({
-  readings, chemKey, color, decimals, poolHistory, airHistory, showPool, showAir, variant, swims, events,
+  readings, chemKey, color, decimals, poolHistory, airHistory, poolCurrent, airCurrent, showPool, showAir, variant, swims, events,
 }: ChemChartProps) {
   const { unit } = useTheme();
   const isF = unit === 'F';
@@ -95,19 +100,9 @@ export function ChemChart({
   const tempUnit = isF ? '°F' : '°C';
   const cmeta = CHEM_BY_KEY[chemKey];
 
-  const data = useMemo<ChartPoint[]>(
+  const baseData = useMemo<ChartPoint[]>(
     () => buildChartData(readings, chemKey, poolHistory, airHistory, showPool, showAir, isF),
     [readings, chemKey, poolHistory, airHistory, showPool, showAir, isF],
-  );
-
-  const chemValues = useMemo(
-    () => data.map((d) => d.chem).filter((v): v is number => typeof v === 'number'),
-    [data],
-  );
-
-  const swimSeries = useMemo(
-    () => data.map((d) => ({ t: d.t, value: typeof d.chem === 'number' ? d.chem : undefined })),
-    [data],
   );
 
   // Marker (swim/event) timestamps. Chem data can end before a recently-logged
@@ -122,9 +117,34 @@ export function ChemChart({
     [swims, events],
   );
   const xDomain = useMemo<[number, number] | ['dataMin', 'dataMax']>(() => {
-    if (data.length === 0) return ['dataMin', 'dataMax'];
-    return [Math.min(data[0].t, ...markerEpochs), Math.max(data[data.length - 1].t, ...markerEpochs)];
-  }, [data, markerEpochs]);
+    if (baseData.length === 0) return ['dataMin', 'dataMax'];
+    return [Math.min(baseData[0].t, ...markerEpochs), Math.max(baseData[baseData.length - 1].t, ...markerEpochs)];
+  }, [baseData, markerEpochs]);
+
+  // Carry the temp overlays to the chart's right edge. Aggregated temp buckets
+  // are stamped at the window start, so on Season/All they lag the edge (latest
+  // reading / marker) by up to a day, leaving the curves dangling short. Use the
+  // live current temp (fall back to the last bucket) at the edge. See extendTempToEdge.
+  const poolEdgeC = showPool ? (poolCurrent ?? (poolHistory.length ? poolHistory[poolHistory.length - 1].value : null)) : null;
+  const airEdgeC = showAir ? (airCurrent ?? (airHistory.length ? airHistory[airHistory.length - 1].value : null)) : null;
+  const data = useMemo<ChartPoint[]>(
+    () => extendTempToEdge(baseData, typeof xDomain[1] === 'number' ? xDomain[1] : null, {
+      poolValue: poolEdgeC == null ? null : (isF ? celsiusToFahrenheit(poolEdgeC) : poolEdgeC),
+      airValue: airEdgeC == null ? null : (isF ? celsiusToFahrenheit(airEdgeC) : airEdgeC),
+    }),
+    [baseData, xDomain, poolEdgeC, airEdgeC, isF],
+  );
+
+  const chemValues = useMemo(
+    () => data.map((d) => d.chem).filter((v): v is number => typeof v === 'number'),
+    [data],
+  );
+
+  const swimSeries = useMemo(
+    () => data.map((d) => ({ t: d.t, value: typeof d.chem === 'number' ? d.chem : undefined })),
+    [data],
+  );
+
   const markerSeries = useMemo(() => {
     if (data.length === 0 || typeof xDomain[0] !== 'number' || typeof xDomain[1] !== 'number') return swimSeries;
     const out = [...swimSeries];
