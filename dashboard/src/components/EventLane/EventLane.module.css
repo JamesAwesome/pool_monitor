@@ -35,6 +35,11 @@
   border: 1.5px solid currentColor;
   box-shadow: var(--shadow-sm);
   line-height: 1;
+  /* The lane <g> is pointer-events:none so markers don't block the chart's own
+     hover; re-enable just the chip so its `title` tooltip ("what it was") shows.
+     Only the small chip captures hover — the stem/foot and empty box pass through. */
+  pointer-events: auto;
+  cursor: default;
 }
 
 /* Compact chip — centred exactly on the curve point (no stem/foot). Used on the

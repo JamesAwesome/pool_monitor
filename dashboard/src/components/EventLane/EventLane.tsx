@@ -2,6 +2,7 @@ import { useXAxisScale, useYAxisScale, usePlotArea } from 'recharts';
 import type { PoolEvent } from '../../types';
 import { interpolateValueAt, indexFractionAt, type ChartPointTV } from '../../utils/markerPositions';
 import { EVENT_KINDS } from '../../constants/events';
+import { summary, whenLabel } from '../../utils/events';
 import styles from './EventLane.module.css';
 
 interface EventLaneProps {
@@ -97,7 +98,7 @@ export function EventLane({ events, series, xMode, iconSize = 23, yAxisId, compa
               <span
                 className={`${styles.chip} ${compact ? styles.chipCompact : ''}`}
                 style={{ background: k.tint, borderColor: k.color }}
-                title={k.noun}
+                title={`${summary(ev)} · ${whenLabel(ev)}`}
               >
                 <span className={styles.ico}>{k.icon}</span>
               </span>
