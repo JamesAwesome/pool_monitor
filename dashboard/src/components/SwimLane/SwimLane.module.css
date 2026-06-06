@@ -68,8 +68,10 @@
   display: flex;
   align-items: center;
   overflow: hidden;
-  background: #0c1626;
-  border: 1px solid rgba(56, 189, 248, 0.45);
+  /* Distinct from --color-bg (#0f1729): #0c1626 was ~the page background, so the
+     box looked invisible/transparent. A lighter solid panel reads as opaque. */
+  background: #1e293b;
+  border: 1px solid rgba(56, 189, 248, 0.55);
   border-radius: 10px;
   color: #f1f5f9;
   font-size: 12px;

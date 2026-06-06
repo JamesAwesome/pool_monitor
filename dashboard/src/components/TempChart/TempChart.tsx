@@ -216,9 +216,9 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory, swi
                 }}
                 contentStyle={{
                   // backgroundColor (not `background`) to cleanly override recharts'
-                  // default contentStyle.backgroundColor:'#fff' — a `background`
-                  // shorthand leaves both set (React style conflict warning).
-                  backgroundColor: '#0f172a',
+                  // default contentStyle.backgroundColor:'#fff'. #1e293b is distinct
+                  // from --color-bg (#0f1729) so the box doesn't blend into the page.
+                  backgroundColor: '#1e293b',
                   border: '1px solid rgba(56, 189, 248, 0.4)',
                   borderRadius: '12px',
                   color: '#e2e8f0',
