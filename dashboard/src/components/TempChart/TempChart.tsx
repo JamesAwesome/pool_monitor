@@ -204,6 +204,10 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory, swi
                 domain={['auto', 'auto']}
               />
               <Tooltip
+                // Explicit stacking context so the tooltip sits above the SVG
+                // marker foreignObjects — iOS/WebKit otherwise composites
+                // foreignObject content above sibling HTML overlays.
+                wrapperStyle={{ zIndex: 1000 }}
                 formatter={(value, name) => {
                   const v = typeof value === 'number' ? value : Number(value);
                   const n = String(name);
