@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sortedSwims, totalDips, recentEmoji, leaderboard } from './swim';
+import { sortedSwims, totalDips, recentEmoji, leaderboard, whenLabel } from './swim';
 import type { SwimSession } from '../types';
 
 const s = (id: string, date: string, time: string, people: string[]): SwimSession => ({ id, date, time, people });
@@ -46,5 +46,13 @@ describe('leaderboard', () => {
       { emoji: '🐢', count: 1 },
       { emoji: '🐬', count: 1 },
     ]);
+  });
+});
+
+describe('whenLabel', () => {
+  it('returns a non-empty date + time label containing a separator', () => {
+    const label = whenLabel(s('1', '2026-05-16', '14:00', ['🦦']));
+    expect(label).toContain('·');
+    expect(label.length).toBeGreaterThan(0);
   });
 });

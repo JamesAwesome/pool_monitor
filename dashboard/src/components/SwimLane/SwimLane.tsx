@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useXAxisScale, useYAxisScale, usePlotArea } from 'recharts';
 import type { SwimSession } from '../../types';
 import { interpolateValueAt, indexFractionAt, type ChartPointTV } from '../../utils/markerPositions';
+import { whenLabel } from '../../utils/swim';
 import { Avatars } from './Avatars';
 import styles from './SwimLane.module.css';
 
@@ -37,8 +39,12 @@ export function SwimLane({ swims, series, xMode, color, iconSize = 22, yAxisId, 
   const xScale = useXAxisScale();
   const yScale = useYAxisScale(yAxisId);
   const plot = usePlotArea();
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   if (!xScale || !yScale || !plot || series.length === 0) return null;
+
+  const TIP_W = 220; // styled hover box (full charts only)
+  const TIP_H = 46;
 
   const n = series.length;
   // Full mode: the pin grows UPWARD from the curve point — the foot sits at the
@@ -88,30 +94,49 @@ export function SwimLane({ swims, series, xMode, color, iconSize = 22, yAxisId, 
         // bubble width grows with the number of swimmers (uses the actual emoji size)
         const bubbleW = Math.max(iconSize * 1.2, avatarSize * 0.66 * s.people.length * 1.3 + 20);
 
+        const n2 = s.people.length;
+        const label = `${n2} ${n2 === 1 ? 'swimmer' : 'swimmers'} · ${whenLabel(s)}`;
+        // Box sits above the pin; flip below if it would clip the plot top, then
+        // clamp fully inside the plot rect so a parent can't cut it off.
+        let tipY = cy - markerH - TIP_H;
+        if (tipY < plot.y) tipY = cy + 10;
+        tipY = Math.max(plot.y, Math.min(tipY, plot.y + plot.height - TIP_H));
+        const tipX = Math.max(plot.x, Math.min(cx - TIP_W / 2, plot.x + plot.width - TIP_W));
+
         return (
-          <foreignObject
-            key={s.id}
-            x={cx - bubbleW / 2}
-            y={compact ? cy - markerH / 2 : cy + FOOT_R - markerH}
-            width={bubbleW}
-            height={markerH}
-          >
-            <div className={styles.marker}>
-              {compact ? (
-                <span className={styles.chromeCompact}>
-                  <Avatars people={s.people} size={avatarSize} />
-                </span>
-              ) : (
-                <>
-                  <span className={styles.chrome}>
+          <g key={s.id}>
+            <foreignObject
+              x={cx - bubbleW / 2}
+              y={compact ? cy - markerH / 2 : cy + FOOT_R - markerH}
+              width={bubbleW}
+              height={markerH}
+            >
+              <div className={styles.marker}>
+                {compact ? (
+                  <span className={styles.chromeCompact} title={label}>
                     <Avatars people={s.people} size={avatarSize} />
                   </span>
-                  <span className={styles.stem} aria-hidden="true" />
-                  <span className={styles.foot} aria-hidden="true" />
-                </>
-              )}
-            </div>
-          </foreignObject>
+                ) : (
+                  <>
+                    <span
+                      className={styles.chrome}
+                      onMouseEnter={() => setHoveredId(s.id)}
+                      onMouseLeave={() => setHoveredId(null)}
+                    >
+                      <Avatars people={s.people} size={avatarSize} />
+                    </span>
+                    <span className={styles.stem} aria-hidden="true" />
+                    <span className={styles.foot} aria-hidden="true" />
+                  </>
+                )}
+              </div>
+            </foreignObject>
+            {!compact && hoveredId === s.id && (
+              <foreignObject x={tipX} y={tipY} width={TIP_W} height={TIP_H}>
+                <div className={styles.tip} role="tooltip">{label}</div>
+              </foreignObject>
+            )}
+          </g>
         );
       })}
     </g>
