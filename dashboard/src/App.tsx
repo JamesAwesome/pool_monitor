@@ -11,6 +11,7 @@ import { SensorSelector } from './components/SensorSelector';
 import { TabBar, type TabKey } from './components/TabBar';
 import { ChemistryTab } from './components/ChemistryTab';
 import { useSwimData } from './hooks/useSwimData';
+import { useEventData } from './hooks/useEventData';
 import { SwimLogFlow } from './components/SwimLogFlow';
 import { SwimHistorySheet } from './components/SwimHistorySheet';
 import { Toast } from './components/Toast';
@@ -24,6 +25,7 @@ function TemperatureTab() {
   const { swims, refetch: refetchSwims } = useSwimData(range);
   const { swims: seasonSwims, refetch: refetchSeasonSwims } = useSwimData('season');
   const refetchAllSwims = () => { refetchSwims(); refetchSeasonSwims(); };
+  const { events } = useEventData(range);
   const [logOpen, setLogOpen] = useState(false);
   const [histOpen, setHistOpen] = useState(false);
   const [editEntry, setEditEntry] = useState<SwimSession | null>(null);
@@ -41,7 +43,7 @@ function TemperatureTab() {
         <button type="button" className={styles.logBtn} onClick={() => { setEditEntry(null); setLogOpen(true); }}>＋ Log swim</button>
       </div>
 
-      <TempChart data={history} range={range} onRangeChange={setRange} loading={loading} airHistory={airHistory} swims={swims} />
+      <TempChart data={history} range={range} onRangeChange={setRange} loading={loading} airHistory={airHistory} swims={swims} events={events} />
       <BatteryStatus batteries={batteries} loading={loading} />
 
       <SwimHistorySheet

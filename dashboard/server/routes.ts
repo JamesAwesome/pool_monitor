@@ -1,9 +1,10 @@
 import express, { Router } from 'express'
-import { querySensors, queryStats, queryHistory, queryBatteries, queryBatteryHistory, querySeasonHistory, queryStatDetail, queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry, querySwims, writeSwim, deletePoint } from './influx.js'
+import { querySensors, queryStats, queryHistory, queryBatteries, queryBatteryHistory, querySeasonHistory, queryStatDetail, queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry, querySwims, writeSwim, queryEvents, writeEvent, deletePoint } from './influx.js'
 import { generateOgImage } from './og-image.js'
 import { requireAuth } from './auth.js'
 import { validateChemistryBody, isValidId } from './chemistry.js'
 import { validateSwimBody } from './swim.js'
+import { validateEventBody } from './event.js'
 import { chemistryAuthLimiter } from './rateLimit.js'
 
 function isValidSensorId(id: string): boolean {
@@ -22,6 +23,7 @@ export function isValidRange(range: string): boolean {
 const router = Router()
 router.use('/api/chemistry', express.json())
 router.use('/api/swims', express.json())
+router.use('/api/events', express.json())
 
 router.get('/og-image.png', async (_req, res) => {
   try {
@@ -294,6 +296,46 @@ router.delete('/api/swims', chemistryAuthLimiter, requireAuth, async (req, res) 
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' })
   }
+})
+
+router.get('/api/events', async (req, res) => {
+  try {
+    const range = typeof req.query.range === 'string' ? req.query.range : 'season'
+    if (req.query.range !== undefined && !isValidRange(range)) { res.status(400).json({ error: 'Invalid range' }); return }
+    res.json(await queryEvents(range))
+  } catch (err) { res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' }) }
+})
+
+router.post('/api/events', chemistryAuthLimiter, requireAuth, async (req, res) => {
+  try {
+    const result = validateEventBody(req.body)
+    if (!result.ok) { res.status(400).json({ error: result.error }); return }
+    const { ok: _ok, date, time, ...rest } = result
+    const id = await writeEvent({ date, time, ...rest })
+    res.status(201).json({ id })
+  } catch (err) { res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' }) }
+})
+
+router.put('/api/events', chemistryAuthLimiter, requireAuth, async (req, res) => {
+  try {
+    const id = (req.body as { id?: unknown })?.id
+    if (!isValidId(id)) { res.status(400).json({ error: 'Invalid or missing id' }); return }
+    const result = validateEventBody(req.body)
+    if (!result.ok) { res.status(400).json({ error: result.error }); return }
+    await deletePoint(id as string, 'event')
+    const { ok: _ok, date, time, ...rest } = result
+    const newId = await writeEvent({ date, time, ...rest })
+    res.status(200).json({ id: newId })
+  } catch (err) { res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' }) }
+})
+
+router.delete('/api/events', chemistryAuthLimiter, requireAuth, async (req, res) => {
+  try {
+    const id = typeof req.query.id === 'string' ? req.query.id : ''
+    if (!isValidId(id)) { res.status(400).json({ error: 'Invalid or missing id' }); return }
+    await deletePoint(id, 'event')
+    res.status(200).json({ ok: true })
+  } catch (err) { res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' }) }
 })
 
 router.get('/api/health', (_req, res) => {

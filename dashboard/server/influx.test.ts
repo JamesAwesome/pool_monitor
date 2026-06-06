@@ -180,7 +180,7 @@ vi.mock('@influxdata/influxdb-client', () => {
   return { InfluxDB, Point }
 })
 
-const { queryHistory, queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry, querySwims, writeSwim } = await import('./influx')
+const { queryHistory, queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry, querySwims, writeSwim, queryEvents, writeEvent } = await import('./influx')
 
 beforeEach(() => {
   queryApiStub.collectRows.mockReset()
@@ -328,6 +328,34 @@ describe('querySwims', () => {
 describe('writeSwim', () => {
   it('writes a point at the date+time instant with a joined people field', async () => {
     const id = await writeSwim({ date: '2026-05-20', time: '14:30', people: ['🦦', '🐢'] }, 'America/New_York');
+    expect(writeApiStub.writePoint).toHaveBeenCalledOnce();
+    expect(writeApiStub.flush).toHaveBeenCalledOnce();
+    expect(id).toBe('2026-05-20T18:30:00.000Z');
+  });
+});
+
+describe('queryEvents', () => {
+  it('maps each point to id + derived date/time + kind payload', async () => {
+    queryApiStub.collectRows.mockResolvedValueOnce([
+      { _time: '2026-05-20T18:30:00.000Z', kind: 'chemical', product: 'Liquid chlorine', amount: 48, unit: 'oz' },
+      { _time: '2026-05-21T13:00:00.000Z', kind: 'backwash' },
+    ]);
+    const out = await queryEvents('season', 'America/New_York');
+    expect(out).toEqual([
+      { id: '2026-05-20T18:30:00.000Z', date: '2026-05-20', time: '14:30', kind: 'chemical', product: 'Liquid chlorine', amount: 48, unit: 'oz' },
+      { id: '2026-05-21T13:00:00.000Z', date: '2026-05-21', time: '09:00', kind: 'backwash' },
+    ]);
+  });
+  it('filters the event measurement', async () => {
+    queryApiStub.collectRows.mockResolvedValueOnce([]);
+    await queryEvents('season', 'America/New_York');
+    expect(queryApiStub.collectRows.mock.calls.at(-1)![0]).toContain('_measurement == "event"');
+  });
+});
+
+describe('writeEvent', () => {
+  it('writes a chemical point and returns the ISO id', async () => {
+    const id = await writeEvent({ date: '2026-05-20', time: '14:30', kind: 'chemical', product: 'Cal-hypo', amount: 16, unit: 'oz' }, 'America/New_York');
     expect(writeApiStub.writePoint).toHaveBeenCalledOnce();
     expect(writeApiStub.flush).toHaveBeenCalledOnce();
     expect(id).toBe('2026-05-20T18:30:00.000Z');

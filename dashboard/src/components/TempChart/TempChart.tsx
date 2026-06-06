@@ -16,7 +16,8 @@ import { BottomSheet } from '../BottomSheet';
 import { OverlayPill } from '../OverlayPill';
 import { WeatherLane } from '../WeatherLane';
 import { SwimLane } from '../SwimLane';
-import type { TimeSeriesPoint, WeatherHistoryPoint, SwimSession } from '../../types';
+import { EventLane } from '../EventLane';
+import type { TimeSeriesPoint, WeatherHistoryPoint, SwimSession, PoolEvent } from '../../types';
 import styles from './TempChart.module.css';
 
 interface TempChartProps {
@@ -26,6 +27,7 @@ interface TempChartProps {
   loading: boolean;
   airHistory?: WeatherHistoryPoint[];
   swims?: SwimSession[];
+  events?: PoolEvent[];
 }
 
 const QUICK_RANGES = [
@@ -50,15 +52,17 @@ function formatXTick(time: string, range: string, spansMultipleDays: boolean): s
   return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
-export function TempChart({ data, range, onRangeChange, loading, airHistory, swims }: TempChartProps) {
+export function TempChart({ data, range, onRangeChange, loading, airHistory, swims, events }: TempChartProps) {
   const { unit } = useTheme();
   const isFahrenheit = unit === 'F';
 
   const [showCustom, setShowCustom] = useState(false);
   const [airVisible, setAirVisible] = useState(true);
   const [swimVisible, setSwimVisible] = useState(true);
+  const [eventsVisible, setEventsVisible] = useState(true);
   const hasAir = !!airHistory && airHistory.length > 0;
   const hasSwims = !!swims && swims.length > 0;
+  const hasEvents = !!events && events.length > 0;
 
   const condByTime = useMemo(
     () => new Map((airHistory ?? []).filter((p) => p.condition).map((p) => [p.time, p.condition!])),
@@ -139,13 +143,16 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory, swi
         </button>
       </div>
 
-      {(hasAir || hasSwims) && (
+      {(hasAir || hasSwims || hasEvents) && (
         <div className={styles.overlayRow}>
           {hasAir && (
             <OverlayPill label="Air" variant="air" active={airVisible} onToggle={() => setAirVisible((v) => !v)} />
           )}
           {hasSwims && (
             <OverlayPill label="Swim" variant="swim" active={swimVisible} onToggle={() => setSwimVisible((v) => !v)} />
+          )}
+          {hasEvents && (
+            <OverlayPill label="Events" variant="events" active={eventsVisible} onToggle={() => setEventsVisible((v) => !v)} />
           )}
         </div>
       )}
@@ -179,6 +186,9 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory, swi
               {hasAir && <WeatherLane points={airHistory!} iconSize={18} collapse />}
               {hasSwims && swimVisible && (
                 <SwimLane swims={swims} series={swimSeries} xMode="index" color="#38bdf8" />
+              )}
+              {hasEvents && eventsVisible && (
+                <EventLane events={events} series={swimSeries} xMode="index" />
               )}
               <XAxis
                 dataKey="time"

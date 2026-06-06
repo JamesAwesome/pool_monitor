@@ -30,6 +30,12 @@
   color: var(--color-primary);
 }
 
+.eventsOn {
+  background: rgba(15, 118, 110, 0.12);
+  border-color: rgba(15, 118, 110, 0.35);
+  color: #0f766e;
+}
+
 .swatchSwim {
   display: inline-block;
   font-size: 0.9em;

@@ -76,3 +76,16 @@ export interface SwimSession {
   time: string;      // HH:mm 24h in app timezone
   people: string[];  // emoji, 1..N (e.g. ['🦦','🐢'])
 }
+
+export type EventKind = 'chemical' | 'water' | 'backwash' | 'note';
+
+export interface PoolEvent {
+  id: string;        // ISO-UTC instant of the point (stable id)
+  date: string;      // YYYY-MM-DD in app timezone
+  time: string;      // HH:mm 24h in app timezone
+  kind: EventKind;
+  product?: string;  // chemical
+  amount?: number;   // chemical | water
+  unit?: string;     // chemical: oz|lb|gal · water: in|gal|min
+  note?: string;     // note
+}

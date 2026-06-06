@@ -1,17 +1,21 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { CHEMS, CHEM_BY_KEY } from '../../constants/chemicals';
 import { useChemistryData } from '../../hooks/useChemistryData';
 import { useSwimData } from '../../hooks/useSwimData';
+import { useEventData } from '../../hooks/useEventData';
 import { latestReading } from '../../utils/chemistry';
 import { ChemCard } from '../ChemCard';
 import { ChemFocusSheet } from '../ChemFocusSheet';
 import { LogTestFlow } from '../LogTestFlow';
 import { HistorySheet } from '../HistorySheet';
+import { EventLogFlow } from '../EventLogFlow';
+import { LogBookSheet } from '../LogBookSheet';
 import { Toast } from '../Toast';
 import { DateRangePicker } from '../DateRangePicker';
 import { BottomSheet } from '../BottomSheet';
 import { OverlayPill } from '../OverlayPill';
-import type { ChemKey, ChemistryReading } from '../../types';
+import { EVENT_KIND_ORDER, EVENT_KINDS } from '../../constants/events';
+import type { ChemKey, ChemistryReading, EventKind, PoolEvent } from '../../types';
 import styles from './ChemistryTab.module.css';
 
 const RANGES = [
@@ -32,9 +36,18 @@ export function ChemistryTab() {
   const [histOpen, setHistOpen] = useState(false);
   const [editEntry, setEditEntry] = useState<ChemistryReading | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [eventsOn, setEventsOn] = useState(true);
+  const [evFlowOpen, setEvFlowOpen] = useState(false);
+  const [evMode, setEvMode] = useState<'chooser' | 'form'>('form');
+  const [evKind, setEvKind] = useState<EventKind>('chemical');
+  const [evEntry, setEvEntry] = useState<PoolEvent | null>(null);
+  const [bookOpen, setBookOpen] = useState(false);
 
   const { readings, poolHistory, airHistory, loading, refetch } = useChemistryData(range);
   const { swims } = useSwimData(range);
+  const { events, refetch: refetchEvents } = useEventData(range);
+  const { events: seasonEvents, refetch: refetchSeasonEvents } = useEventData('season');
+  const refetchAllEvents = () => { refetchEvents(); refetchSeasonEvents(); };
 
   const lastDate = readings.length ? new Date(readings[readings.length - 1].date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—';
 
@@ -57,6 +70,25 @@ export function ChemistryTab() {
         </div>
       </div>
 
+      <div className={styles.logEventCard}>
+        <div className={styles.logEventHead}>
+          <span className={styles.logEventLabel}>Log event</span>
+          <button type="button" className={styles.logEventBook} onClick={() => setBookOpen(true)}>Log book ›</button>
+        </div>
+        <div className={styles.logEventBtns}>
+          {EVENT_KIND_ORDER.map((kk) => {
+            const k = EVENT_KINDS[kk];
+            return (
+              <button key={kk} type="button" className={styles.logEventBtn}
+                style={{ '--kc': k.color } as CSSProperties}
+                onClick={() => { setEvEntry(null); setEvKind(kk); setEvMode('form'); setEvFlowOpen(true); }}>
+                <span className={styles.logEventIco} style={{ background: k.tint }}>{k.icon}</span>{k.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className={styles.controls}>
         <div className={styles.overlayControl}>
           <span className={styles.overlayLabel}>OVERLAY TEMP</span>
@@ -64,6 +96,9 @@ export function ChemistryTab() {
           <OverlayPill label="Air" variant="air" active={airOn} onToggle={() => setAirOn((v) => !v)} />
           {swims.length > 0 && (
             <OverlayPill label="Swim" variant="swim" active={swimOn} onToggle={() => setSwimOn((v) => !v)} />
+          )}
+          {events.length > 0 && (
+            <OverlayPill label="Events" variant="events" active={eventsOn} onToggle={() => setEventsOn((v) => !v)} />
           )}
         </div>
         <div className={styles.rangeRow}>
@@ -88,14 +123,14 @@ export function ChemistryTab() {
           {CHEMS.map((c) => (
             <ChemCard key={c.key} meta={c} readings={readings}
               poolHistory={poolHistory} airHistory={airHistory} showPool={poolOn} showAir={airOn}
-              swims={swimOn ? swims : undefined} onOpen={setSelected} />
+              swims={swimOn ? swims : undefined} events={eventsOn ? events : undefined} onOpen={setSelected} />
           ))}
         </div>
       )}
 
       {selected && (
         <ChemFocusSheet meta={CHEM_BY_KEY[selected]} readings={readings}
-          poolHistory={poolHistory} airHistory={airHistory} swims={swims} onClose={() => setSelected(null)} />
+          poolHistory={poolHistory} airHistory={airHistory} swims={swims} events={events} onClose={() => setSelected(null)} />
       )}
 
       <HistorySheet
@@ -111,6 +146,17 @@ export function ChemistryTab() {
         readings={readings}
         onSaved={() => { setLogOpen(false); setToast(editEntry ? 'Changes saved' : 'Reading saved'); setEditEntry(null); refetch(); }}
         onDeleted={() => { setLogOpen(false); setToast('Entry deleted'); setEditEntry(null); refetch(); }} />
+
+      <LogBookSheet open={bookOpen} events={seasonEvents}
+        onClose={() => setBookOpen(false)}
+        onEdit={(e) => { setBookOpen(false); setEvEntry(e); setEvKind(e.kind); setEvMode('form'); setEvFlowOpen(true); }}
+        onNew={() => { setBookOpen(false); setEvEntry(null); setEvMode('chooser'); setEvFlowOpen(true); }} />
+
+      <EventLogFlow open={evFlowOpen} mode={evMode} kind={evKind} editEntry={evEntry}
+        onPickKind={(k) => { setEvKind(k); setEvMode('form'); }}
+        onClose={() => { setEvFlowOpen(false); setEvEntry(null); }}
+        onSaved={() => { setEvFlowOpen(false); setToast(evEntry ? 'Entry updated' : `${EVENT_KINDS[evKind].noun} logged`); setEvEntry(null); refetchAllEvents(); }}
+        onDeleted={() => { setEvFlowOpen(false); setEvEntry(null); setToast('Entry deleted'); refetchAllEvents(); }} />
 
       <Toast open={toast !== null} message={toast ?? ''} onDismiss={() => setToast(null)} />
     </div>

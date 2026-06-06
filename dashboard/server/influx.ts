@@ -556,3 +556,56 @@ export async function writeSwim(
   await writeApi.flush()
   return when.toISOString()
 }
+
+export type EventKind = 'chemical' | 'water' | 'backwash' | 'note'
+export interface PoolEvent {
+  id: string
+  date: string
+  time: string
+  kind: EventKind
+  product?: string
+  amount?: number
+  unit?: string
+  note?: string
+}
+
+export async function queryEvents(
+  range: string,
+  timeZone = process.env.TIMEZONE ?? 'America/New_York',
+): Promise<PoolEvent[]> {
+  const api = getQueryApi()
+  const query = `
+    from(bucket: "${bucket}")
+      |> range(${parseRange(range)})
+      |> filter(fn: (r) => r._measurement == "event")
+      |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
+      |> sort(columns: ["_time"])
+  `
+  const rows = await api.collectRows<Record<string, unknown>>(query)
+  return rows.map((row) => {
+    const id = row._time as string
+    const { date, time } = utcToZonedParts(id, timeZone)
+    const ev: PoolEvent = { id, date, time, kind: row.kind as EventKind }
+    if (typeof row.product === 'string') ev.product = row.product
+    if (typeof row.amount === 'number') ev.amount = row.amount
+    if (typeof row.unit === 'string') ev.unit = row.unit
+    if (typeof row.note === 'string') ev.note = row.note
+    return ev
+  })
+}
+
+export async function writeEvent(
+  input: { date: string; time: string; kind: EventKind; product?: string; amount?: number; unit?: string; note?: string },
+  timeZone = process.env.TIMEZONE ?? 'America/New_York',
+): Promise<string> {
+  const writeApi = getWriteApi()
+  const when = dateTimeToUtc(input.date, input.time, timeZone)
+  const point = new Point('event').timestamp(when).stringField('kind', input.kind)
+  if (input.product !== undefined) point.stringField('product', input.product)
+  if (input.amount !== undefined) point.floatField('amount', input.amount)
+  if (input.unit !== undefined) point.stringField('unit', input.unit)
+  if (input.note !== undefined) point.stringField('note', input.note)
+  writeApi.writePoint(point)
+  await writeApi.flush()
+  return when.toISOString()
+}

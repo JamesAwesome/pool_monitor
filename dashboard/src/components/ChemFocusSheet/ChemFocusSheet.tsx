@@ -4,7 +4,7 @@ import { ChemChart } from '../ChemChart';
 import { DeltaTag } from '../DeltaTag';
 import { OverlayPill } from '../OverlayPill';
 import type { ChemMeta } from '../../constants/chemicals';
-import type { ChemistryReading, TimeSeriesPoint, WeatherHistoryPoint, SwimSession } from '../../types';
+import type { ChemistryReading, TimeSeriesPoint, WeatherHistoryPoint, SwimSession, PoolEvent } from '../../types';
 import { latestReading, computeDelta, computeStats, formatChemValue } from '../../utils/chemistry';
 import { formatTemperature } from '../../utils/temperature';
 import { useTheme } from '../../context/ThemeContext';
@@ -16,14 +16,17 @@ interface ChemFocusSheetProps {
   poolHistory: TimeSeriesPoint[];
   airHistory: WeatherHistoryPoint[];
   swims?: SwimSession[];
+  events?: PoolEvent[];
   onClose: () => void;
 }
 
-export function ChemFocusSheet({ meta, readings, poolHistory, airHistory, swims, onClose }: ChemFocusSheetProps) {
+export function ChemFocusSheet({ meta, readings, poolHistory, airHistory, swims, events, onClose }: ChemFocusSheetProps) {
   const [poolOn, setPoolOn] = useState(true);
   const [airOn, setAirOn] = useState(true);
   const [swimOn, setSwimOn] = useState(true);
+  const [eventsOn, setEventsOn] = useState(true);
   const hasSwims = !!swims && swims.length > 0;
+  const hasEvents = !!events && events.length > 0;
   const { unit } = useTheme();
   const unitSuffix = unit === 'F' ? '°F' : '°C';
 
@@ -57,11 +60,14 @@ export function ChemFocusSheet({ meta, readings, poolHistory, airHistory, swims,
           {hasSwims && (
             <OverlayPill label="Swim" variant="swim" active={swimOn} onToggle={() => setSwimOn((v) => !v)} />
           )}
+          {hasEvents && (
+            <OverlayPill label="Events" variant="events" active={eventsOn} onToggle={() => setEventsOn((v) => !v)} />
+          )}
         </div>
 
         <ChemChart readings={readings} chemKey={meta.key} color={meta.color} decimals={meta.decimals}
           poolHistory={poolHistory} airHistory={airHistory} showPool={poolOn} showAir={airOn} variant="full"
-          swims={swimOn ? swims : undefined} />
+          swims={swimOn ? swims : undefined} events={eventsOn ? events : undefined} />
 
         {(poolOn && poolHistory.length > 0) || (airOn && airHistory.length > 0) ? (
           <div className={styles.legend}>

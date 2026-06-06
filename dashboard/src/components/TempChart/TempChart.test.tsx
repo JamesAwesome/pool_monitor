@@ -142,6 +142,43 @@ describe('TempChart', () => {
     expect(pill.getAttribute('aria-pressed')).toBe('true');
   });
 
+  const sampleEvents = [
+    { id: '2025-07-01T14:00:00Z', date: '2025-07-01', time: '10:00', kind: 'chemical' as const },
+  ];
+
+  it('renders the Events overlay pill only when events is non-empty', () => {
+    render(
+      <TempChart data={sampleData} range="24h" onRangeChange={vi.fn()} loading={false} events={sampleEvents} />
+    );
+    expect(screen.getByRole('button', { name: 'Events' })).toBeTruthy();
+  });
+
+  it('does not render the Events overlay pill when events is empty', () => {
+    render(
+      <TempChart data={sampleData} range="24h" onRangeChange={vi.fn()} loading={false} events={[]} />
+    );
+    expect(screen.queryByRole('button', { name: 'Events' })).toBeNull();
+  });
+
+  it('does not render the Events overlay pill when events is undefined', () => {
+    render(
+      <TempChart data={sampleData} range="24h" onRangeChange={vi.fn()} loading={false} />
+    );
+    expect(screen.queryByRole('button', { name: 'Events' })).toBeNull();
+  });
+
+  it('Events overlay pill starts active and toggles on click', () => {
+    render(
+      <TempChart data={sampleData} range="24h" onRangeChange={vi.fn()} loading={false} events={sampleEvents} />
+    );
+    const pill = screen.getByRole('button', { name: 'Events' });
+    expect(pill.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(pill);
+    expect(pill.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(pill);
+    expect(pill.getAttribute('aria-pressed')).toBe('true');
+  });
+
   it('Custom button opens the bottom sheet', () => {
     render(<TempChart data={sampleData} range="24h" onRangeChange={vi.fn()} loading={false} />);
     expect(screen.queryByRole('dialog')).toBeNull();
