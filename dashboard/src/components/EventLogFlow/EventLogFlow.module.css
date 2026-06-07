@@ -372,7 +372,13 @@
   color: var(--danger, #b91c1c);
   font-size: 0.8rem;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
   padding: 2px 4px;
+  margin: -6px -4px;
 }
 .addRow {
   margin-top: 8px;

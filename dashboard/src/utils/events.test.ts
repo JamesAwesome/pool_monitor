@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sortedEvents, summary, whenLabel, countByKind } from './events';
+import { sortedEvents, summary, whenLabel, countByKind, chemItems } from './events';
 import type { PoolEvent } from '../types';
 
 const ev = (id: string, date: string, time: string, extra: Partial<PoolEvent>): PoolEvent =>
@@ -17,6 +17,23 @@ describe('sortedEvents', () => {
     const copy = [...data];
     expect(sortedEvents(data).map((x) => x.id)).toEqual(['4', '3', '2', '1']);
     expect(data).toEqual(copy);
+  });
+});
+describe('chemItems', () => {
+  it('returns the items list as-is when present', () => {
+    const items = [{ product: 'Chlorine', amount: 48, unit: 'oz' }, { product: 'Acid', amount: 16, unit: 'oz' }];
+    expect(chemItems(ev('1', '2026-05-20', '10:00', { kind: 'chemical', items }))).toEqual(items);
+  });
+  it('wraps a legacy product-only event into a 1-item list', () => {
+    expect(chemItems(ev('2', '2026-05-20', '10:00', { kind: 'chemical', product: 'Cal-hypo', amount: 16, unit: 'oz' })))
+      .toEqual([{ product: 'Cal-hypo', amount: 16, unit: 'oz' }]);
+  });
+  it('defaults missing legacy amount/unit to 0 and empty string', () => {
+    expect(chemItems(ev('3', '2026-05-20', '10:00', { kind: 'chemical', product: 'Mystery' })))
+      .toEqual([{ product: 'Mystery', amount: 0, unit: '' }]);
+  });
+  it('returns an empty list when there is neither items nor product', () => {
+    expect(chemItems(ev('4', '2026-05-20', '10:00', { kind: 'chemical' }))).toEqual([]);
   });
 });
 describe('summary', () => {

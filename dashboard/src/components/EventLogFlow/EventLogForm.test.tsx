@@ -166,4 +166,32 @@ describe('EventLogForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /remove chemical 2/i }));
     expect(screen.getAllByPlaceholderText('0')).toHaveLength(1);
   });
+
+  it('reconstructs a row from a legacy product-only event in edit mode', async () => {
+    const legacy: PoolEvent = { id: '2026-05-20T18:30:00.000Z', date: '2026-05-20', time: '14:30', kind: 'chemical', product: 'Some custom acid', amount: 9, unit: 'oz' };
+    render(<EventLogForm kind="chemical" authHeader="Basic x" editEntry={legacy} onSaved={noop} onClose={noop} onAuthExpired={noop} onDeleted={noop} />);
+    // An off-preset legacy product reconstructs into the "Other" free-text field.
+    expect(screen.getByDisplayValue('Some custom acid')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    const [url, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/events');
+    expect(init.method).toBe('PUT');
+    const body = JSON.parse(init.body as string);
+    expect(body.items).toEqual([{ product: 'Some custom acid', amount: 9, unit: 'oz' }]);
+  });
+
+  it('keeps Log it disabled until every chemical row has a product + positive amount', () => {
+    render(<EventLogForm kind="chemical" authHeader="Basic x" onSaved={noop} onClose={noop} onAuthExpired={noop} onDeleted={noop} />);
+    const logBtn = () => screen.getByRole('button', { name: /log it/i });
+    expect(logBtn()).toBeDisabled();                                  // no product, no amount
+    fireEvent.click(screen.getByRole('button', { name: 'Liquid chlorine' }));
+    expect(logBtn()).toBeDisabled();                                  // product but blank amount
+    fireEvent.change(screen.getAllByPlaceholderText('0')[0], { target: { value: '0' } });
+    expect(logBtn()).toBeDisabled();                                  // zero amount
+    fireEvent.change(screen.getAllByPlaceholderText('0')[0], { target: { value: '48' } });
+    expect(logBtn()).not.toBeDisabled();                             // valid
+    fireEvent.click(screen.getByRole('button', { name: /add another chemical/i }));
+    expect(logBtn()).toBeDisabled();                                 // empty second row re-disables
+  });
 });

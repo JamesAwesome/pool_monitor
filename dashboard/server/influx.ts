@@ -571,11 +571,25 @@ export interface PoolEvent {
   note?: string        // note
 }
 
+// Defensive normalizer for one parsed item — the write path validates, but a
+// row could reach the `event` measurement out-of-band (direct write, legacy
+// data), so re-check each element on read instead of a blind cast.
+function coerceChemItem(raw: unknown): ChemItem | null {
+  if (typeof raw !== 'object' || raw === null) return null
+  const r = raw as Record<string, unknown>
+  if (typeof r.product !== 'string') return null
+  return {
+    product: r.product,
+    amount: typeof r.amount === 'number' && Number.isFinite(r.amount) ? r.amount : 0,
+    unit: typeof r.unit === 'string' ? r.unit : '',
+  }
+}
+
 function parseChemItems(row: Record<string, unknown>): ChemItem[] {
   if (typeof row.items === 'string') {
     try {
       const parsed = JSON.parse(row.items)
-      if (Array.isArray(parsed)) return parsed as ChemItem[]
+      if (Array.isArray(parsed)) return parsed.map(coerceChemItem).filter((x): x is ChemItem => x !== null)
       // valid JSON but not an array — fall through to the legacy scalar branch
     } catch { /* malformed JSON — fall through to the legacy scalar branch */ }
   }

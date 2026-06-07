@@ -348,6 +348,25 @@ describe('queryEvents', () => {
       { id: '2026-05-22T13:00:00.000Z', date: '2026-05-22', time: '09:00', kind: 'backwash' },
     ]);
   });
+  it('normalizes malformed, non-array, and bad-element chemical rows', async () => {
+    queryApiStub.collectRows.mockResolvedValueOnce([
+      // valid JSON but not an array, with legacy scalar fields → falls back to legacy 1-item
+      { _time: '2026-05-20T18:30:00.000Z', kind: 'chemical', items: '{"product":"x"}', product: 'Cal-hypo', amount: 16, unit: 'oz' },
+      // malformed JSON, no legacy fields → empty list
+      { _time: '2026-05-21T13:00:00.000Z', kind: 'chemical', items: 'not json' },
+      // array with junk elements → bad elements dropped, good one coerced
+      { _time: '2026-05-22T13:00:00.000Z', kind: 'chemical', items: '[{"product":"Chlorine","amount":48,"unit":"oz"},123,null,{"amount":5}]' },
+      // chemical with neither items nor product → empty list
+      { _time: '2026-05-23T13:00:00.000Z', kind: 'chemical' },
+    ]);
+    const out = await queryEvents('season', 'America/New_York');
+    expect(out.map((e) => e.items)).toEqual([
+      [{ product: 'Cal-hypo', amount: 16, unit: 'oz' }],
+      [],
+      [{ product: 'Chlorine', amount: 48, unit: 'oz' }],
+      [],
+    ]);
+  });
   it('filters the event measurement', async () => {
     queryApiStub.collectRows.mockResolvedValueOnce([]);
     await queryEvents('season', 'America/New_York');
@@ -368,7 +387,9 @@ describe('writeEvent', () => {
     expect(id).toBe('2026-05-20T18:30:00.000Z');
     const writtenPoint = writeApiStub.writePoint.mock.calls[0][0] as { fields: Record<string, unknown> };
     const itemsField = writtenPoint.fields.items as string;
-    expect(itemsField).toContain('Liquid chlorine');
-    expect(itemsField).toContain('Acid');
+    expect(JSON.parse(itemsField)).toEqual([
+      { product: 'Liquid chlorine', amount: 48, unit: 'oz' },
+      { product: 'Acid', amount: 16, unit: 'oz' },
+    ]);
   });
 });
