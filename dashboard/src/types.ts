@@ -79,13 +79,16 @@ export interface SwimSession {
 
 export type EventKind = 'chemical' | 'water' | 'backwash' | 'note';
 
+export interface ChemItem { product: string; amount: number; unit: string }
+
 export interface PoolEvent {
   id: string;        // ISO-UTC instant of the point (stable id)
   date: string;      // YYYY-MM-DD in app timezone
   time: string;      // HH:mm 24h in app timezone
   kind: EventKind;
-  product?: string;  // chemical
-  amount?: number;   // chemical | water
-  unit?: string;     // chemical: oz|lb|gal · water: in|gal|min
+  items?: ChemItem[]; // chemical
+  product?: string;  // legacy chemical (read-only fallback)
+  amount?: number;   // water
+  unit?: string;     // water: in|gal|min
   note?: string;     // note
 }

@@ -26,6 +26,18 @@ describe('summary', () => {
     expect(summary(data[2])).toBe('Backwashed the filter');
     expect(summary(data[3])).toBe('cleaned skimmer');
   });
+  it('shows a single chemical item unchanged', () => {
+    const one = ev('5', '2026-05-20', '10:00', { kind: 'chemical', items: [{ product: 'Cal-hypo', amount: 16, unit: 'oz' }] });
+    expect(summary(one)).toBe('Cal-hypo · 16 oz');
+  });
+  it('joins two chemical names', () => {
+    const two = ev('6', '2026-05-20', '10:00', { kind: 'chemical', items: [{ product: 'Chlorine', amount: 48, unit: 'oz' }, { product: 'Acid', amount: 16, unit: 'oz' }] });
+    expect(summary(two)).toBe('Chlorine, Acid');
+  });
+  it('truncates 3+ chemical names with a +N more count', () => {
+    const three = ev('7', '2026-05-20', '10:00', { kind: 'chemical', items: [{ product: 'Liquid chlorine', amount: 48, unit: 'oz' }, { product: 'Muriatic acid', amount: 16, unit: 'oz' }, { product: 'Algaecide', amount: 8, unit: 'oz' }] });
+    expect(summary(three)).toBe('Liquid chlorine, Muriatic acid +1 more');
+  });
 });
 describe('countByKind', () => {
   it('counts per kind', () => {
