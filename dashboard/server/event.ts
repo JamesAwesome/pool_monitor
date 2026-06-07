@@ -2,7 +2,7 @@ import { isValidTime } from './chemistry.js';
 
 export const EVENT_KINDS = ['chemical', 'water', 'backwash', 'note'] as const;
 export type EventKind = (typeof EVENT_KINDS)[number];
-export const CHEM_UNITS = ['oz', 'lb', 'gal'] as const;
+export const CHEM_UNITS = ['oz', 'lb', 'gal', 'tabs'] as const;
 export const WATER_UNITS = ['in', 'gal', 'min'] as const;
 export const MAX_PRODUCT_LEN = 64;
 export const MAX_NOTE_LEN = 500;

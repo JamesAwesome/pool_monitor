@@ -8,6 +8,10 @@ describe('validateEventBody', () => {
     const r = validateEventBody({ ...base, kind: 'chemical', product: 'Liquid chlorine', amount: 48, unit: 'oz' });
     expect(r).toEqual({ ok: true, ...base, kind: 'chemical', product: 'Liquid chlorine', amount: 48, unit: 'oz' });
   });
+  it('accepts tri-chlor tabs counted in the "tabs" unit', () => {
+    const r = validateEventBody({ ...base, kind: 'chemical', product: 'Tri-chlor tabs (3 in)', amount: 2, unit: 'tabs' });
+    expect(r).toEqual({ ok: true, ...base, kind: 'chemical', product: 'Tri-chlor tabs (3 in)', amount: 2, unit: 'tabs' });
+  });
   it('trims the product and drops fields not for the kind', () => {
     const r = validateEventBody({ ...base, kind: 'water', amount: 2, unit: 'in', product: 'ignored', note: 'ignored' });
     expect(r).toEqual({ ok: true, ...base, kind: 'water', amount: 2, unit: 'in' });
