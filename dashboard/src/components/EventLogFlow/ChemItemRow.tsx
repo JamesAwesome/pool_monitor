@@ -18,7 +18,7 @@ interface ChemItemRowProps {
 
 export function ChemItemRow({ row, index, accent, onChange, onRemove }: ChemItemRowProps) {
   return (
-    <div className={styles.chemRow}>
+    <div className={`${styles.chemRow} ${index > 0 ? styles.chemRowDivided : ''}`}>
       <div className={styles.chemRowHead}>
         <span className={styles.pickerLabel}>Chemical {index + 1}</span>
         {onRemove && (

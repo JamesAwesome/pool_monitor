@@ -74,10 +74,7 @@ export function EventLogForm({ kind, authHeader, editEntry, onSaved, onDeleted, 
 
   let canSave = true;
   if (kind === 'chemical') {
-    canSave = chemRows.length > 0 && chemRows.every((r) => {
-      const p = r.product === 'Other' ? r.other.trim() : r.product;
-      return !!p && r.amount !== '' && Number(r.amount) > 0;
-    });
+    canSave = chemResolved.length > 0 && chemResolved.every((it) => !!it.product && it.amount > 0);
   }
   if (kind === 'water') canSave = wAmount !== '' && Number(wAmount) > 0;
   if (kind === 'note') canSave = note.trim().length > 0;
