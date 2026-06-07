@@ -335,15 +335,36 @@ describe('writeSwim', () => {
 });
 
 describe('queryEvents', () => {
-  it('maps each point to id + derived date/time + kind payload', async () => {
+  it('maps a new items-JSON row and normalizes a legacy chemical row', async () => {
     queryApiStub.collectRows.mockResolvedValueOnce([
-      { _time: '2026-05-20T18:30:00.000Z', kind: 'chemical', product: 'Liquid chlorine', amount: 48, unit: 'oz' },
-      { _time: '2026-05-21T13:00:00.000Z', kind: 'backwash' },
+      { _time: '2026-05-20T18:30:00.000Z', kind: 'chemical', items: '[{"product":"Liquid chlorine","amount":48,"unit":"oz"},{"product":"Muriatic acid","amount":16,"unit":"oz"}]' },
+      { _time: '2026-05-21T13:00:00.000Z', kind: 'chemical', product: 'Cal-hypo', amount: 16, unit: 'oz' },
+      { _time: '2026-05-22T13:00:00.000Z', kind: 'backwash' },
     ]);
     const out = await queryEvents('season', 'America/New_York');
     expect(out).toEqual([
-      { id: '2026-05-20T18:30:00.000Z', date: '2026-05-20', time: '14:30', kind: 'chemical', product: 'Liquid chlorine', amount: 48, unit: 'oz' },
-      { id: '2026-05-21T13:00:00.000Z', date: '2026-05-21', time: '09:00', kind: 'backwash' },
+      { id: '2026-05-20T18:30:00.000Z', date: '2026-05-20', time: '14:30', kind: 'chemical', items: [{ product: 'Liquid chlorine', amount: 48, unit: 'oz' }, { product: 'Muriatic acid', amount: 16, unit: 'oz' }] },
+      { id: '2026-05-21T13:00:00.000Z', date: '2026-05-21', time: '09:00', kind: 'chemical', items: [{ product: 'Cal-hypo', amount: 16, unit: 'oz' }] },
+      { id: '2026-05-22T13:00:00.000Z', date: '2026-05-22', time: '09:00', kind: 'backwash' },
+    ]);
+  });
+  it('normalizes malformed, non-array, and bad-element chemical rows', async () => {
+    queryApiStub.collectRows.mockResolvedValueOnce([
+      // valid JSON but not an array, with legacy scalar fields → falls back to legacy 1-item
+      { _time: '2026-05-20T18:30:00.000Z', kind: 'chemical', items: '{"product":"x"}', product: 'Cal-hypo', amount: 16, unit: 'oz' },
+      // malformed JSON, no legacy fields → empty list
+      { _time: '2026-05-21T13:00:00.000Z', kind: 'chemical', items: 'not json' },
+      // array with junk elements → bad elements dropped, good one coerced
+      { _time: '2026-05-22T13:00:00.000Z', kind: 'chemical', items: '[{"product":"Chlorine","amount":48,"unit":"oz"},123,null,{"amount":5}]' },
+      // chemical with neither items nor product → empty list
+      { _time: '2026-05-23T13:00:00.000Z', kind: 'chemical' },
+    ]);
+    const out = await queryEvents('season', 'America/New_York');
+    expect(out.map((e) => e.items)).toEqual([
+      [{ product: 'Cal-hypo', amount: 16, unit: 'oz' }],
+      [],
+      [{ product: 'Chlorine', amount: 48, unit: 'oz' }],
+      [],
     ]);
   });
   it('filters the event measurement', async () => {
@@ -359,5 +380,16 @@ describe('writeEvent', () => {
     expect(writeApiStub.writePoint).toHaveBeenCalledOnce();
     expect(writeApiStub.flush).toHaveBeenCalledOnce();
     expect(id).toBe('2026-05-20T18:30:00.000Z');
+  });
+  it('writes an items-list chemical point', async () => {
+    const id = await writeEvent({ date: '2026-05-20', time: '14:30', kind: 'chemical', items: [{ product: 'Liquid chlorine', amount: 48, unit: 'oz' }, { product: 'Acid', amount: 16, unit: 'oz' }] }, 'America/New_York');
+    expect(writeApiStub.writePoint).toHaveBeenCalledOnce();
+    expect(id).toBe('2026-05-20T18:30:00.000Z');
+    const writtenPoint = writeApiStub.writePoint.mock.calls[0][0] as { fields: Record<string, unknown> };
+    const itemsField = writtenPoint.fields.items as string;
+    expect(JSON.parse(itemsField)).toEqual([
+      { product: 'Liquid chlorine', amount: 48, unit: 'oz' },
+      { product: 'Acid', amount: 16, unit: 'oz' },
+    ]);
   });
 });

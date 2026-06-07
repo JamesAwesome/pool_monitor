@@ -1,12 +1,25 @@
-import type { PoolEvent } from '../types';
+import type { ChemItem, PoolEvent } from '../types';
 
 export function sortedEvents(list: PoolEvent[]): PoolEvent[] {
   return [...list].sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
 }
 
+export function chemItems(ev: PoolEvent): ChemItem[] {
+  if (ev.items && ev.items.length) return ev.items;
+  if (ev.product) return [{ product: ev.product, amount: ev.amount ?? 0, unit: ev.unit ?? '' }];
+  return [];
+}
+
 export function summary(ev: PoolEvent): string {
   switch (ev.kind) {
-    case 'chemical': return `${ev.product} · ${ev.amount} ${ev.unit}`;
+    case 'chemical': {
+      const items = chemItems(ev);
+      if (items.length === 0) return 'Chemical';
+      if (items.length === 1) return `${items[0].product} · ${items[0].amount} ${items[0].unit}`;
+      const names = items.map((i) => i.product);
+      const extra = names.length - 2;
+      return extra > 0 ? `${names.slice(0, 2).join(', ')} +${extra} more` : names.join(', ');
+    }
     case 'water': return `Added water · ${ev.amount} ${ev.unit}`;
     case 'backwash': return 'Backwashed the filter';
     case 'note': return ev.note ?? '';

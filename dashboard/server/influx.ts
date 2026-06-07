@@ -558,15 +558,45 @@ export async function writeSwim(
 }
 
 export type EventKind = 'chemical' | 'water' | 'backwash' | 'note'
+export interface ChemItem { product: string; amount: number; unit: string }
 export interface PoolEvent {
   id: string
   date: string
   time: string
   kind: EventKind
-  product?: string
-  amount?: number
-  unit?: string
-  note?: string
+  items?: ChemItem[]   // chemical
+  product?: string     // legacy chemical (read-only fallback)
+  amount?: number      // water
+  unit?: string        // water
+  note?: string        // note
+}
+
+// Defensive normalizer for one parsed item — the write path validates, but a
+// row could reach the `event` measurement out-of-band (direct write, legacy
+// data), so re-check each element on read instead of a blind cast.
+function coerceChemItem(raw: unknown): ChemItem | null {
+  if (typeof raw !== 'object' || raw === null) return null
+  const r = raw as Record<string, unknown>
+  if (typeof r.product !== 'string') return null
+  return {
+    product: r.product,
+    amount: typeof r.amount === 'number' && Number.isFinite(r.amount) ? r.amount : 0,
+    unit: typeof r.unit === 'string' ? r.unit : '',
+  }
+}
+
+function parseChemItems(row: Record<string, unknown>): ChemItem[] {
+  if (typeof row.items === 'string') {
+    try {
+      const parsed = JSON.parse(row.items)
+      if (Array.isArray(parsed)) return parsed.map(coerceChemItem).filter((x): x is ChemItem => x !== null)
+      // valid JSON but not an array — fall through to the legacy scalar branch
+    } catch { /* malformed JSON — fall through to the legacy scalar branch */ }
+  }
+  if (typeof row.product === 'string') {
+    return [{ product: row.product, amount: typeof row.amount === 'number' ? row.amount : 0, unit: typeof row.unit === 'string' ? row.unit : '' }]
+  }
+  return []
 }
 
 export async function queryEvents(
@@ -585,22 +615,27 @@ export async function queryEvents(
   return rows.map((row) => {
     const id = row._time as string
     const { date, time } = utcToZonedParts(id, timeZone)
-    const ev: PoolEvent = { id, date, time, kind: row.kind as EventKind }
-    if (typeof row.product === 'string') ev.product = row.product
-    if (typeof row.amount === 'number') ev.amount = row.amount
-    if (typeof row.unit === 'string') ev.unit = row.unit
-    if (typeof row.note === 'string') ev.note = row.note
+    const kind = row.kind as EventKind
+    const ev: PoolEvent = { id, date, time, kind }
+    if (kind === 'chemical') {
+      ev.items = parseChemItems(row)
+    } else {
+      if (typeof row.amount === 'number') ev.amount = row.amount
+      if (typeof row.unit === 'string') ev.unit = row.unit
+      if (typeof row.note === 'string') ev.note = row.note
+    }
     return ev
   })
 }
 
 export async function writeEvent(
-  input: { date: string; time: string; kind: EventKind; product?: string; amount?: number; unit?: string; note?: string },
+  input: { date: string; time: string; kind: EventKind; items?: ChemItem[]; product?: string; amount?: number; unit?: string; note?: string },
   timeZone = process.env.TIMEZONE ?? 'America/New_York',
 ): Promise<string> {
   const writeApi = getWriteApi()
   const when = dateTimeToUtc(input.date, input.time, timeZone)
   const point = new Point('event').timestamp(when).stringField('kind', input.kind)
+  if (input.items !== undefined) point.stringField('items', JSON.stringify(input.items))
   if (input.product !== undefined) point.stringField('product', input.product)
   if (input.amount !== undefined) point.floatField('amount', input.amount)
   if (input.unit !== undefined) point.stringField('unit', input.unit)

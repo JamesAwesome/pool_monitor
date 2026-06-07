@@ -26,4 +26,15 @@ describe('LogBookSheet', () => {
     fireEvent.click(screen.getByText('Added water · 2 in'));
     expect(onEdit).toHaveBeenCalledWith(events[1]); // newest first
   });
+  it('lists each chemical line for a multi-item event', () => {
+    const events: PoolEvent[] = [
+      { id: '3', date: '2026-05-20', time: '10:00', kind: 'chemical', items: [
+        { product: 'Liquid chlorine', amount: 48, unit: 'oz' },
+        { product: 'Muriatic acid', amount: 16, unit: 'oz' },
+      ] },
+    ];
+    render(<LogBookSheet open events={events} onClose={() => {}} onEdit={() => {}} onNew={() => {}} />);
+    expect(screen.getByText(/Liquid chlorine · 48 oz/)).toBeInTheDocument();
+    expect(screen.getByText(/Muriatic acid · 16 oz/)).toBeInTheDocument();
+  });
 });

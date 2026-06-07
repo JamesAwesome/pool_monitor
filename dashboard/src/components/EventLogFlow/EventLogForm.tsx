@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { BottomSheet } from '../BottomSheet';
-import { EVENT_KINDS, CHEM_PRODUCTS, CHEM_UNITS, WATER_UNITS } from '../../constants/events';
+import { EVENT_KINDS, CHEM_PRODUCTS, WATER_UNITS } from '../../constants/events';
+import { chemItems } from '../../utils/events';
 import type { EventKind, PoolEvent } from '../../types';
+import { Segmented } from './Segmented';
+import { ChemItemRow, newChemRow, type ChemRow } from './ChemItemRow';
 import styles from './EventLogFlow.module.css';
 
 interface EventLogFormProps {
@@ -15,23 +18,6 @@ interface EventLogFormProps {
 }
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
-
-function Segmented({ options, value, onChange, accent }: { options: string[]; value: string; onChange: (v: string) => void; accent: string }) {
-  return (
-    <div className={styles.seg} style={{ '--accent': accent } as React.CSSProperties}>
-      {options.map((o) => (
-        <button
-          key={o}
-          type="button"
-          className={`${styles.segBtn} ${value === o ? styles.segOn : ''}`}
-          onClick={() => onChange(o)}
-        >
-          {o}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 const waterHint = (u: string) => (u === 'in' ? 'inches raised' : u === 'gal' ? 'gallons' : 'min of hose');
 
@@ -51,18 +37,29 @@ export function EventLogForm({ kind, authHeader, editEntry, onSaved, onDeleted, 
     return `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
   });
 
-  // chemical
-  const presetMatch = editing && editEntry!.kind === 'chemical' && !!editEntry!.product && CHEM_PRODUCTS.includes(editEntry!.product);
-  const [product, setProduct] = useState(
-    editing && editEntry!.kind === 'chemical' ? (presetMatch ? editEntry!.product! : 'Other') : '',
-  );
-  const [otherProduct, setOtherProduct] = useState(
-    editing && editEntry!.kind === 'chemical' && !presetMatch ? (editEntry!.product ?? '') : '',
-  );
-  const [cAmount, setCAmount] = useState(
-    editing && editEntry!.kind === 'chemical' && editEntry!.amount != null ? String(editEntry!.amount) : '',
-  );
-  const [cUnit, setCUnit] = useState(editing && editEntry!.kind === 'chemical' && editEntry!.unit ? editEntry!.unit : 'oz');
+  // chemical — one or more line-items at a single timestamp
+  const [chemRows, setChemRows] = useState<ChemRow[]>(() => {
+    if (editing && editEntry!.kind === 'chemical') {
+      const items = chemItems(editEntry!);
+      if (items.length) {
+        return items.map((it) => {
+          const preset = CHEM_PRODUCTS.includes(it.product);
+          return { product: preset ? it.product : 'Other', other: preset ? '' : it.product, amount: String(it.amount), unit: it.unit };
+        });
+      }
+    }
+    return [newChemRow()];
+  });
+  const updateRow = (i: number, patch: Partial<ChemRow>) =>
+    setChemRows((rows) => rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  const addRow = () => setChemRows((rows) => [...rows, newChemRow()]);
+  const removeRow = (i: number) => setChemRows((rows) => rows.filter((_, idx) => idx !== i));
+  const chemResolved = chemRows.map((r) => ({
+    product: r.product === 'Other' ? r.other.trim() : r.product,
+    amount: Number(r.amount),
+    unit: r.unit,
+  }));
+
   // water
   const [wAmount, setWAmount] = useState(
     editing && editEntry!.kind === 'water' && editEntry!.amount != null ? String(editEntry!.amount) : '',
@@ -75,16 +72,16 @@ export function EventLogForm({ kind, authHeader, editEntry, onSaved, onDeleted, 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const resolvedProduct = product === 'Other' ? otherProduct.trim() : product;
-
   let canSave = true;
-  if (kind === 'chemical') canSave = !!resolvedProduct && cAmount !== '' && Number(cAmount) > 0;
+  if (kind === 'chemical') {
+    canSave = chemResolved.length > 0 && chemResolved.every((it) => !!it.product && it.amount > 0);
+  }
   if (kind === 'water') canSave = wAmount !== '' && Number(wAmount) > 0;
   if (kind === 'note') canSave = note.trim().length > 0;
 
   const buildBody = () => {
     const base: Record<string, unknown> = { date, time, kind };
-    if (kind === 'chemical') return { ...base, product: resolvedProduct, amount: Number(cAmount), unit: cUnit };
+    if (kind === 'chemical') return { ...base, items: chemResolved };
     if (kind === 'water') return { ...base, amount: Number(wAmount), unit: wUnit };
     if (kind === 'note') return { ...base, note: note.trim() };
     return base; // backwash
@@ -133,56 +130,22 @@ export function EventLogForm({ kind, authHeader, editEntry, onSaved, onDeleted, 
       {kind === 'chemical' && (
         <>
           <div className={styles.pickerHead}>
-            <span className={styles.pickerLabel}>Product</span>
+            <span className={styles.pickerLabel}>Products</span>
             <span className={styles.pickerHint}>what went in</span>
           </div>
-          <div className={styles.chipWrap}>
-            {CHEM_PRODUCTS.map((p) => (
-              <button
-                key={p}
-                type="button"
-                className={`${styles.chip} ${product === p ? styles.chipOn : ''}`}
-                style={{ '--accent': meta.color } as React.CSSProperties}
-                onClick={() => setProduct(p)}
-              >
-                {p}
-              </button>
-            ))}
-            <button
-              type="button"
-              className={`${styles.chip} ${product === 'Other' ? styles.chipOn : ''}`}
-              style={{ '--accent': meta.color } as React.CSSProperties}
-              onClick={() => setProduct('Other')}
-            >
-              Other…
-            </button>
-          </div>
-          {product === 'Other' && (
-            <input
-              className={`${styles.input} ${styles.mt}`}
-              placeholder="Product name"
-              value={otherProduct}
-              onChange={(e) => setOtherProduct(e.target.value)}
+          {chemRows.map((row, i) => (
+            <ChemItemRow
+              key={i}
+              row={row}
+              index={i}
+              accent={meta.color}
+              onChange={(patch) => updateRow(i, patch)}
+              onRemove={chemRows.length > 1 ? () => removeRow(i) : undefined}
             />
-          )}
-          <div className={`${styles.formGrid} ${styles.mt}`}>
-            <label className={styles.field}>
-              <span className={styles.fieldLabel}>Amount</span>
-              <input
-                className={styles.input}
-                type="number"
-                inputMode="decimal"
-                min="0"
-                placeholder="0"
-                value={cAmount}
-                onChange={(e) => setCAmount(e.target.value)}
-              />
-            </label>
-            <div className={styles.field}>
-              <span className={styles.fieldLabel}>Unit</span>
-              <Segmented options={CHEM_UNITS} value={cUnit} onChange={setCUnit} accent={meta.color} />
-            </div>
-          </div>
+          ))}
+          <button type="button" className={styles.addRow} onClick={addRow}>
+            + Add another chemical
+          </button>
         </>
       )}
 

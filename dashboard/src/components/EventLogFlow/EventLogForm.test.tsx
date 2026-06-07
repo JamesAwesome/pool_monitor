@@ -14,9 +14,7 @@ const CHEM_EDIT: PoolEvent = {
   date: '2026-05-20',
   time: '14:30',
   kind: 'chemical',
-  product: 'Cal-hypo',
-  amount: 12,
-  unit: 'oz',
+  items: [{ product: 'Cal-hypo', amount: 12, unit: 'oz' }],
 };
 
 describe('EventLogForm', () => {
@@ -57,10 +55,12 @@ describe('EventLogForm', () => {
     const [, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
     const body = JSON.parse(init.body as string);
     expect(body.kind).toBe('chemical');
-    expect(body.product).toBe('Cal-hypo');
-    expect(typeof body.amount).toBe('number');
-    expect(body.amount).toBe(12);
-    expect(['oz', 'lb', 'gal']).toContain(body.unit);
+    expect(Array.isArray(body.items)).toBe(true);
+    expect(body.items).toHaveLength(1);
+    expect(body.items[0].product).toBe('Cal-hypo');
+    expect(typeof body.items[0].amount).toBe('number');
+    expect(body.items[0].amount).toBe(12);
+    expect(['oz', 'lb', 'gal', 'tabs']).toContain(body.items[0].unit);
     expect((init.headers as Record<string, string>)['Authorization']).toBe('Basic dGVzdDp0ZXN0');
   });
 
@@ -91,8 +91,8 @@ describe('EventLogForm', () => {
       const body = JSON.parse(init.body as string);
       expect(body.id).toBe(CHEM_EDIT.id);
       expect(body.kind).toBe('chemical');
-      expect(body.product).toBe('Cal-hypo');
-      expect(body.amount).toBe(12);
+      expect(body.items[0].product).toBe('Cal-hypo');
+      expect(body.items[0].amount).toBe(12);
       expect((init.headers as Record<string, string>)['Authorization']).toBe('Basic dGVzdDp0ZXN0');
     });
   });
@@ -130,5 +130,68 @@ describe('EventLogForm', () => {
       await waitFor(() => expect(onAuthExpired).toHaveBeenCalledOnce());
       expect(onSaved).not.toHaveBeenCalled();
     });
+  });
+
+  it('logs multiple chemicals at one timestamp', async () => {
+    render(<EventLogForm kind="chemical" authHeader="Basic x" onSaved={noop} onClose={noop} onAuthExpired={noop} onDeleted={noop} />);
+    // Row 1
+    fireEvent.click(screen.getByRole('button', { name: 'Liquid chlorine' }));
+    fireEvent.change(screen.getAllByPlaceholderText('0')[0], { target: { value: '48' } });
+    // Add a second row
+    fireEvent.click(screen.getByRole('button', { name: /add another chemical/i }));
+    // Two rows exist now — click the second row's Muriatic acid chip (last match)
+    const muriatic = screen.getAllByRole('button', { name: 'Muriatic acid' });
+    fireEvent.click(muriatic[muriatic.length - 1]);
+    fireEvent.change(screen.getAllByPlaceholderText('0')[1], { target: { value: '16' } });
+
+    const log = screen.getByRole('button', { name: /log it/i });
+    await waitFor(() => expect(log).not.toBeDisabled());
+    fireEvent.click(log);
+
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    const [, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(init.body as string);
+    expect(body.kind).toBe('chemical');
+    expect(body.items).toHaveLength(2);
+    expect(body.items[0]).toMatchObject({ product: 'Liquid chlorine', amount: 48 });
+    expect(body.items[1]).toMatchObject({ product: 'Muriatic acid', amount: 16 });
+  });
+
+  it('removes an added chemical row', async () => {
+    render(<EventLogForm kind="chemical" authHeader="Basic x" onSaved={noop} onClose={noop} onAuthExpired={noop} onDeleted={noop} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Liquid chlorine' }));
+    fireEvent.change(screen.getAllByPlaceholderText('0')[0], { target: { value: '48' } });
+    fireEvent.click(screen.getByRole('button', { name: /add another chemical/i }));
+    expect(screen.getAllByPlaceholderText('0')).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: /remove chemical 2/i }));
+    expect(screen.getAllByPlaceholderText('0')).toHaveLength(1);
+  });
+
+  it('reconstructs a row from a legacy product-only event in edit mode', async () => {
+    const legacy: PoolEvent = { id: '2026-05-20T18:30:00.000Z', date: '2026-05-20', time: '14:30', kind: 'chemical', product: 'Some custom acid', amount: 9, unit: 'oz' };
+    render(<EventLogForm kind="chemical" authHeader="Basic x" editEntry={legacy} onSaved={noop} onClose={noop} onAuthExpired={noop} onDeleted={noop} />);
+    // An off-preset legacy product reconstructs into the "Other" free-text field.
+    expect(screen.getByDisplayValue('Some custom acid')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    const [url, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/events');
+    expect(init.method).toBe('PUT');
+    const body = JSON.parse(init.body as string);
+    expect(body.items).toEqual([{ product: 'Some custom acid', amount: 9, unit: 'oz' }]);
+  });
+
+  it('keeps Log it disabled until every chemical row has a product + positive amount', () => {
+    render(<EventLogForm kind="chemical" authHeader="Basic x" onSaved={noop} onClose={noop} onAuthExpired={noop} onDeleted={noop} />);
+    const logBtn = () => screen.getByRole('button', { name: /log it/i });
+    expect(logBtn()).toBeDisabled();                                  // no product, no amount
+    fireEvent.click(screen.getByRole('button', { name: 'Liquid chlorine' }));
+    expect(logBtn()).toBeDisabled();                                  // product but blank amount
+    fireEvent.change(screen.getAllByPlaceholderText('0')[0], { target: { value: '0' } });
+    expect(logBtn()).toBeDisabled();                                  // zero amount
+    fireEvent.change(screen.getAllByPlaceholderText('0')[0], { target: { value: '48' } });
+    expect(logBtn()).not.toBeDisabled();                             // valid
+    fireEvent.click(screen.getByRole('button', { name: /add another chemical/i }));
+    expect(logBtn()).toBeDisabled();                                 // empty second row re-disables
   });
 });

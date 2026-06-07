@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BottomSheet } from '../BottomSheet';
-import { sortedEvents, summary, whenLabel, countByKind } from '../../utils/events';
+import { sortedEvents, summary, whenLabel, countByKind, chemItems } from '../../utils/events';
 import { EVENT_KINDS, EVENT_KIND_ORDER } from '../../constants/events';
 import type { EventKind, PoolEvent } from '../../types';
 import styles from './LogBookSheet.module.css';
@@ -45,6 +45,13 @@ export function LogBookSheet({ open, events, onClose, onEdit, onNew }: LogBookSh
               <span className={styles.rowIco} style={{ background: k.tint, borderColor: k.color }}>{k.icon}</span>
               <span className={styles.rowMain}>
                 <span className={styles.rowSummary}>{summary(ev)}</span>
+                {ev.kind === 'chemical' && chemItems(ev).length > 1 && (
+                  <span className={styles.rowItems}>
+                    {chemItems(ev).map((it, i) => (
+                      <span key={i} className={styles.rowItem}>{it.product} · {it.amount} {it.unit}</span>
+                    ))}
+                  </span>
+                )}
                 <span className={styles.rowWhen}>{whenLabel(ev)}</span>
               </span>
               <span className={styles.chevron} aria-hidden="true">›</span>

@@ -110,6 +110,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+.rowItems {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 2px;
+}
+.rowItem {
+  font-size: 0.78rem;
+  color: var(--text-muted, #6b7280);
+}
+
 /* Chevron — ported from prototype .hist-chevron */
 .chevron {
   font-size: 1.3rem;
