@@ -54,9 +54,9 @@ describe('ChemFocusSheet', () => {
         poolHistory={[]} airHistory={[]} swims={swims} onClose={vi.fn()} />,
     );
     const swimPill = screen.getByRole('button', { name: 'Swim' });
-    expect(swimPill).toHaveAttribute('aria-pressed', 'true'); // default on
+    expect(swimPill).toHaveAttribute('aria-pressed', 'false'); // default off on chem page
     await userEvent.click(swimPill);
-    expect(swimPill).toHaveAttribute('aria-pressed', 'false');
+    expect(swimPill).toHaveAttribute('aria-pressed', 'true');
   });
 
   const sampleEvents = [
@@ -77,9 +77,9 @@ describe('ChemFocusSheet', () => {
         poolHistory={[]} airHistory={[]} events={sampleEvents} onClose={vi.fn()} />,
     );
     const eventsPill = screen.getByRole('button', { name: 'Events' });
-    expect(eventsPill).toHaveAttribute('aria-pressed', 'false'); // default off
+    expect(eventsPill).toHaveAttribute('aria-pressed', 'true'); // default on on chem page
     await userEvent.click(eventsPill);
-    expect(eventsPill).toHaveAttribute('aria-pressed', 'true');
+    expect(eventsPill).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('shows pool now legend when Pool overlay is on and poolHistory has data', () => {

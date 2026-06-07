@@ -30,13 +30,13 @@ export function ChemistryTab() {
   const [showCustom, setShowCustom] = useState(false);
   const [poolOn, setPoolOn] = useState(true);
   const [airOn, setAirOn] = useState(true);
-  const [swimOn, setSwimOn] = useState(true);
+  const [swimOn, setSwimOn] = useState(false);
   const [selected, setSelected] = useState<ChemKey | null>(null);
   const [logOpen, setLogOpen] = useState(false);
   const [histOpen, setHistOpen] = useState(false);
   const [editEntry, setEditEntry] = useState<ChemistryReading | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [eventsOn, setEventsOn] = useState(false);
+  const [eventsOn, setEventsOn] = useState(true);
   const [evFlowOpen, setEvFlowOpen] = useState(false);
   const [evMode, setEvMode] = useState<'chooser' | 'form'>('form');
   const [evKind, setEvKind] = useState<EventKind>('chemical');
