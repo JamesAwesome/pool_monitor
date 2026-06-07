@@ -335,15 +335,17 @@ describe('writeSwim', () => {
 });
 
 describe('queryEvents', () => {
-  it('maps each point to id + derived date/time + kind payload', async () => {
+  it('maps a new items-JSON row and normalizes a legacy chemical row', async () => {
     queryApiStub.collectRows.mockResolvedValueOnce([
-      { _time: '2026-05-20T18:30:00.000Z', kind: 'chemical', product: 'Liquid chlorine', amount: 48, unit: 'oz' },
-      { _time: '2026-05-21T13:00:00.000Z', kind: 'backwash' },
+      { _time: '2026-05-20T18:30:00.000Z', kind: 'chemical', items: '[{"product":"Liquid chlorine","amount":48,"unit":"oz"},{"product":"Muriatic acid","amount":16,"unit":"oz"}]' },
+      { _time: '2026-05-21T13:00:00.000Z', kind: 'chemical', product: 'Cal-hypo', amount: 16, unit: 'oz' },
+      { _time: '2026-05-22T13:00:00.000Z', kind: 'backwash' },
     ]);
     const out = await queryEvents('season', 'America/New_York');
     expect(out).toEqual([
-      { id: '2026-05-20T18:30:00.000Z', date: '2026-05-20', time: '14:30', kind: 'chemical', product: 'Liquid chlorine', amount: 48, unit: 'oz' },
-      { id: '2026-05-21T13:00:00.000Z', date: '2026-05-21', time: '09:00', kind: 'backwash' },
+      { id: '2026-05-20T18:30:00.000Z', date: '2026-05-20', time: '14:30', kind: 'chemical', items: [{ product: 'Liquid chlorine', amount: 48, unit: 'oz' }, { product: 'Muriatic acid', amount: 16, unit: 'oz' }] },
+      { id: '2026-05-21T13:00:00.000Z', date: '2026-05-21', time: '09:00', kind: 'chemical', items: [{ product: 'Cal-hypo', amount: 16, unit: 'oz' }] },
+      { id: '2026-05-22T13:00:00.000Z', date: '2026-05-22', time: '09:00', kind: 'backwash' },
     ]);
   });
   it('filters the event measurement', async () => {
@@ -358,6 +360,11 @@ describe('writeEvent', () => {
     const id = await writeEvent({ date: '2026-05-20', time: '14:30', kind: 'chemical', product: 'Cal-hypo', amount: 16, unit: 'oz' }, 'America/New_York');
     expect(writeApiStub.writePoint).toHaveBeenCalledOnce();
     expect(writeApiStub.flush).toHaveBeenCalledOnce();
+    expect(id).toBe('2026-05-20T18:30:00.000Z');
+  });
+  it('writes an items-list chemical point', async () => {
+    const id = await writeEvent({ date: '2026-05-20', time: '14:30', kind: 'chemical', items: [{ product: 'Liquid chlorine', amount: 48, unit: 'oz' }, { product: 'Acid', amount: 16, unit: 'oz' }] }, 'America/New_York');
+    expect(writeApiStub.writePoint).toHaveBeenCalledOnce();
     expect(id).toBe('2026-05-20T18:30:00.000Z');
   });
 });
