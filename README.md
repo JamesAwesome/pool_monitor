@@ -25,7 +25,8 @@ All services run as Docker containers via `docker-compose.yml`:
 - **Mosquitto** - MQTT broker
 - **Telegraf** - Subscribes to MQTT, filters by sensor ID, and writes to InfluxDB
 - **InfluxDB 2** - Time-series database for temperature data
-- **Pool Dashboard** - Mobile-first React/Express SPA on port 8080, queries InfluxDB directly. Features dark/light mode, F/C toggle, multi-sensor support, battery monitoring, interactive charts, and social link previews.
+- **weather** - Optional Node/TS sidecar that polls weatherapi.com and writes air temperature and sky conditions to InfluxDB, powering the dashboard's weather overlay
+- **Pool Dashboard** - Mobile-first React/Express SPA on port 8080, queries InfluxDB directly. Features dark/light mode, F/C toggle, multi-sensor support, battery monitoring, interactive charts, chemistry/swim/maintenance logging, and social link previews.
 - **Grafana** - Dashboard and visualization (port 3000, optional — the Pool Dashboard replaces this for daily use)
 - **cloudflared** - Cloudflare Tunnel connector for public HTTPS access
 
@@ -55,6 +56,14 @@ CLOUDFLARE_TUNNEL_TOKEN=<your-token>
 DASHBOARD_TITLE=Pool Dashboard
 PUBLIC_URL=https://pool.yourdomain.com
 TIMEZONE=America/New_York
+
+# Optional — weather overlay (leave WEATHERAPI_KEY empty to disable)
+WEATHERAPI_KEY=<your-weatherapi-key>
+WEATHER_LOCATION=19012            # zip code, or "City, State, Country"
+
+# Required to log chemistry / swims / maintenance events (gates the write API)
+CHEM_AUTH_USER=<username>
+CHEM_AUTH_PASSWORD=<password>
 ```
 
 Do **not** quote the sensor ID value — the TOML string quotes are already in
@@ -155,9 +164,7 @@ The dashboard works on both the local network (`http://pi-ip:8080`) and the publ
 
 Ports 8080 (dashboard) and 3000 (Grafana) are exposed locally for direct access on your network.
 
-### 6. Access the dashboard
-
-### Pool Dashboard Features
+### 6. Pool Dashboard features
 
 - **Current temperature** with color-coded zones (cool/normal/warm/hot)
 - **Average and peak stats** that follow the selected time range — tap to see period-over-period breakdown
@@ -170,6 +177,15 @@ Ports 8080 (dashboard) and 3000 (Grafana) are exposed locally for direct access 
 - **Multi-sensor support** — selector appears when multiple sensors are detected
 - **Mobile-first** — responsive design, swipe-to-dismiss bottom sheets, touch-friendly controls
 - **Social link previews** — dynamic OG image with current temperature for iMessage, Slack, etc.
+
+#### Logging & tracking
+
+- **Chemistry tracking** — a second tab to log manual water-test readings (pH, free/combined chlorine, total alkalinity, CYA, calcium hardness) as small-multiple trend cards with a focus chart, full history, and edit/delete
+- **Swim log** — record who swam (emoji avatars, never names) and when; markers ride the temperature curve, with an all-swims history and a per-emoji leaderboard
+- **Maintenance events** — log chemical additions (one or more products at once, each with its own amount/unit), water top-offs, filter backwashes, and freeform notes; all surface as on-chart markers with a filterable log book
+- **Weather overlay** — optional air-temperature line plus sky-condition icons aligned to the chart, from the weather sidecar
+
+Chemistry, swim, and maintenance logging are gated by the `CHEM_AUTH_*` credentials; viewing is public.
 
 ### 7. Access the dashboards
 
