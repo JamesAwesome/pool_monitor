@@ -28,7 +28,7 @@ interface ChemFocusSheetProps {
 export function ChemFocusSheet({ meta, readings, poolHistory, airHistory, poolCurrent, airCurrent, swims, events, onClose }: ChemFocusSheetProps) {
   const [poolOn, setPoolOn] = useState(true);
   const [airOn, setAirOn] = useState(true);
-  const [swimOn, setSwimOn] = useState(true);
+  const [swimOn, setSwimOn] = useState(false);
   const [eventsOn, setEventsOn] = useState(true);
   const hasSwims = !!swims && swims.length > 0;
   const hasEvents = !!events && events.length > 0;

@@ -30,7 +30,7 @@ export function ChemistryTab() {
   const [showCustom, setShowCustom] = useState(false);
   const [poolOn, setPoolOn] = useState(true);
   const [airOn, setAirOn] = useState(true);
-  const [swimOn, setSwimOn] = useState(true);
+  const [swimOn, setSwimOn] = useState(false);
   const [selected, setSelected] = useState<ChemKey | null>(null);
   const [logOpen, setLogOpen] = useState(false);
   const [histOpen, setHistOpen] = useState(false);
