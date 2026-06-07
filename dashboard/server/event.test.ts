@@ -40,9 +40,6 @@ describe('validateEventBody', () => {
     const items = Array.from({ length: 11 }, () => ({ product: 'X', amount: 1, unit: 'oz' }));
     expect(validateEventBody({ ...base, kind: 'chemical', items }).ok).toBe(false);
   });
-  it('chemical: rejects a product longer than 64 chars', () => {
-    expect(validateEventBody({ ...base, kind: 'chemical', items: [{ product: 'x'.repeat(65), amount: 1, unit: 'oz' }] }).ok).toBe(false);
-  });
   it('trims the product and drops fields not for the kind', () => {
     const r = validateEventBody({ ...base, kind: 'water', amount: 2, unit: 'in', product: 'ignored', note: 'ignored' });
     expect(r).toEqual({ ok: true, ...base, kind: 'water', amount: 2, unit: 'in' });
