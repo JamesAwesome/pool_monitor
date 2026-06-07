@@ -77,9 +77,9 @@ describe('ChemFocusSheet', () => {
         poolHistory={[]} airHistory={[]} events={sampleEvents} onClose={vi.fn()} />,
     );
     const eventsPill = screen.getByRole('button', { name: 'Events' });
-    expect(eventsPill).toHaveAttribute('aria-pressed', 'true'); // default on
+    expect(eventsPill).toHaveAttribute('aria-pressed', 'false'); // default off
     await userEvent.click(eventsPill);
-    expect(eventsPill).toHaveAttribute('aria-pressed', 'false');
+    expect(eventsPill).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('shows pool now legend when Pool overlay is on and poolHistory has data', () => {

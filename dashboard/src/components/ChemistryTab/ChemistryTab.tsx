@@ -36,7 +36,7 @@ export function ChemistryTab() {
   const [histOpen, setHistOpen] = useState(false);
   const [editEntry, setEditEntry] = useState<ChemistryReading | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [eventsOn, setEventsOn] = useState(true);
+  const [eventsOn, setEventsOn] = useState(false);
   const [evFlowOpen, setEvFlowOpen] = useState(false);
   const [evMode, setEvMode] = useState<'chooser' | 'form'>('form');
   const [evKind, setEvKind] = useState<EventKind>('chemical');

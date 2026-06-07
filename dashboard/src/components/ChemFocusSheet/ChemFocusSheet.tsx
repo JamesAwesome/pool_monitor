@@ -29,7 +29,7 @@ export function ChemFocusSheet({ meta, readings, poolHistory, airHistory, poolCu
   const [poolOn, setPoolOn] = useState(true);
   const [airOn, setAirOn] = useState(true);
   const [swimOn, setSwimOn] = useState(true);
-  const [eventsOn, setEventsOn] = useState(true);
+  const [eventsOn, setEventsOn] = useState(false);
   const hasSwims = !!swims && swims.length > 0;
   const hasEvents = !!events && events.length > 0;
   const { unit } = useTheme();

@@ -92,14 +92,14 @@ describe('ChemistryTab', () => {
     expect(screen.queryByRole('button', { name: 'Events' })).toBeNull();
   });
 
-  it('renders the Events overlay pill (default on) only when events exist, and toggles it', async () => {
+  it('renders the Events overlay pill (default off) only when events exist, and toggles it', async () => {
     eventMock.events = [{ id: '2026-05-29T16:00:00.000Z', date: '2026-05-29', time: '12:00', kind: 'chemical' }];
     render(<ChemistryTab />);
     await waitFor(() => expect(screen.getByText('PH')).toBeInTheDocument());
     const eventsPill = screen.getByRole('button', { name: 'Events' });
-    expect(eventsPill).toHaveAttribute('aria-pressed', 'true');
-    await userEvent.click(eventsPill);
     expect(eventsPill).toHaveAttribute('aria-pressed', 'false');
+    await userEvent.click(eventsPill);
+    expect(eventsPill).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('renders all four Log event kind buttons in the log-event row', async () => {

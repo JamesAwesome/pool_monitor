@@ -167,16 +167,16 @@ describe('TempChart', () => {
     expect(screen.queryByRole('button', { name: 'Events' })).toBeNull();
   });
 
-  it('Events overlay pill starts active and toggles on click', () => {
+  it('Events overlay pill starts inactive and toggles on click', () => {
     render(
       <TempChart data={sampleData} range="24h" onRangeChange={vi.fn()} loading={false} events={sampleEvents} />
     );
     const pill = screen.getByRole('button', { name: 'Events' });
-    expect(pill.getAttribute('aria-pressed')).toBe('true');
-    fireEvent.click(pill);
     expect(pill.getAttribute('aria-pressed')).toBe('false');
     fireEvent.click(pill);
     expect(pill.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(pill);
+    expect(pill.getAttribute('aria-pressed')).toBe('false');
   });
 
   it('Custom button opens the bottom sheet', () => {

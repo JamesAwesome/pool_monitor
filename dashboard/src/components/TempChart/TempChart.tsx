@@ -59,7 +59,7 @@ export function TempChart({ data, range, onRangeChange, loading, airHistory, swi
   const [showCustom, setShowCustom] = useState(false);
   const [airVisible, setAirVisible] = useState(true);
   const [swimVisible, setSwimVisible] = useState(true);
-  const [eventsVisible, setEventsVisible] = useState(true);
+  const [eventsVisible, setEventsVisible] = useState(false);
   const hasAir = !!airHistory && airHistory.length > 0;
   const hasSwims = !!swims && swims.length > 0;
   const hasEvents = !!events && events.length > 0;
