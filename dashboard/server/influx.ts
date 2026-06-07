@@ -576,8 +576,8 @@ function parseChemItems(row: Record<string, unknown>): ChemItem[] {
     try {
       const parsed = JSON.parse(row.items)
       if (Array.isArray(parsed)) return parsed as ChemItem[]
-    } catch { /* fall through to empty */ }
-    return []
+      // valid JSON but not an array — fall through to the legacy scalar branch
+    } catch { /* malformed JSON — fall through to the legacy scalar branch */ }
   }
   if (typeof row.product === 'string') {
     return [{ product: row.product, amount: typeof row.amount === 'number' ? row.amount : 0, unit: typeof row.unit === 'string' ? row.unit : '' }]

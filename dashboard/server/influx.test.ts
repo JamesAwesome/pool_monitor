@@ -366,5 +366,9 @@ describe('writeEvent', () => {
     const id = await writeEvent({ date: '2026-05-20', time: '14:30', kind: 'chemical', items: [{ product: 'Liquid chlorine', amount: 48, unit: 'oz' }, { product: 'Acid', amount: 16, unit: 'oz' }] }, 'America/New_York');
     expect(writeApiStub.writePoint).toHaveBeenCalledOnce();
     expect(id).toBe('2026-05-20T18:30:00.000Z');
+    const writtenPoint = writeApiStub.writePoint.mock.calls[0][0] as { fields: Record<string, unknown> };
+    const itemsField = writtenPoint.fields.items as string;
+    expect(itemsField).toContain('Liquid chlorine');
+    expect(itemsField).toContain('Acid');
   });
 });
