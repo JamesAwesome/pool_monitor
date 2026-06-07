@@ -9,6 +9,6 @@ export const EVENT_KINDS: Record<EventKind, EventKindMeta> = {
   note:     { key: 'note',     label: 'Note',     icon: '📝', color: '#475569', tint: 'rgba(71,85,105,0.14)',  noun: 'Note' },
 };
 export const EVENT_KIND_ORDER: EventKind[] = ['chemical', 'water', 'backwash', 'note'];
-export const CHEM_PRODUCTS = ['Liquid chlorine', 'Cal-hypo', 'Muriatic acid', 'Soda ash', 'Baking soda', 'Stabilizer (CYA)', 'Calcium chloride', 'Algaecide'];
-export const CHEM_UNITS = ['oz', 'lb', 'gal'];
+export const CHEM_PRODUCTS = ['Liquid chlorine', 'Cal-hypo', 'Tri-chlor tabs (3 in)', 'Tri-chlor tabs (1 in)', 'Muriatic acid', 'Soda ash', 'Baking soda', 'Stabilizer (CYA)', 'Calcium chloride', 'Algaecide'];
+export const CHEM_UNITS = ['oz', 'lb', 'gal', 'tabs'];
 export const WATER_UNITS = ['in', 'gal', 'min'];
