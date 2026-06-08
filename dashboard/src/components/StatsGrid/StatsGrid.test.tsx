@@ -9,6 +9,7 @@ vi.mock('../../context/ThemeContext', () => ({
 
 const mockStats = {
   current: 25,
+  currentTime: null,
   average: 24,
   peak: 30,
   seasonAvg: 23,

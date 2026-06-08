@@ -60,4 +60,21 @@ describe('CurrentTemp', () => {
     render(<CurrentTemp value={10} loading={false} />);
     expect(screen.getByTestId('temp-value').dataset.zone).toBe('cool');
   });
+
+  it('shows the updated timestamp when currentTime is provided', () => {
+    const iso = new Date(2026, 5, 8, 8, 34, 0).toISOString();
+    render(<CurrentTemp value={25} loading={false} currentTime={iso} />);
+    expect(screen.getByText(/^Updated /)).toBeTruthy();
+  });
+
+  it('omits the updated timestamp when currentTime is null', () => {
+    render(<CurrentTemp value={25} loading={false} currentTime={null} />);
+    expect(screen.queryByText(/^Updated /)).toBeNull();
+  });
+
+  it('omits the updated timestamp while loading', () => {
+    const iso = new Date(2026, 5, 8, 8, 34, 0).toISOString();
+    render(<CurrentTemp value={null} loading={true} currentTime={iso} />);
+    expect(screen.queryByText(/^Updated /)).toBeNull();
+  });
 });

@@ -35,7 +35,7 @@ function TemperatureTab() {
     <>
       {error && !loading && stats && <p className={styles.error}>{error}</p>}
       <SensorSelector sensors={sensors} selected={selectedSensor} onSelect={setSelectedSensor} />
-      <CurrentTemp value={stats?.current ?? null} loading={loading} airCurrent={airCurrent} />
+      <CurrentTemp value={stats?.current ?? null} loading={loading} airCurrent={airCurrent} currentTime={stats?.currentTime ?? null} />
       <StatsGrid stats={stats} loading={loading} selectedSensor={selectedSensor} range={range} />
 
       <div className={styles.swimActions}>

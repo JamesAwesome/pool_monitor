@@ -1,5 +1,6 @@
 export interface PoolStats {
   current: number | null;
+  currentTime: string | null; // ISO UTC of the latest reading; null when none
   average: number | null;
   peak: number | null;
   seasonAvg: number | null;
