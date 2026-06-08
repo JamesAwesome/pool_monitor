@@ -9,7 +9,7 @@ import express from 'express';
 // these tests is the route-layer behavior (range validation), not the queries.
 vi.mock('./influx.js', () => ({
   querySensors: vi.fn(async () => []),
-  queryStats: vi.fn(async () => ({ current: null, average: null, peak: null, seasonAvg: null, seasonPeak: null })),
+  queryStats: vi.fn(async () => ({ current: null, currentTime: null, average: null, peak: null, seasonAvg: null, seasonPeak: null })),
   queryHistory: vi.fn(async () => []),
   queryBatteries: vi.fn(async () => []),
   queryBatteryHistory: vi.fn(async () => []),

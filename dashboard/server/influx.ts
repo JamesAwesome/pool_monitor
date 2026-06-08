@@ -63,6 +63,7 @@ function fluxQueryAbsolute(start: string, field: string, aggregation: string, yi
 
 interface StatRow {
   _value: number
+  _time?: string
 }
 
 export async function querySensors(): Promise<Array<{ id: string; model: string }>> {
@@ -81,6 +82,7 @@ export async function querySensors(): Promise<Array<{ id: string; model: string 
 
 export async function queryStats(sensorId?: string, range = '24h'): Promise<{
   current: number | null
+  currentTime: string | null
   average: number | null
   peak: number | null
   seasonAvg: number | null
@@ -100,12 +102,17 @@ export async function queryStats(sensorId?: string, range = '24h'): Promise<{
     Object.entries(queries).map(async ([key, query]) => {
       const rows = await api.collectRows<StatRow>(query)
       const value = rows.length > 0 ? rows[0]._value : null
-      return [key, value] as const
+      const time = rows.length > 0 ? rows[0]._time ?? null : null
+      return [key, value, time] as const
     })
   )
 
-  return Object.fromEntries(results) as {
+  const values = Object.fromEntries(results.map(([key, value]) => [key, value]))
+  const currentTime = results.find(([key]) => key === 'current')?.[2] ?? null
+
+  return { ...values, currentTime } as {
     current: number | null
+    currentTime: string | null
     average: number | null
     peak: number | null
     seasonAvg: number | null
