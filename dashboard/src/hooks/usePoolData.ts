@@ -13,6 +13,7 @@ function timeSeriesChanged(prev: TimeSeriesPoint[], next: TimeSeriesPoint[]): bo
 function statsChanged(prev: PoolStats | null, next: PoolStats): boolean {
   if (!prev) return true;
   return prev.current !== next.current
+    || prev.currentTime !== next.currentTime
     || prev.average !== next.average
     || prev.peak !== next.peak
     || prev.seasonAvg !== next.seasonAvg
