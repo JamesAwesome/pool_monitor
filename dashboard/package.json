@@ -19,12 +19,12 @@
   "dependencies": {
     "@influxdata/influxdb-client": "^1.35.0",
     "@influxdata/influxdb-client-apis": "^1.35.0",
-    "@napi-rs/canvas": "^1.0.0",
+    "@napi-rs/canvas": "^1.0.1",
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "recharts": "^3.8.1"
+    "recharts": "^3.9.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -33,20 +33,20 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/express": "^5.0.6",
     "@types/node": "^24.12.4",
-    "@types/react": "^19.2.16",
+    "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.2",
-    "@vitest/coverage-v8": "^4.1.8",
-    "eslint": "^10.4.1",
+    "@vitejs/plugin-react": "^6.0.3",
+    "@vitest/coverage-v8": "^4.1.9",
+    "eslint": "^10.6.0",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-react-refresh": "^0.5.2",
-    "globals": "^17.6.0",
+    "eslint-plugin-react-refresh": "^0.5.3",
+    "globals": "^17.7.0",
     "jsdom": "^29.1.1",
     "tsx": "^4.22.4",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.60.1",
-    "vite": "^8.0.16",
-    "vitest": "^4.1.8"
+    "typescript-eslint": "^8.62.1",
+    "vite": "^8.1.0",
+    "vitest": "^4.1.9"
   },
   "pnpm": {
     "overrides": {
