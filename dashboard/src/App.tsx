@@ -10,6 +10,7 @@ import { BatteryStatus } from './components/BatteryStatus';
 import { SensorSelector } from './components/SensorSelector';
 import { TabBar, type TabKey } from './components/TabBar';
 import { ChemistryTab } from './components/ChemistryTab';
+import { SeasonSummary } from './components/SeasonSummary';
 import { useSwimData } from './hooks/useSwimData';
 import { useEventData } from './hooks/useEventData';
 import { SwimLogFlow } from './components/SwimLogFlow';
@@ -72,7 +73,9 @@ function Dashboard() {
     <main className={styles.main}>
       <TabBar active={tab} onChange={setTab} />
       <div className="container">
-        {tab === 'temperature' ? <TemperatureTab /> : <ChemistryTab />}
+        {tab === 'temperature' && <TemperatureTab />}
+        {tab === 'chemistry' && <ChemistryTab />}
+        {tab === 'season' && <SeasonSummary />}
       </div>
     </main>
   );

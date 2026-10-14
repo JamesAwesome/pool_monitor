@@ -100,6 +100,7 @@ pnpm typecheck        # TypeScript only
   - `/api/chemistry/auth-check` — GET, Basic-Auth gated; returns `{ ok: true }` (used by the unlock sheet to validate credentials without writing).
   - `/api/swims?range=...` — GET swim sessions `{ id, date, time, people }[]` (id = the swim's ISO-UTC timestamp; `people` = emoji array). POST `{ date, time, people }` → `201 { id }`. PUT `{ id, date, time, people }` edits (delete-old + write-new). DELETE `?id=<iso>` removes one. **POST/PUT/DELETE share the chemistry Basic-Auth gate + rate limiter** (`CHEM_AUTH_USER`/`CHEM_AUTH_PASSWORD`, `chemistryAuthLimiter`); GET is public. Storage is a separate InfluxDB `swim` measurement; `people` is a comma-joined string field (`server/swim.ts`, `querySwims`/`writeSwim` in `server/influx.ts`). See **Swim logging** below.
   - `/api/events?range=...` — GET maintenance events `{ id, date, time, kind, product?, amount?, unit?, note? }[]` (id = the event's ISO-UTC timestamp; `kind` ∈ `chemical|water|backwash|note`). POST a `{ date, time, kind, …payload }` → `201 { id }`. PUT edits (delete-old + write-new). DELETE `?id=<iso>` removes one. Same shared chemistry Basic-Auth gate + rate limiter as swims; GET is public. Storage is a separate InfluxDB `event` measurement (`kind` + per-kind sparse fields; `server/event.ts` validation, `queryEvents`/`writeEvent` in `server/influx.ts`). See **Maintenance events** below.
+  - `/api/season-summary?year=YYYY` — GET the whole-year recap for the **Season** tab (defaults to the current year; 2000..now, else 400). Pure builder `server/seasonSummary.ts` (`buildSeasonSummary`) over raw inputs from `querySeasonSummaryData` in `server/influx.ts` (hourly pool/air means, raw pool max/min, weather condition samples, plus the year's chemistry/swims/events). Days/hours are bucketed in `TIMEZONE`. Cached 10 min per year in `routes.ts`.
   - `/og-image.png` — dynamically generated 1200x630 PNG with current temp (for iMessage/social previews, cached 5 min)
   - All data endpoints accept optional `?sensor=<id>` to filter by sensor; omit for averaged "all sensors" view.
 - **OG image**: `server/og-image.ts` generates a social preview image using `@napi-rs/canvas`. Inter font files bundled in `server/fonts/`. Dynamic OG meta tags injected into HTML in production.
@@ -205,6 +206,16 @@ Storage is a separate InfluxDB `event` measurement: point timestamp = the event'
 in `TIMEZONE` (stable id); `kind` is stored on every point plus only the sparse fields that
 kind uses (`product`/`unit`/`note` strings, `amount` float). `server/event.ts` does per-kind
 validation; `queryEvents`/`writeEvent` in `server/influx.ts`.
+
+### Season tab
+
+A third tab (`src/components/SeasonSummary/`) styled as an arcade high-score screen
+(theme-independent CRT palette; `Press Start 2P` + `VT323` from Google Fonts). Shows a
+◀ year ▶ picker, a top score bar, the swim **HIGH SCORES** leaderboard, "stages" of
+stats (water temp, chemistry, maintenance, weather, swims) and **ACHIEVEMENTS UNLOCKED**
+fun facts. Fun-fact text and unit-aware formatting live in `src/utils/seasonFacts.ts`
+(`fmtDelta` converts temperature *differences* without the +32 offset). Data via
+`useSeasonSummary(year)` (one-shot fetch, no polling).
 
 ### Query aggregation strategy
 All time-series queries use `aggregateWindow` with `fn: mean` (temperature) or `fn: last` (battery). Note: `aggregateWindow` `location` parameter is not available in InfluxDB OSS 2.x (Cloud only), so windows align to UTC.

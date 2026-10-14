@@ -24,10 +24,11 @@ vi.mock('./influx.js', () => ({
   queryEvents: vi.fn(async () => []),
   writeEvent: vi.fn(async () => '2026-05-20T18:30:00.000Z'),
   deletePoint: vi.fn(async () => {}),
+  querySeasonSummaryData: vi.fn(async (year: number) => ({ year, poolHourly: [], airHourly: [], poolHigh: null, poolLow: null, conditions: [], chemistry: [], swims: [], events: [] })),
 }));
 vi.mock('./og-image.js', () => ({ generateOgImage: vi.fn(async () => Buffer.from('')) }));
 
-import { writeChemistry, querySwims as _querySwims, writeSwim as _writeSwim, queryEvents as _queryEvents, writeEvent as _writeEvent, deletePoint } from './influx.js';
+import { querySeasonSummaryData, writeChemistry, querySwims as _querySwims, writeSwim as _writeSwim, queryEvents as _queryEvents, writeEvent as _writeEvent, deletePoint } from './influx.js';
 
 const router = (await import('./routes')).default;
 
@@ -307,4 +308,30 @@ describe('/api/events', () => {
     expect(res.status).toBe(200);
     expect(deletePoint).toHaveBeenCalledWith('2026-05-20T18:30:00.000Z', 'event');
   });
+});
+
+describe('GET /api/season-summary', () => {
+  it('defaults to the current year and returns a summary', async () => {
+    const res = await fetch(`${base}/api/season-summary`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { year: number; pool: unknown; swims: { sessions: number } };
+    expect(body.year).toBe(new Date().getFullYear());
+    expect(body.pool).toBeNull();
+    expect(body.swims.sessions).toBe(0);
+  });
+
+  it('caches per year', async () => {
+    (querySeasonSummaryData as Mock).mockClear();
+    await fetch(`${base}/api/season-summary?year=2024`);
+    await fetch(`${base}/api/season-summary?year=2024`);
+    expect(querySeasonSummaryData).toHaveBeenCalledTimes(1);
+    expect(querySeasonSummaryData).toHaveBeenCalledWith(2024);
+  });
+
+  for (const bad of ['1999', '3000', '20x6', '2026) |> evil']) {
+    it(`rejects year=${bad} with 400`, async () => {
+      const res = await fetch(`${base}/api/season-summary?year=${encodeURIComponent(bad)}`);
+      expect(res.status).toBe(400);
+    });
+  }
 });

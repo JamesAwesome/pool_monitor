@@ -1,5 +1,7 @@
 import express, { Router } from 'express'
-import { querySensors, queryStats, queryHistory, queryBatteries, queryBatteryHistory, querySeasonHistory, queryStatDetail, queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry, querySwims, writeSwim, queryEvents, writeEvent, deletePoint } from './influx.js'
+import { querySensors, queryStats, queryHistory, queryBatteries, queryBatteryHistory, querySeasonHistory, queryStatDetail, queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry, querySwims, writeSwim, queryEvents, writeEvent, deletePoint, querySeasonSummaryData } from './influx.js'
+import { buildSeasonSummary } from './seasonSummary.js'
+import type { SeasonSummary } from './seasonSummary.js'
 import { generateOgImage } from './og-image.js'
 import { requireAuth } from './auth.js'
 import { validateChemistryBody, isValidId } from './chemistry.js'
@@ -335,6 +337,30 @@ router.delete('/api/events', chemistryAuthLimiter, requireAuth, async (req, res)
     if (!isValidId(id)) { res.status(400).json({ error: 'Invalid or missing id' }); return }
     await deletePoint(id, 'event')
     res.status(200).json({ ok: true })
+  } catch (err) { res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' }) }
+})
+
+// Season summary: a year's worth of hourly data is the heaviest query in the
+// app, so results are cached briefly per year.
+const SUMMARY_TTL_MS = 10 * 60 * 1000
+const summaryCache = new Map<number, { at: number; data: SeasonSummary }>()
+
+export function isValidYear(raw: string): boolean {
+  if (!/^\d{4}$/.test(raw)) return false
+  const y = parseInt(raw, 10)
+  return y >= 2000 && y <= new Date().getFullYear()
+}
+
+router.get('/api/season-summary', async (req, res) => {
+  try {
+    const raw = typeof req.query.year === 'string' ? req.query.year : String(new Date().getFullYear())
+    if (!isValidYear(raw)) { res.status(400).json({ error: 'Invalid year' }); return }
+    const year = parseInt(raw, 10)
+    const hit = summaryCache.get(year)
+    if (hit && Date.now() - hit.at < SUMMARY_TTL_MS) { res.json(hit.data); return }
+    const data = buildSeasonSummary(await querySeasonSummaryData(year))
+    summaryCache.set(year, { at: Date.now(), data })
+    res.json(data)
   } catch (err) { res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' }) }
 })
 
