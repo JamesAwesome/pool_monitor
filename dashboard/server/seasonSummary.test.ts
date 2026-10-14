@@ -189,3 +189,20 @@ describe('swims', () => {
     expect(s.warmestSwim).toMatchObject({ date: '2026-06-07', value: 29, people: ['🦦'] })
   })
 })
+
+describe('review fixes', () => {
+  it('counts a day just over 80°F as warm (exact threshold, not 26.7°C)', () => {
+    const input = empty()
+    input.poolHourly = day('2026-07-01', () => 26.68) // 80.02°F
+    expect(buildSeasonSummary(input, TZ).pool!.warmDays).toBe(1)
+  })
+
+  it('breaks leaderboard ties by who got there first', () => {
+    const input = empty()
+    input.swims = [
+      { id: '2026-06-02T12:00:00.000Z', date: '2026-06-02', time: '12:00', people: ['🐢'] },
+      { id: '2026-06-01T12:00:00.000Z', date: '2026-06-01', time: '12:00', people: ['🦦'] },
+    ]
+    expect(buildSeasonSummary(input, TZ).swims.leaderboard.map((p) => p.emoji)).toEqual(['🦦', '🐢'])
+  })
+})

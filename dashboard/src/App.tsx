@@ -76,16 +76,17 @@ function TemperatureTab({ offSeason }: { offSeason: boolean }) {
 function Dashboard() {
   const mode = useMode();
   const [chosenTab, setChosenTab] = useState<TabKey | null>(null);
-  // Off-season opens on the Season recap until a tab is picked.
+  // Off-season opens on the Season recap until a tab is picked. Tab content
+  // waits for /api/mode so the app doesn't start on Temperature and then jump.
   const tab: TabKey = chosenTab ?? (mode?.offSeason ? 'season' : 'temperature');
   const setTab = setChosenTab;
   return (
     <main className={styles.main}>
       <TabBar active={tab} onChange={setTab} />
       <div className="container">
-        {tab === 'temperature' && <TemperatureTab offSeason={mode?.offSeason ?? false} />}
-        {tab === 'chemistry' && <ChemistryTab />}
-        {tab === 'season' && <SeasonSummary key={mode?.latestYear ?? 'current'} initialYear={mode?.latestYear ?? undefined} />}
+        {mode && tab === 'temperature' && <TemperatureTab offSeason={mode.offSeason} />}
+        {mode && tab === 'chemistry' && <ChemistryTab />}
+        {mode && tab === 'season' && <SeasonSummary initialYear={mode.latestYear ?? undefined} />}
       </div>
     </main>
   );

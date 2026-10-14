@@ -11,11 +11,21 @@ describe('useMode', () => {
     await waitFor(() => expect(result.current).toEqual({ offSeason: true, latestYear: 2025 }));
   });
 
-  it('stays null when the request fails', async () => {
-    const f = vi.fn(async () => { throw new Error('down'); });
-    vi.stubGlobal('fetch', f as unknown as typeof fetch);
+  it('is null until the request settles', () => {
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})) as unknown as typeof fetch);
     const { result } = renderHook(() => useMode());
-    await waitFor(() => expect(f).toHaveBeenCalled());
     expect(result.current).toBeNull();
+  });
+
+  it('settles as in-season when the request fails', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('down'); }) as unknown as typeof fetch);
+    const { result } = renderHook(() => useMode());
+    await waitFor(() => expect(result.current).toEqual({ offSeason: false, latestYear: null }));
+  });
+
+  it('settles as in-season on a non-ok response', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, json: async () => ({}) })) as unknown as typeof fetch);
+    const { result } = renderHook(() => useMode());
+    await waitFor(() => expect(result.current).toEqual({ offSeason: false, latestYear: null }));
   });
 });

@@ -41,14 +41,14 @@ describe('App', () => {
     expect(screen.getByText('Pool Dashboard')).toBeTruthy();
   });
 
-  it('renders the current temperature', () => {
+  it('renders the current temperature', async () => {
     render(<App />);
-    expect(screen.getByText('Current Pool Temperature')).toBeTruthy();
+    expect(await screen.findByText('Current Pool Temperature')).toBeTruthy();
   });
 
-  it('renders stat cards', () => {
+  it('renders stat cards', async () => {
     render(<App />);
-    expect(screen.getByText(/Average \(3D\)/)).toBeTruthy();
+    expect(await screen.findByText(/Average \(3D\)/)).toBeTruthy();
     expect(screen.getByText(/Peak \(3D\)/)).toBeTruthy();
   });
 
@@ -66,6 +66,13 @@ describe('App', () => {
     render(<App />);
     await userEvent.click(await screen.findByRole('tab', { name: 'Chemistry' }));
     expect(await screen.findByRole('heading', { name: 'Chemistry' })).toBeInTheDocument();
+  });
+
+  it('waits for the mode before rendering a tab', () => {
+    globalThis.fetch = vi.fn(() => new Promise(() => {})) as unknown as typeof fetch;
+    render(<App />);
+    expect(screen.queryByText('Current Pool Temperature')).toBeNull();
+    expect(screen.getByRole('tablist')).toBeTruthy();
   });
 
   describe('off-season mode', () => {
@@ -92,8 +99,9 @@ describe('App', () => {
       expect(screen.getByRole('status')).toHaveTextContent(/recording is paused/);
     });
 
-    it('shows no notice in season', () => {
+    it('shows no notice in season', async () => {
       render(<App />);
+      await screen.findByText('Current Pool Temperature');
       expect(screen.queryByText(/recording is paused/)).toBeNull();
     });
   });

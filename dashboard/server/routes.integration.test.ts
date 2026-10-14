@@ -29,7 +29,7 @@ vi.mock('./influx.js', () => ({
 }));
 vi.mock('./og-image.js', () => ({ generateOgImage: vi.fn(async () => Buffer.from('')) }));
 
-import { querySeasonSummaryData, writeChemistry, querySwims as _querySwims, writeSwim as _writeSwim, queryEvents as _queryEvents, writeEvent as _writeEvent, deletePoint } from './influx.js';
+import { querySeasonSummaryData, queryLatestReadingYear, writeChemistry, querySwims as _querySwims, writeSwim as _writeSwim, queryEvents as _queryEvents, writeEvent as _writeEvent, deletePoint } from './influx.js';
 
 const router = (await import('./routes')).default;
 
@@ -329,6 +329,25 @@ describe('GET /api/season-summary', () => {
     expect(querySeasonSummaryData).toHaveBeenCalledWith(2024);
   });
 
+  it('accepts next year (viewer already past New Year)', async () => {
+    const res = await fetch(`${base}/api/season-summary?year=${new Date().getFullYear() + 1}`);
+    expect(res.status).toBe(200);
+  });
+
+  it('shares one query between simultaneous requests', async () => {
+    (querySeasonSummaryData as Mock).mockClear();
+    await Promise.all([1, 2, 3].map(() => fetch(`${base}/api/season-summary?year=2023`)));
+    expect(querySeasonSummaryData).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not cache a failure', async () => {
+    (querySeasonSummaryData as Mock).mockClear();
+    (querySeasonSummaryData as Mock).mockRejectedValueOnce(new Error('influx down'));
+    expect((await fetch(`${base}/api/season-summary?year=2022`)).status).toBe(500);
+    expect((await fetch(`${base}/api/season-summary?year=2022`)).status).toBe(200);
+    expect(querySeasonSummaryData).toHaveBeenCalledTimes(2);
+  });
+
   for (const bad of ['1999', '3000', '20x6', '2026) |> evil']) {
     it(`rejects year=${bad} with 400`, async () => {
       const res = await fetch(`${base}/api/season-summary?year=${encodeURIComponent(bad)}`);
@@ -347,9 +366,11 @@ describe('GET /api/mode', () => {
     expect(await res.json()).toEqual({ offSeason: true, latestYear: 2025 });
   });
 
-  it('is off by default', async () => {
+  it('is off by default and skips the latest-year lookup in season', async () => {
     delete process.env.OFF_SEASON;
-    const body = (await (await fetch(`${base}/api/mode`)).json()) as { offSeason: boolean };
-    expect(body.offSeason).toBe(false);
+    (queryLatestReadingYear as Mock).mockClear();
+    const body = await (await fetch(`${base}/api/mode`)).json();
+    expect(body).toEqual({ offSeason: false, latestYear: null });
+    expect(queryLatestReadingYear).not.toHaveBeenCalled();
   });
 });

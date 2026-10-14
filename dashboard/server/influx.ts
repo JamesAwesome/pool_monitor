@@ -654,10 +654,19 @@ export async function writeEvent(
 }
 
 /** Raw inputs for the season summary (calendar year, all sensors averaged). */
-export async function querySeasonSummaryData(year: number): Promise<SeasonSummaryInput> {
+export async function querySeasonSummaryData(
+  year: number,
+  timeZone = process.env.TIMEZONE ?? 'America/New_York',
+): Promise<SeasonSummaryInput> {
   const api = getQueryApi()
-  const span = `start: ${year}-01-01T00:00:00Z, stop: ${year + 1}-01-01T00:00:00Z`
-  const range = `custom:${year}-01-01:${year}-12-31`
+  // The year runs midnight-to-midnight in TIMEZONE, not UTC, so late-Dec-31
+  // local readings stay in their own year.
+  const start = dateTimeToUtc(`${year}-01-01`, '00:00', timeZone).toISOString()
+  const stop = dateTimeToUtc(`${year + 1}-01-01`, '00:00', timeZone).toISOString()
+  const span = `start: ${start}, stop: ${stop}`
+  // Logged entries carry a local date; fetch a UTC superset and keep this year's.
+  const range = `custom:${year - 1}-12-31:${year + 1}-01-01`
+  const inYear = <T extends { date: string }>(rows: T[]) => rows.filter((r) => r.date.startsWith(`${year}-`))
   const hourly = (measurement: string) => `
     from(bucket: "${bucket}")
       |> range(${span})
@@ -702,9 +711,9 @@ export async function querySeasonSummaryData(year: number): Promise<SeasonSummar
     poolHigh: high ? toTv(high) : null,
     poolLow: low ? toTv(low) : null,
     conditions: condRows.map((r) => ({ time: r._time, label: r.condition ?? '' })),
-    chemistry,
-    swims,
-    events,
+    chemistry: inYear(chemistry),
+    swims: inYear(swims),
+    events: inYear(events),
   }
 }
 

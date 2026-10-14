@@ -148,7 +148,8 @@ export interface SeasonSummaryViewProps {
 }
 
 function hasAnyData(s: Summary): boolean {
-  return s.pool !== null || s.chemistry.tests > 0 || s.events.total > 0 || s.swims.sessions > 0;
+  return s.pool !== null || s.air !== null || s.sky !== null
+    || s.chemistry.tests > 0 || s.events.total > 0 || s.swims.sessions > 0;
 }
 
 export function SeasonSummaryView({ year, maxYear, onYearChange, summary, loading, error, unit }: SeasonSummaryViewProps) {

@@ -111,8 +111,9 @@ export interface SeasonSummary {
   swims: SwimsSummary
 }
 
-const WARM_C = 26.7     // 80°F
-const SWIMMABLE_C = 21.1 // 70°F
+const fToC = (f: number) => ((f - 32) * 5) / 9
+const WARM_C = fToC(80)      // exactly 80°F, matching the "≥ 80°F" label
+const SWIMMABLE_C = fToC(70) // exactly 70°F
 const DAY_MS = 86400000
 const HOUR_MS = 3600000
 
@@ -370,10 +371,19 @@ function buildEvents(events: PoolEvent[]): EventsSummary {
 function buildSwims(input: SeasonSummaryInput): SwimsSummary {
   const swims = input.swims.filter((s) => s.people.length > 0)
   const tally = new Map<string, number>()
-  for (const s of swims) for (const p of s.people) tally.set(p, (tally.get(p) ?? 0) + 1)
+  const firstSwim = new Map<string, string>()
+  for (const s of swims) {
+    for (const p of s.people) {
+      tally.set(p, (tally.get(p) ?? 0) + 1)
+      const when = s.date + s.time
+      if (!firstSwim.has(p) || when < firstSwim.get(p)!) firstSwim.set(p, when)
+    }
+  }
   const leaderboard = [...tally.entries()]
     .map(([emoji, count]) => ({ emoji, count }))
-    .sort((a, b) => b.count - a.count)
+    // Ties go to whoever reached the count first (first swim date), so ranks and
+    // the "swim champ" don't depend on Influx row order.
+    .sort((a, b) => b.count - a.count || firstSwim.get(a.emoji)!.localeCompare(firstSwim.get(b.emoji)!))
 
   const perDay = new Map<string, number>()
   const hours = new Map<number, number>()
