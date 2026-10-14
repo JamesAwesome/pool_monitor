@@ -16,7 +16,7 @@ Everything runs as Docker containers via `docker-compose.yml`:
 
 - **rtl_433** (`hertzg/rtl_433`) — decodes protocol 194 (Inkbird), publishes JSON to MQTT
 - **Mosquitto** — MQTT broker on port 1883. Anonymous in standalone mode; password auth in edge/split mode (see `mosquitto-distributed.conf`). rtl_433 authenticates via `MQTT_USERNAME`/`MQTT_PASSWORD` env vars.
-- **Telegraf** (`telegraf/telegraf.conf`) — subscribes to `rtl_433/+/events`, filters by sensor ID, writes to InfluxDB
+- **Telegraf** (`telegraf/telegraf.conf`) — subscribes to `rtl_433/+/events`, filters by sensor ID (Starlark), drops everything when `OFF_SEASON` is on, writes to InfluxDB
 - **InfluxDB 2** (v2.8.0) — time-series store on port 8086, Flux query language. Uses the v2 write API and Flux queries throughout (Telegraf output, Grafana datasource, dashboard JS client). InfluxDB 3.x exists but uses SQL instead of Flux and has a different write API — migrating would require rewriting all queries and reconfiguring Telegraf/Grafana. Not worth it at this scale. Note: the `aggregateWindow` `location` parameter (timezone-aligned windows) is only available in InfluxDB Cloud, not OSS 2.x.
 - **Grafana** — dashboards on port 3000, provisioned datasource and dashboards from `grafana/provisioning/`
 - **dashboard** (`dashboard/`) — React/Express SPA on port 8080, queries InfluxDB directly (see below)
@@ -59,7 +59,7 @@ See `docs/deployment.md` for full setup guides.
 
 ## Configuration
 
-All secrets and per-deployment values live in `.env` (copy from `.env.example`). Key gotcha: `INKBIRD_SENSOR_IDS` values must be **unquoted** in `.env` because the TOML string quotes are already in `telegraf.conf`. For multiple sensors: `INKBIRD_SENSOR_IDS=12345", "67890`.
+All secrets and per-deployment values live in `.env` (copy from `.env.example`). `INKBIRD_SENSOR_IDS` is a comma-separated list (`12345` or `12345,67890`); the legacy quoted form `12345", "67890` is still accepted. Telegraf filters on it with a Starlark processor, not `processors.filter`: since Telegraf 1.27, `${VAR}` is substituted *inside* an already-parsed TOML string, so the old trick of splicing `", "` into a TOML array no longer works (it yields one literal ID). Unlisted sensor IDs are dropped; empty keeps all.
 
 Telegraf uses environment variable substitution in its TOML config — `${INFLUXDB_TOKEN}`, `${INKBIRD_SENSOR_IDS}`, etc. These are injected via the `environment` block in `docker-compose.yml`.
 
