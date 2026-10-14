@@ -89,6 +89,7 @@ services:
       INFLUXDB_ORG: ${INFLUXDB_ORG}
       INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
       INKBIRD_SENSOR_IDS: ${INKBIRD_SENSOR_IDS}
+      OFF_SEASON: ${OFF_SEASON:-false}
     volumes:
       - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
 
@@ -142,6 +143,7 @@ services:
       TZ: ${TIMEZONE:-America/New_York}
       CHEM_AUTH_USER: ${CHEM_AUTH_USER:-}
       CHEM_AUTH_PASSWORD: ${CHEM_AUTH_PASSWORD:-}
+      OFF_SEASON: ${OFF_SEASON:-false}
     depends_on:
       influxdb:
         condition: service_healthy
@@ -165,6 +167,7 @@ services:
       WEATHERAPI_KEY: ${WEATHERAPI_KEY}
       WEATHER_LOCATION: ${WEATHER_LOCATION:-19012}
       WEATHER_INTERVAL_MINUTES: ${WEATHER_INTERVAL_MINUTES:-30}
+      OFF_SEASON: ${OFF_SEASON:-false}
       INFLUXDB_URL: http://influxdb:8086
       INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
       INFLUXDB_ORG: ${INFLUXDB_ORG}

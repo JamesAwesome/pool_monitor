@@ -5,6 +5,21 @@ import { createTicker } from './loop.js'
 
 async function main() {
   const cfg = loadConfig()
+
+  if (cfg.offSeason) {
+    // Stay up but idle: exiting would just make Docker restart us in a loop.
+    console.log('[weather] OFF_SEASON is on — not polling or writing. Set OFF_SEASON=false to resume.')
+    const idle = setInterval(() => {}, 24 * 60 * 60 * 1000)
+    const stop = (signal: string) => {
+      console.log(`[weather] received ${signal}, shutting down`)
+      clearInterval(idle)
+      process.exit(0)
+    }
+    process.on('SIGTERM', () => stop('SIGTERM'))
+    process.on('SIGINT', () => stop('SIGINT'))
+    return
+  }
+
   const writer = createWriter(cfg.influx)
 
   const tick = createTicker({

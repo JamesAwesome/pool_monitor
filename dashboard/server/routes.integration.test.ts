@@ -24,6 +24,7 @@ vi.mock('./influx.js', () => ({
   queryEvents: vi.fn(async () => []),
   writeEvent: vi.fn(async () => '2026-05-20T18:30:00.000Z'),
   deletePoint: vi.fn(async () => {}),
+  queryLatestReadingYear: vi.fn(async () => 2025),
   querySeasonSummaryData: vi.fn(async (year: number) => ({ year, poolHourly: [], airHourly: [], poolHigh: null, poolLow: null, conditions: [], chemistry: [], swims: [], events: [] })),
 }));
 vi.mock('./og-image.js', () => ({ generateOgImage: vi.fn(async () => Buffer.from('')) }));
@@ -334,4 +335,21 @@ describe('GET /api/season-summary', () => {
       expect(res.status).toBe(400);
     });
   }
+});
+
+describe('GET /api/mode', () => {
+  afterAll(() => { delete process.env.OFF_SEASON; });
+
+  it('reports the off-season flag and the latest data year', async () => {
+    process.env.OFF_SEASON = 'true';
+    const res = await fetch(`${base}/api/mode`);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ offSeason: true, latestYear: 2025 });
+  });
+
+  it('is off by default', async () => {
+    delete process.env.OFF_SEASON;
+    const body = (await (await fetch(`${base}/api/mode`)).json()) as { offSeason: boolean };
+    expect(body.offSeason).toBe(false);
+  });
 });

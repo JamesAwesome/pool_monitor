@@ -56,3 +56,12 @@
   cursor: pointer;
   white-space: nowrap;
 }
+
+.offSeason {
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+}

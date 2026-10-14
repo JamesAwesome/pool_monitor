@@ -707,3 +707,23 @@ export async function querySeasonSummaryData(year: number): Promise<SeasonSummar
     events,
   }
 }
+
+/** Local-time year of the newest pool reading, or null if there are none. */
+export async function queryLatestReadingYear(
+  timeZone = process.env.TIMEZONE ?? 'America/New_York',
+): Promise<number | null> {
+  const api = getQueryApi()
+  const query = `
+    from(bucket: "${bucket}")
+      |> range(start: 0)
+      |> filter(fn: (r) => r._measurement == "mqtt_consumer")
+      |> filter(fn: (r) => r._field == "temperature_C")
+      |> last()
+      |> keep(columns: ["_time"])
+  `
+  const rows = await api.collectRows<{ _time: string }>(query)
+  if (rows.length === 0) return null
+  // last() runs per series (one per sensor); take the newest.
+  const newest = rows.reduce((a, b) => (Date.parse(b._time) > Date.parse(a._time) ? b : a))
+  return parseInt(utcToZonedParts(newest._time, timeZone).date.slice(0, 4), 10)
+}

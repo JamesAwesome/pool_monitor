@@ -2,6 +2,7 @@ export interface Config {
   weatherApiKey: string
   location: string
   intervalMs: number
+  offSeason: boolean // OFF_SEASON=true: don't poll or write
   influx: {
     url: string
     token: string
@@ -18,6 +19,11 @@ function required(env: Record<string, string | undefined>, name: string): string
   return value
 }
 
+/** true/1/yes/on (any case) → true; anything else, or unset → false. */
+export function parseFlag(raw: string | undefined): boolean {
+  return ['true', '1', 'yes', 'on'].includes((raw ?? '').trim().toLowerCase())
+}
+
 export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
   const intervalRaw = env.WEATHER_INTERVAL_MINUTES ?? '30'
   const intervalMinutes = Number(intervalRaw)
@@ -29,6 +35,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     weatherApiKey: required(env, 'WEATHERAPI_KEY'),
     location: required(env, 'WEATHER_LOCATION'),
     intervalMs: intervalMinutes * 60 * 1000,
+    offSeason: parseFlag(env.OFF_SEASON),
     influx: {
       url: required(env, 'INFLUXDB_URL'),
       token: required(env, 'INFLUXDB_TOKEN'),

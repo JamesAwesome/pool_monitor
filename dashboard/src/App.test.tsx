@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, beforeEach } from 'vitest';
 import App from './App';
+import { emptySummary } from './test/seasonSummaryFixture';
 
 vi.mock('./hooks/usePoolData', () => ({
   usePoolData: () => ({
@@ -65,5 +66,35 @@ describe('App', () => {
     render(<App />);
     await userEvent.click(await screen.findByRole('tab', { name: 'Chemistry' }));
     expect(await screen.findByRole('heading', { name: 'Chemistry' })).toBeInTheDocument();
+  });
+
+  describe('off-season mode', () => {
+    function offSeasonFetch() {
+      globalThis.fetch = vi.fn(async (url: string) => ({
+        ok: true,
+        json: async () => (url === '/api/mode' ? { offSeason: true, latestYear: 2025 }
+          : url.startsWith('/api/season-summary') ? emptySummary(2025) : []),
+      })) as unknown as typeof fetch;
+    }
+
+    it('opens on the Season tab at the latest data year', async () => {
+      offSeasonFetch();
+      render(<App />);
+      expect(await screen.findByRole('heading', { name: 'SEASON 2025' })).toBeTruthy();
+      expect(screen.getByRole('tab', { name: 'Season' })).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('shows a paused-recording notice on the Temperature tab', async () => {
+      offSeasonFetch();
+      render(<App />);
+      await screen.findByRole('heading', { name: 'SEASON 2025' });
+      await userEvent.click(screen.getByRole('tab', { name: 'Temperature' }));
+      expect(screen.getByRole('status')).toHaveTextContent(/recording is paused/);
+    });
+
+    it('shows no notice in season', () => {
+      render(<App />);
+      expect(screen.queryByText(/recording is paused/)).toBeNull();
+    });
   });
 });

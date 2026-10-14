@@ -1,5 +1,6 @@
 import express, { Router } from 'express'
-import { querySensors, queryStats, queryHistory, queryBatteries, queryBatteryHistory, querySeasonHistory, queryStatDetail, queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry, querySwims, writeSwim, queryEvents, writeEvent, deletePoint, querySeasonSummaryData } from './influx.js'
+import { querySensors, queryStats, queryHistory, queryBatteries, queryBatteryHistory, querySeasonHistory, queryStatDetail, queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry, querySwims, writeSwim, queryEvents, writeEvent, deletePoint, querySeasonSummaryData, queryLatestReadingYear } from './influx.js'
+import { isOffSeason } from './mode.js'
 import { buildSeasonSummary } from './seasonSummary.js'
 import type { SeasonSummary } from './seasonSummary.js'
 import { generateOgImage } from './og-image.js'
@@ -361,6 +362,19 @@ router.get('/api/season-summary', async (req, res) => {
     const data = buildSeasonSummary(await querySeasonSummaryData(year))
     summaryCache.set(year, { at: Date.now(), data })
     res.json(data)
+  } catch (err) { res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' }) }
+})
+
+// Off-season flag + the newest year with pool data (so the Season tab opens on
+// the season that just ended, even after New Year's). Cached like the summary.
+let latestYearCache: { at: number; year: number | null } | null = null
+
+router.get('/api/mode', async (_req, res) => {
+  try {
+    if (!latestYearCache || Date.now() - latestYearCache.at >= SUMMARY_TTL_MS) {
+      latestYearCache = { at: Date.now(), year: await queryLatestReadingYear() }
+    }
+    res.json({ offSeason: isOffSeason(), latestYear: latestYearCache.year })
   } catch (err) { res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' }) }
 })
 

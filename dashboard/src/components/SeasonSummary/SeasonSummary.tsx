@@ -215,9 +215,9 @@ export function SeasonSummaryView({ year, maxYear, onYearChange, summary, loadin
   );
 }
 
-export function SeasonSummary() {
+export function SeasonSummary({ initialYear }: { initialYear?: number }) {
   const maxYear = new Date().getFullYear();
-  const [year, setYear] = useState(maxYear);
+  const [year, setYear] = useState(Math.min(initialYear ?? maxYear, maxYear));
   const { summary, loading, error } = useSeasonSummary(year);
   const { unit } = useTheme();
   return (

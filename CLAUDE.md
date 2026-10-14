@@ -47,6 +47,8 @@ The project supports three Docker Compose profiles:
 
 `DEPLOY_MODE` in `.env` controls which profile the helper scripts use. The split boundary is MQTT — Telegraf on the server connects to Mosquitto on the Pi via `MQTT_HOST`.
 
+**Off-season mode** (`OFF_SEASON=true` in `.env`): Telegraf drops all `mqtt_consumer` metrics via a Starlark processor (it stays subscribed so Mosquitto doesn't queue a backlog), the weather sidecar idles without polling, the dashboard opens on the Season tab with a "recording paused" notice on the Temperature tab (`GET /api/mode` → `{ offSeason, latestYear }`), and `verify.sh` skips freshness checks. Truthy values: `true|1|yes|on`.
+
 Helper scripts in `scripts/`:
 - `setup.sh` — interactive setup wizard (mode, .env, MQTT auth)
 - `start.sh` / `stop.sh` — profile-aware docker compose up/down
@@ -256,6 +258,7 @@ Battery history uses `6h` windows with `createEmpty: true` + `fill(usePrevious: 
 | `WEATHER_LOCATION` | Yes (for weather) | Location passed to weatherapi `q` param. Use a zip code or `City, State, Country` — bare city names like `Cheltenham, PA` resolve to the wrong place (e.g. Cheltenham UK). The worker stores the API-resolved `name, region, country` as the `location` tag so mismatches are visible. |
 | `CHEM_AUTH_USER` | Yes (for logging) | Username for the Basic-Auth gate on chemistry writes |
 | `CHEM_AUTH_PASSWORD` | Yes (for logging) | Password for the Basic-Auth gate on chemistry writes |
+| `OFF_SEASON` | No | `true` = off-season mode (see Deployment Modes). Default `false`. |
 
 ### Rebuilding the dashboard
 ```bash
