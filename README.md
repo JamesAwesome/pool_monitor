@@ -64,14 +64,17 @@ WEATHER_LOCATION=19012            # zip code, or "City, State, Country"
 # Required to log chemistry / swims / maintenance events (gates the write API)
 CHEM_AUTH_USER=<username>
 CHEM_AUTH_PASSWORD=<password>
+
+# Optional — set to true when the pool closes to stop recording over the winter
+# (see docs/deployment.md "Off-season mode")
+OFF_SEASON=false
 ```
 
-Do **not** quote the sensor ID value — the TOML string quotes are already in
-`telegraf.conf`. For multiple sensors, include the inner TOML quotes so the
-array expands correctly (`id = ["12345", "67890"]`):
+For multiple sensors, separate the IDs with commas. Readings from any sensor
+not listed are dropped.
 
 ```
-INKBIRD_SENSOR_IDS=12345", "67890
+INKBIRD_SENSOR_IDS=12345,67890
 ```
 
 ### 2. Hardware setup
@@ -119,11 +122,11 @@ docker run --rm --privileged -v /dev/bus/usb:/dev/bus/usb hertzg/rtl_433 -f 433.
 Add your sensor ID(s) to `INKBIRD_SENSOR_IDS` in `.env`:
 
 ```
-# Single sensor (no quotes — telegraf.conf adds them)
+# Single sensor
 INKBIRD_SENSOR_IDS=12345
 
-# Multiple sensors (include inner TOML quotes for the array)
-INKBIRD_SENSOR_IDS=12345", "67890
+# Multiple sensors, comma-separated
+INKBIRD_SENSOR_IDS=12345,67890
 ```
 
 ### 4. Start the stack

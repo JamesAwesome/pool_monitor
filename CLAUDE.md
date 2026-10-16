@@ -16,7 +16,7 @@ Everything runs as Docker containers via `docker-compose.yml`:
 
 - **rtl_433** (`hertzg/rtl_433`) — decodes protocol 194 (Inkbird), publishes JSON to MQTT
 - **Mosquitto** — MQTT broker on port 1883. Anonymous in standalone mode; password auth in edge/split mode (see `mosquitto-distributed.conf`). rtl_433 authenticates via `MQTT_USERNAME`/`MQTT_PASSWORD` env vars.
-- **Telegraf** (`telegraf/telegraf.conf`) — subscribes to `rtl_433/+/events`, filters by sensor ID, writes to InfluxDB
+- **Telegraf** (`telegraf/telegraf.conf`) — subscribes to `rtl_433/+/events`, filters by sensor ID (Starlark), drops everything when `OFF_SEASON` is on, writes to InfluxDB
 - **InfluxDB 2** (v2.8.0) — time-series store on port 8086, Flux query language. Uses the v2 write API and Flux queries throughout (Telegraf output, Grafana datasource, dashboard JS client). InfluxDB 3.x exists but uses SQL instead of Flux and has a different write API — migrating would require rewriting all queries and reconfiguring Telegraf/Grafana. Not worth it at this scale. Note: the `aggregateWindow` `location` parameter (timezone-aligned windows) is only available in InfluxDB Cloud, not OSS 2.x.
 - **Grafana** — dashboards on port 3000, provisioned datasource and dashboards from `grafana/provisioning/`
 - **dashboard** (`dashboard/`) — React/Express SPA on port 8080, queries InfluxDB directly (see below)
@@ -47,6 +47,8 @@ The project supports three Docker Compose profiles:
 
 `DEPLOY_MODE` in `.env` controls which profile the helper scripts use. The split boundary is MQTT — Telegraf on the server connects to Mosquitto on the Pi via `MQTT_HOST`.
 
+**Off-season mode** (`OFF_SEASON=true` in `.env`): Telegraf drops all `mqtt_consumer` metrics via a Starlark processor (it stays subscribed so Mosquitto doesn't queue a backlog), the weather sidecar idles without polling, the dashboard opens on the Season tab with a "recording paused" notice on the Temperature tab (`GET /api/mode` → `{ offSeason, latestYear }`), and `verify.sh` skips freshness checks. Truthy values: `true|1|yes|on`.
+
 Helper scripts in `scripts/`:
 - `setup.sh` — interactive setup wizard (mode, .env, MQTT auth)
 - `start.sh` / `stop.sh` — profile-aware docker compose up/down
@@ -57,7 +59,7 @@ See `docs/deployment.md` for full setup guides.
 
 ## Configuration
 
-All secrets and per-deployment values live in `.env` (copy from `.env.example`). Key gotcha: `INKBIRD_SENSOR_IDS` values must be **unquoted** in `.env` because the TOML string quotes are already in `telegraf.conf`. For multiple sensors: `INKBIRD_SENSOR_IDS=12345", "67890`.
+All secrets and per-deployment values live in `.env` (copy from `.env.example`). `INKBIRD_SENSOR_IDS` is a comma-separated list (`12345` or `12345,67890`); the legacy quoted form `12345", "67890` is still accepted. Telegraf filters on it with a Starlark processor, not `processors.filter`: since Telegraf 1.27, `${VAR}` is substituted *inside* an already-parsed TOML string, so the old trick of splicing `", "` into a TOML array no longer works (it yields one literal ID). Unlisted sensor IDs are dropped; empty keeps all.
 
 Telegraf uses environment variable substitution in its TOML config — `${INFLUXDB_TOKEN}`, `${INKBIRD_SENSOR_IDS}`, etc. These are injected via the `environment` block in `docker-compose.yml`.
 
@@ -100,6 +102,7 @@ pnpm typecheck        # TypeScript only
   - `/api/chemistry/auth-check` — GET, Basic-Auth gated; returns `{ ok: true }` (used by the unlock sheet to validate credentials without writing).
   - `/api/swims?range=...` — GET swim sessions `{ id, date, time, people }[]` (id = the swim's ISO-UTC timestamp; `people` = emoji array). POST `{ date, time, people }` → `201 { id }`. PUT `{ id, date, time, people }` edits (delete-old + write-new). DELETE `?id=<iso>` removes one. **POST/PUT/DELETE share the chemistry Basic-Auth gate + rate limiter** (`CHEM_AUTH_USER`/`CHEM_AUTH_PASSWORD`, `chemistryAuthLimiter`); GET is public. Storage is a separate InfluxDB `swim` measurement; `people` is a comma-joined string field (`server/swim.ts`, `querySwims`/`writeSwim` in `server/influx.ts`). See **Swim logging** below.
   - `/api/events?range=...` — GET maintenance events `{ id, date, time, kind, product?, amount?, unit?, note? }[]` (id = the event's ISO-UTC timestamp; `kind` ∈ `chemical|water|backwash|note`). POST a `{ date, time, kind, …payload }` → `201 { id }`. PUT edits (delete-old + write-new). DELETE `?id=<iso>` removes one. Same shared chemistry Basic-Auth gate + rate limiter as swims; GET is public. Storage is a separate InfluxDB `event` measurement (`kind` + per-kind sparse fields; `server/event.ts` validation, `queryEvents`/`writeEvent` in `server/influx.ts`). See **Maintenance events** below.
+  - `/api/season-summary?year=YYYY` — GET the whole-year recap for the **Season** tab (defaults to the current year; 2000..now, else 400). Pure builder `server/seasonSummary.ts` (`buildSeasonSummary`) over raw inputs from `querySeasonSummaryData` in `server/influx.ts` (hourly pool/air means, raw pool max/min, weather condition samples, plus the year's chemistry/swims/events). Days/hours are bucketed in `TIMEZONE`. Cached 10 min per year in `routes.ts`.
   - `/og-image.png` — dynamically generated 1200x630 PNG with current temp (for iMessage/social previews, cached 5 min)
   - All data endpoints accept optional `?sensor=<id>` to filter by sensor; omit for averaged "all sensors" view.
 - **OG image**: `server/og-image.ts` generates a social preview image using `@napi-rs/canvas`. Inter font files bundled in `server/fonts/`. Dynamic OG meta tags injected into HTML in production.
@@ -206,6 +209,16 @@ in `TIMEZONE` (stable id); `kind` is stored on every point plus only the sparse 
 kind uses (`product`/`unit`/`note` strings, `amount` float). `server/event.ts` does per-kind
 validation; `queryEvents`/`writeEvent` in `server/influx.ts`.
 
+### Season tab
+
+A third tab (`src/components/SeasonSummary/`) styled as an arcade high-score screen
+(theme-independent CRT palette; `Press Start 2P` + `VT323` from Google Fonts). Shows a
+◀ year ▶ picker, a top score bar, the swim **HIGH SCORES** leaderboard, "stages" of
+stats (water temp, chemistry, maintenance, weather, swims) and **ACHIEVEMENTS UNLOCKED**
+fun facts. Fun-fact text and unit-aware formatting live in `src/utils/seasonFacts.ts`
+(`fmtDelta` converts temperature *differences* without the +32 offset). Data via
+`useSeasonSummary(year)` (one-shot fetch, no polling).
+
 ### Query aggregation strategy
 All time-series queries use `aggregateWindow` with `fn: mean` (temperature) or `fn: last` (battery). Note: `aggregateWindow` `location` parameter is not available in InfluxDB OSS 2.x (Cloud only), so windows align to UTC.
 
@@ -245,6 +258,7 @@ Battery history uses `6h` windows with `createEmpty: true` + `fill(usePrevious: 
 | `WEATHER_LOCATION` | Yes (for weather) | Location passed to weatherapi `q` param. Use a zip code or `City, State, Country` — bare city names like `Cheltenham, PA` resolve to the wrong place (e.g. Cheltenham UK). The worker stores the API-resolved `name, region, country` as the `location` tag so mismatches are visible. |
 | `CHEM_AUTH_USER` | Yes (for logging) | Username for the Basic-Auth gate on chemistry writes |
 | `CHEM_AUTH_PASSWORD` | Yes (for logging) | Password for the Basic-Auth gate on chemistry writes |
+| `OFF_SEASON` | No | `true` = off-season mode (see Deployment Modes). Default `false`. |
 
 ### Rebuilding the dashboard
 ```bash

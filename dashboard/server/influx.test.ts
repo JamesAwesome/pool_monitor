@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { parseRange, windowPeriod, computePeriods } from './influx';
+import { parseRange, windowPeriod, computePeriods, querySeasonSummaryData, queryLatestReadingYear } from './influx';
 
 describe('parseRange', () => {
   it('handles relative range', () => {
@@ -391,5 +391,41 @@ describe('writeEvent', () => {
       { product: 'Liquid chlorine', amount: 48, unit: 'oz' },
       { product: 'Acid', amount: 16, unit: 'oz' },
     ]);
+  });
+});
+
+describe('querySeasonSummaryData', () => {
+  it('bounds the year in TIMEZONE and keeps only that local year\'s log entries', async () => {
+    queryApiStub.collectRows.mockImplementation(async (q: string) => {
+      if (q.includes('_measurement == "swim"')) {
+        return [
+          { _time: '2026-01-01T02:00:00Z', people: '🦦' }, // 2025-12-31 21:00 in New York
+          { _time: '2026-01-01T06:00:00Z', people: '🐢' }, // 2026-01-01 01:00 in New York
+        ];
+      }
+      return [];
+    });
+    const data = await querySeasonSummaryData(2025, 'America/New_York');
+    const flux = queryApiStub.collectRows.mock.calls.map((c) => c[0] as string);
+    expect(flux.find((q) => q.includes('aggregateWindow(every: 1h'))).toContain(
+      'start: 2025-01-01T05:00:00.000Z, stop: 2026-01-01T05:00:00.000Z',
+    );
+    expect(data.swims.map((sw) => sw.people[0])).toEqual(['🦦']);
+    expect(data.swims[0].date).toBe('2025-12-31');
+  });
+});
+
+describe('queryLatestReadingYear', () => {
+  it('returns the local year of the newest series', async () => {
+    queryApiStub.collectRows.mockResolvedValueOnce([
+      { _time: '2025-09-30T12:00:00Z' },
+      { _time: '2026-01-01T03:00:00Z' }, // still 2025 in New York
+    ]);
+    expect(await queryLatestReadingYear('America/New_York')).toBe(2025);
+  });
+
+  it('returns null with no data', async () => {
+    queryApiStub.collectRows.mockResolvedValueOnce([]);
+    expect(await queryLatestReadingYear()).toBeNull();
   });
 });

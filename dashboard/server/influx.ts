@@ -3,6 +3,7 @@ import { CHEM_FIELDS, dateTimeToUtc, utcToZonedParts } from './chemistry.js'
 import type { ChemField } from './chemistry.js'
 import { bucketConditions } from './weatherBuckets.js'
 import type { ConditionSample } from './weatherBuckets.js'
+import type { SeasonSummaryInput } from './seasonSummary.js'
 
 const url = process.env.INFLUXDB_URL ?? 'http://localhost:8086'
 const token = process.env.INFLUXDB_TOKEN ?? ''
@@ -650,4 +651,88 @@ export async function writeEvent(
   writeApi.writePoint(point)
   await writeApi.flush()
   return when.toISOString()
+}
+
+/** Raw inputs for the season summary (calendar year, all sensors averaged). */
+export async function querySeasonSummaryData(
+  year: number,
+  timeZone = process.env.TIMEZONE ?? 'America/New_York',
+): Promise<SeasonSummaryInput> {
+  const api = getQueryApi()
+  // The year runs midnight-to-midnight in TIMEZONE, not UTC, so late-Dec-31
+  // local readings stay in their own year.
+  const start = dateTimeToUtc(`${year}-01-01`, '00:00', timeZone).toISOString()
+  const stop = dateTimeToUtc(`${year + 1}-01-01`, '00:00', timeZone).toISOString()
+  const span = `start: ${start}, stop: ${stop}`
+  // Logged entries carry a local date; fetch a UTC superset and keep this year's.
+  const range = `custom:${year - 1}-12-31:${year + 1}-01-01`
+  const inYear = <T extends { date: string }>(rows: T[]) => rows.filter((r) => r.date.startsWith(`${year}-`))
+  const hourly = (measurement: string) => `
+    from(bucket: "${bucket}")
+      |> range(${span})
+      |> filter(fn: (r) => r._measurement == "${measurement}")
+      |> filter(fn: (r) => r._field == "temperature_C")
+      |> group()
+      |> aggregateWindow(every: 1h, fn: mean, createEmpty: false, timeSrc: "_start")
+  `
+  const extremes = `
+    base = from(bucket: "${bucket}")
+      |> range(${span})
+      |> filter(fn: (r) => r._measurement == "mqtt_consumer")
+      |> filter(fn: (r) => r._field == "temperature_C")
+      |> group()
+    base |> max() |> yield(name: "high")
+    base |> min() |> yield(name: "low")
+  `
+  const conditions = `
+    from(bucket: "${bucket}")
+      |> range(${span})
+      |> filter(fn: (r) => r._measurement == "weather")
+      |> filter(fn: (r) => r._field == "condition_code")
+      |> keep(columns: ["_time", "condition"])
+  `
+  type Row = { _time: string; _value: number }
+  const [poolRows, airRows, extremeRows, condRows, chemistry, swims, events] = await Promise.all([
+    api.collectRows<Row>(hourly('mqtt_consumer')),
+    api.collectRows<Row>(hourly('weather')),
+    api.collectRows<Row & { result: string }>(extremes),
+    api.collectRows<{ _time: string; condition?: string }>(conditions),
+    queryChemistry(range),
+    querySwims(range),
+    queryEvents(range),
+  ])
+  const toTv = (r: Row) => ({ time: r._time, value: r._value })
+  const high = extremeRows.find((r) => r.result === 'high')
+  const low = extremeRows.find((r) => r.result === 'low')
+  return {
+    year,
+    poolHourly: poolRows.map(toTv),
+    airHourly: airRows.map(toTv),
+    poolHigh: high ? toTv(high) : null,
+    poolLow: low ? toTv(low) : null,
+    conditions: condRows.map((r) => ({ time: r._time, label: r.condition ?? '' })),
+    chemistry: inYear(chemistry),
+    swims: inYear(swims),
+    events: inYear(events),
+  }
+}
+
+/** Local-time year of the newest pool reading, or null if there are none. */
+export async function queryLatestReadingYear(
+  timeZone = process.env.TIMEZONE ?? 'America/New_York',
+): Promise<number | null> {
+  const api = getQueryApi()
+  const query = `
+    from(bucket: "${bucket}")
+      |> range(start: 0)
+      |> filter(fn: (r) => r._measurement == "mqtt_consumer")
+      |> filter(fn: (r) => r._field == "temperature_C")
+      |> last()
+      |> keep(columns: ["_time"])
+  `
+  const rows = await api.collectRows<{ _time: string }>(query)
+  if (rows.length === 0) return null
+  // last() runs per series (one per sensor); take the newest.
+  const newest = rows.reduce((a, b) => (Date.parse(b._time) > Date.parse(a._time) ? b : a))
+  return parseInt(utcToZonedParts(newest._time, timeZone).date.slice(0, 4), 10)
 }

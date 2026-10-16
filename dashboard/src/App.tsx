@@ -10,6 +10,8 @@ import { BatteryStatus } from './components/BatteryStatus';
 import { SensorSelector } from './components/SensorSelector';
 import { TabBar, type TabKey } from './components/TabBar';
 import { ChemistryTab } from './components/ChemistryTab';
+import { SeasonSummary } from './components/SeasonSummary';
+import { useMode } from './hooks/useMode';
 import { useSwimData } from './hooks/useSwimData';
 import { useEventData } from './hooks/useEventData';
 import { SwimLogFlow } from './components/SwimLogFlow';
@@ -18,7 +20,7 @@ import { Toast } from './components/Toast';
 import type { SwimSession } from './types';
 import styles from './App.module.css';
 
-function TemperatureTab() {
+function TemperatureTab({ offSeason }: { offSeason: boolean }) {
   const { stats, history, batteries, range, setRange, loading, error, sensors, selectedSensor, setSelectedSensor, airCurrent, airHistory } = usePoolData();
   // Chart markers follow the selected chart range; History + the log form's
   // "recent swimmers" use a season-wide set so the log doesn't shrink with zoom.
@@ -33,6 +35,11 @@ function TemperatureTab() {
 
   return (
     <>
+      {offSeason && (
+        <p className={styles.offSeason} role="status">
+          🏁 Off-season: pool and weather recording is paused. Readings below are from before the pool closed.
+        </p>
+      )}
       {error && !loading && stats && <p className={styles.error}>{error}</p>}
       <SensorSelector sensors={sensors} selected={selectedSensor} onSelect={setSelectedSensor} />
       <CurrentTemp value={stats?.current ?? null} loading={loading} airCurrent={airCurrent} currentTime={stats?.currentTime ?? null} />
@@ -67,12 +74,19 @@ function TemperatureTab() {
 }
 
 function Dashboard() {
-  const [tab, setTab] = useState<TabKey>('temperature');
+  const mode = useMode();
+  const [chosenTab, setChosenTab] = useState<TabKey | null>(null);
+  // Off-season opens on the Season recap until a tab is picked. Tab content
+  // waits for /api/mode so the app doesn't start on Temperature and then jump.
+  const tab: TabKey = chosenTab ?? (mode?.offSeason ? 'season' : 'temperature');
+  const setTab = setChosenTab;
   return (
     <main className={styles.main}>
       <TabBar active={tab} onChange={setTab} />
       <div className="container">
-        {tab === 'temperature' ? <TemperatureTab /> : <ChemistryTab />}
+        {mode && tab === 'temperature' && <TemperatureTab offSeason={mode.offSeason} />}
+        {mode && tab === 'chemistry' && <ChemistryTab />}
+        {mode && tab === 'season' && <SeasonSummary initialYear={mode.latestYear ?? undefined} />}
       </div>
     </main>
   );

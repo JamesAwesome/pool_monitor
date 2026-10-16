@@ -14,6 +14,12 @@ fi
 
 DEPLOY_MODE="${DEPLOY_MODE:-standalone}"
 
+# OFF_SEASON=true pauses recording, so "no recent data" is expected then.
+OFF_SEASON_ON=false
+case "$(echo "${OFF_SEASON:-}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')" in
+  true|1|yes|on) OFF_SEASON_ON=true ;;
+esac
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
@@ -113,7 +119,10 @@ if [ "$DEPLOY_MODE" = "server" ] || [ "$DEPLOY_MODE" = "standalone" ]; then
   fi
 
   # Data freshness
-  if [ -n "${INFLUXDB_TOKEN:-}" ] && docker ps --format '{{.Names}}' | grep -q '^influxdb$'; then
+  if [ "$OFF_SEASON_ON" = true ]; then
+    echo ""
+    pass "Off-season mode: recording paused, skipping data freshness checks"
+  elif [ -n "${INFLUXDB_TOKEN:-}" ] && docker ps --format '{{.Names}}' | grep -q '^influxdb$'; then
     echo ""
     echo "  Checking for recent data in InfluxDB..."
     RECENT_DATA=$(docker exec influxdb influx query \
@@ -136,7 +145,7 @@ if [ "$DEPLOY_MODE" = "server" ] || [ "$DEPLOY_MODE" = "standalone" ]; then
       fail "weather container is not running"
     fi
 
-    if [ -n "${INFLUXDB_TOKEN:-}" ] && docker ps --format '{{.Names}}' | grep -q '^influxdb$'; then
+    if [ "$OFF_SEASON_ON" = false ] && [ -n "${INFLUXDB_TOKEN:-}" ] && docker ps --format '{{.Names}}' | grep -q '^influxdb$'; then
       FLUX='from(bucket: "'"${INFLUXDB_BUCKET:-pool_temps}"'") |> range(start: -2h) |> filter(fn: (r) => r._measurement == "weather") |> filter(fn: (r) => r._field == "temperature_C") |> last()'
       RESULT=$(docker exec influxdb influx query --org "${INFLUXDB_ORG:-pool}" --token "${INFLUXDB_TOKEN}" "${FLUX}" 2>/dev/null || true)
       if echo "${RESULT}" | grep -q temperature_C; then

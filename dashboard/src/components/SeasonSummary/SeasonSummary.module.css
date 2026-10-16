@@ -1,0 +1,251 @@
+/* Arcade high-score screen. Deliberately theme-independent: it's a CRT, so it
+   looks the same in light and dark mode. */
+
+.cabinet {
+  --arc-bg: #07021a;
+  --arc-cyan: #22d3ee;
+  --arc-magenta: #f472f6;
+  --arc-yellow: #fde047;
+  --arc-green: #4ade80;
+  --arc-red: #f87171;
+  --arc-orange: #fb923c;
+  --arc-text: #e0e7ff;
+  --arc-dim: #8b8fc7;
+  --pixel: 'Press Start 2P', ui-monospace, monospace;
+  --terminal: 'VT323', ui-monospace, monospace;
+
+  padding: 10px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, #3b0764, #1e1b4b 45%, #0c4a6e);
+  box-shadow: 0 10px 30px rgba(7, 2, 26, 0.45);
+}
+
+.screen {
+  position: relative;
+  overflow: hidden;
+  padding: 26px 16px 22px;
+  border-radius: 12px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(124, 58, 237, 0.28), transparent 60%),
+    var(--arc-bg);
+  color: var(--arc-text);
+  font-family: var(--terminal);
+  font-size: 1.25rem;
+  line-height: 1.25;
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.85);
+}
+
+/* CRT scanlines */
+.screen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 3px);
+}
+
+@media (min-width: 768px) {
+  .screen { padding: 36px 40px 28px; }
+}
+
+/* ── Marquee ── */
+.marquee { text-align: center; margin-bottom: 22px; }
+
+.gameOver {
+  font-family: var(--pixel);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  color: var(--arc-red);
+  text-shadow: 0 0 8px var(--arc-red);
+  margin-bottom: 14px;
+}
+
+.yearNav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.title {
+  font-family: var(--pixel);
+  font-size: clamp(1.05rem, 5.4vw, 2rem);
+  line-height: 1.3;
+  color: var(--arc-yellow);
+  text-shadow: 3px 3px 0 var(--arc-magenta), 0 0 18px rgba(253, 224, 71, 0.55);
+  white-space: nowrap;
+}
+
+.arrow {
+  font-family: var(--pixel);
+  font-size: 0.85rem;
+  color: var(--arc-cyan);
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  text-shadow: 0 0 6px var(--arc-cyan);
+}
+
+.arrow:disabled { opacity: 0.2; cursor: default; }
+.arrow:focus-visible { outline: 2px dashed var(--arc-yellow); outline-offset: 2px; }
+
+.tagline {
+  margin-top: 12px;
+  font-family: var(--pixel);
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  color: var(--arc-cyan);
+}
+
+.status {
+  font-family: var(--pixel);
+  font-size: 0.75rem;
+  text-align: center;
+  color: var(--arc-yellow);
+  padding: 40px 0;
+}
+
+/* ── Top score bar (1UP / HI-SCORE / 2UP) ── */
+.topBar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  text-align: center;
+  margin-bottom: 26px;
+}
+
+.topLabel {
+  display: block;
+  font-family: var(--pixel);
+  font-size: 0.5rem;
+  color: var(--arc-red);
+  margin-bottom: 6px;
+}
+
+.topScore {
+  font-family: var(--pixel);
+  font-size: clamp(0.6rem, 2.8vw, 0.95rem);
+  color: var(--arc-text);
+}
+
+/* ── High scores table ── */
+.highScores { margin-bottom: 30px; }
+
+.hsTitle {
+  font-family: var(--pixel);
+  font-size: 0.85rem;
+  text-align: center;
+  color: var(--arc-magenta);
+  text-shadow: 0 0 10px var(--arc-magenta);
+  margin-bottom: 14px;
+}
+
+.scores {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  border-collapse: collapse;
+  font-family: var(--pixel);
+  font-size: 0.7rem;
+}
+
+.scores th {
+  font-size: 0.5rem;
+  color: var(--arc-dim);
+  padding-bottom: 10px;
+  font-weight: normal;
+}
+
+.scores td { padding: 7px 0; text-align: center; }
+.swimmer { font-size: 1.3rem; line-height: 1; }
+
+.rank0 { color: var(--arc-yellow); text-shadow: 0 0 8px rgba(253, 224, 71, 0.7); }
+.rank1 { color: var(--arc-cyan); }
+.rank2 { color: var(--arc-magenta); }
+.rank3 { color: var(--arc-green); }
+.rank4 { color: var(--arc-orange); }
+.rank5 { color: var(--arc-text); }
+
+.empty {
+  font-family: var(--pixel);
+  font-size: 0.6rem;
+  text-align: center;
+  color: var(--arc-dim);
+}
+
+/* ── Stages ── */
+.stage {
+  border-top: 2px dashed rgba(139, 143, 199, 0.35);
+  padding-top: 18px;
+  margin-top: 18px;
+}
+
+.stageTitle {
+  font-family: var(--pixel);
+  font-size: 0.65rem;
+  line-height: 1.6;
+  color: var(--arc-cyan);
+  margin-bottom: 12px;
+}
+
+.stageNum { color: var(--arc-green); }
+
+.rows { list-style: none; padding: 0; margin: 0; }
+
+.row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.rowLabel { color: var(--arc-text); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+
+.leader {
+  flex: 1;
+  min-width: 12px;
+  border-bottom: 2px dotted rgba(139, 143, 199, 0.45);
+  transform: translateY(-4px);
+}
+
+.rowValue { color: var(--arc-yellow); white-space: nowrap; text-align: right; }
+.rowSub { color: var(--arc-dim); }
+
+@media (min-width: 768px) {
+  .rows { columns: 2; column-gap: 40px; }
+  .row { break-inside: avoid; }
+}
+
+/* ── Achievements ── */
+.facts { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+
+.fact {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  color: var(--arc-text);
+}
+
+.factIcon { flex-shrink: 0; width: 1.6em; text-align: center; }
+
+/* ── Footer ── */
+.footer {
+  margin-top: 30px;
+  text-align: center;
+  font-family: var(--pixel);
+  font-size: 0.55rem;
+  color: var(--arc-yellow);
+}
+
+.credit { margin-top: 10px; color: var(--arc-dim); }
+
+.blink { animation: blink 1.1s steps(1, end) infinite; }
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blink { animation: none; }
+}

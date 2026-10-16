@@ -1,6 +1,6 @@
 import styles from './TabBar.module.css';
 
-export type TabKey = 'temperature' | 'chemistry';
+export type TabKey = 'temperature' | 'chemistry' | 'season';
 
 interface TabBarProps {
   active: TabKey;
@@ -10,6 +10,7 @@ interface TabBarProps {
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'temperature', label: 'Temperature' },
   { key: 'chemistry', label: 'Chemistry' },
+  { key: 'season', label: 'Season' },
 ];
 
 export function TabBar({ active, onChange }: TabBarProps) {

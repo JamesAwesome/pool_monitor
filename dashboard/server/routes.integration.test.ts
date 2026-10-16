@@ -24,10 +24,12 @@ vi.mock('./influx.js', () => ({
   queryEvents: vi.fn(async () => []),
   writeEvent: vi.fn(async () => '2026-05-20T18:30:00.000Z'),
   deletePoint: vi.fn(async () => {}),
+  queryLatestReadingYear: vi.fn(async () => 2025),
+  querySeasonSummaryData: vi.fn(async (year: number) => ({ year, poolHourly: [], airHourly: [], poolHigh: null, poolLow: null, conditions: [], chemistry: [], swims: [], events: [] })),
 }));
 vi.mock('./og-image.js', () => ({ generateOgImage: vi.fn(async () => Buffer.from('')) }));
 
-import { writeChemistry, querySwims as _querySwims, writeSwim as _writeSwim, queryEvents as _queryEvents, writeEvent as _writeEvent, deletePoint } from './influx.js';
+import { querySeasonSummaryData, queryLatestReadingYear, writeChemistry, querySwims as _querySwims, writeSwim as _writeSwim, queryEvents as _queryEvents, writeEvent as _writeEvent, deletePoint } from './influx.js';
 
 const router = (await import('./routes')).default;
 
@@ -306,5 +308,69 @@ describe('/api/events', () => {
     const res = await fetch(`${base}/api/events?id=${id}`, { method: 'DELETE', headers: { Authorization: auth, 'CF-Connecting-IP': nextIp() } });
     expect(res.status).toBe(200);
     expect(deletePoint).toHaveBeenCalledWith('2026-05-20T18:30:00.000Z', 'event');
+  });
+});
+
+describe('GET /api/season-summary', () => {
+  it('defaults to the current year and returns a summary', async () => {
+    const res = await fetch(`${base}/api/season-summary`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { year: number; pool: unknown; swims: { sessions: number } };
+    expect(body.year).toBe(new Date().getFullYear());
+    expect(body.pool).toBeNull();
+    expect(body.swims.sessions).toBe(0);
+  });
+
+  it('caches per year', async () => {
+    (querySeasonSummaryData as Mock).mockClear();
+    await fetch(`${base}/api/season-summary?year=2024`);
+    await fetch(`${base}/api/season-summary?year=2024`);
+    expect(querySeasonSummaryData).toHaveBeenCalledTimes(1);
+    expect(querySeasonSummaryData).toHaveBeenCalledWith(2024);
+  });
+
+  it('accepts next year (viewer already past New Year)', async () => {
+    const res = await fetch(`${base}/api/season-summary?year=${new Date().getFullYear() + 1}`);
+    expect(res.status).toBe(200);
+  });
+
+  it('shares one query between simultaneous requests', async () => {
+    (querySeasonSummaryData as Mock).mockClear();
+    await Promise.all([1, 2, 3].map(() => fetch(`${base}/api/season-summary?year=2023`)));
+    expect(querySeasonSummaryData).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not cache a failure', async () => {
+    (querySeasonSummaryData as Mock).mockClear();
+    (querySeasonSummaryData as Mock).mockRejectedValueOnce(new Error('influx down'));
+    expect((await fetch(`${base}/api/season-summary?year=2022`)).status).toBe(500);
+    expect((await fetch(`${base}/api/season-summary?year=2022`)).status).toBe(200);
+    expect(querySeasonSummaryData).toHaveBeenCalledTimes(2);
+  });
+
+  for (const bad of ['1999', '3000', '20x6', '2026) |> evil']) {
+    it(`rejects year=${bad} with 400`, async () => {
+      const res = await fetch(`${base}/api/season-summary?year=${encodeURIComponent(bad)}`);
+      expect(res.status).toBe(400);
+    });
+  }
+});
+
+describe('GET /api/mode', () => {
+  afterAll(() => { delete process.env.OFF_SEASON; });
+
+  it('reports the off-season flag and the latest data year', async () => {
+    process.env.OFF_SEASON = 'true';
+    const res = await fetch(`${base}/api/mode`);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ offSeason: true, latestYear: 2025 });
+  });
+
+  it('is off by default and skips the latest-year lookup in season', async () => {
+    delete process.env.OFF_SEASON;
+    (queryLatestReadingYear as Mock).mockClear();
+    const body = await (await fetch(`${base}/api/mode`)).json();
+    expect(body).toEqual({ offSeason: false, latestYear: null });
+    expect(queryLatestReadingYear).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { loadConfig } from './config.js'
+import { loadConfig, parseFlag } from './config.js'
 
 const baseEnv = {
   WEATHERAPI_KEY: 'abc123',
@@ -18,6 +18,15 @@ describe('loadConfig', () => {
     expect(cfg.intervalMs).toBe(30 * 60 * 1000)
     expect(cfg.influx.url).toBe('http://influxdb:8086')
     expect(cfg.influx.bucket).toBe('pool_temps')
+  })
+
+  it('defaults offSeason to false', () => {
+    expect(loadConfig(baseEnv).offSeason).toBe(false)
+  })
+
+  it('turns offSeason on from OFF_SEASON', () => {
+    expect(loadConfig({ ...baseEnv, OFF_SEASON: 'true' }).offSeason).toBe(true)
+    expect(loadConfig({ ...baseEnv, OFF_SEASON: 'false' }).offSeason).toBe(false)
   })
 
   it('honors WEATHER_INTERVAL_MINUTES override', () => {
@@ -40,5 +49,14 @@ describe('loadConfig', () => {
 
   it('throws on non-numeric interval', () => {
     expect(() => loadConfig({ ...baseEnv, WEATHER_INTERVAL_MINUTES: 'fast' })).toThrow(/WEATHER_INTERVAL_MINUTES/)
+  })
+})
+
+describe('parseFlag', () => {
+  it.each(['true', 'TRUE', ' yes ', '1', 'on'])('treats %j as on', (v) => {
+    expect(parseFlag(v)).toBe(true)
+  })
+  it.each([undefined, '', 'false', '0', 'no', 'off', 'nope'])('treats %j as off', (v) => {
+    expect(parseFlag(v)).toBe(false)
   })
 })

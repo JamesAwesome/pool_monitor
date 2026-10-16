@@ -93,3 +93,49 @@ export interface PoolEvent {
   unit?: string;     // water: in|gal|min
   note?: string;     // note
 }
+
+// ── Season summary (/api/season-summary) — all temps/deltas °C ──
+export interface DatedValue { date: string; value: number }
+
+export interface SeasonSummary {
+  year: number;
+  pool: {
+    days: number; firstDate: string; lastDate: string;
+    avg: number; high: DatedValue | null; low: DatedValue | null;
+    hottestDay: DatedValue; coldestDay: DatedValue;
+    avgDailySwing: number; biggestSwing: DatedValue;
+    warmDays: number; swimmableDays: number;
+    longestWarmStreak: { days: number; start: string; end: string } | null;
+    biggestWarmUp: DatedValue | null; biggestCoolDown: DatedValue | null;
+    warmestHour: number; coolestHour: number;
+  } | null;
+  air: { avg: number; high: DatedValue; low: DatedValue; poolMinusAir: number | null } | null;
+  sky: { topCondition: { label: string; pct: number }; rainyDays: number; sunnyDays: number; daysObserved: number } | null;
+  chemistry: {
+    tests: number; testDays: number; avgDaysBetween: number | null;
+    longestGap: { days: number; from: string; to: string } | null;
+    params: { key: ChemKey; count: number; avg: number; min: number; max: number }[];
+  };
+  events: {
+    total: number;
+    chemical: {
+      additions: number; doses: number; days: number; avgDaysBetween: number | null;
+      products: { product: string; unit: string; total: number; count: number }[];
+      busiestMonth: { month: string; count: number } | null;
+    };
+    water: { count: number; totals: { unit: string; total: number }[] };
+    backwash: { count: number; avgDaysBetween: number | null };
+    notes: number;
+  };
+  swims: {
+    sessions: number; dips: number; swimmers: number;
+    leaderboard: { emoji: string; count: number }[];
+    biggestGroup: { size: number; date: string; people: string[] } | null;
+    busiestDay: { date: string; dips: number } | null;
+    favoriteHour: number | null; favoriteWeekday: number | null;
+    first: string | null; last: string | null;
+    longestStreak: { days: number; start: string } | null;
+    coldestSwim: { date: string; time: string; people: string[]; value: number } | null;
+    warmestSwim: { date: string; time: string; people: string[]; value: number } | null;
+  };
+}

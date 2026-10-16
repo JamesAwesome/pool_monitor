@@ -142,6 +142,19 @@ To enable:
 
 If `WEATHERAPI_KEY` is empty, `start.sh` skips the weather container. Data appears in the dashboard within ~30 minutes of the first successful fetch.
 
+## Off-season mode
+
+When the pool closes for the year, set `OFF_SEASON=true` in `.env` and run `./scripts/start.sh`. This:
+
+- **Stops recording pool sensor readings.** Telegraf keeps running and keeps its MQTT session, but drops every sensor reading before writing (a Starlark processor in `telegraf/telegraf.conf`). It stays connected on purpose: if Telegraf were stopped, Mosquitto would queue messages for its persistent session, and in spring they would all be written at once, stamped with the restart time.
+- **Pauses the weather poller.** The `weather` container stays up but makes no API calls and writes nothing.
+- **Switches the dashboard.** It opens on the **Season** tab, showing the last year with data, and the Temperature tab notes that recording is paused. Logging chemistry, swims and events still works.
+- **Skips the data-freshness checks** in `./scripts/verify.sh`.
+
+Existing data is kept. Set `OFF_SEASON=false` and run `./scripts/start.sh` again in spring to resume.
+
+In split mode, set `OFF_SEASON` on the **server** (Telegraf, weather and the dashboard run there). The Pi keeps receiving and publishing, which is harmless.
+
 ## Troubleshooting
 
 **"Connection refused" in Telegraf logs**

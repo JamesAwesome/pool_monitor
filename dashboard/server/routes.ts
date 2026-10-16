@@ -1,5 +1,8 @@
 import express, { Router } from 'express'
-import { querySensors, queryStats, queryHistory, queryBatteries, queryBatteryHistory, querySeasonHistory, queryStatDetail, queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry, querySwims, writeSwim, queryEvents, writeEvent, deletePoint } from './influx.js'
+import { querySensors, queryStats, queryHistory, queryBatteries, queryBatteryHistory, querySeasonHistory, queryStatDetail, queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry, querySwims, writeSwim, queryEvents, writeEvent, deletePoint, querySeasonSummaryData, queryLatestReadingYear } from './influx.js'
+import { isOffSeason } from './mode.js'
+import { buildSeasonSummary } from './seasonSummary.js'
+import type { SeasonSummary } from './seasonSummary.js'
 import { generateOgImage } from './og-image.js'
 import { requireAuth } from './auth.js'
 import { validateChemistryBody, isValidId } from './chemistry.js'
@@ -336,6 +339,56 @@ router.delete('/api/events', chemistryAuthLimiter, requireAuth, async (req, res)
     await deletePoint(id, 'event')
     res.status(200).json({ ok: true })
   } catch (err) { res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' }) }
+})
+
+// Season summary: a year's worth of hourly data is the heaviest query in the
+// app, so results are cached briefly per year.
+const SUMMARY_TTL_MS = 10 * 60 * 1000
+// Stores the pending promise so simultaneous misses share one set of queries.
+const summaryCache = new Map<number, { at: number; data: Promise<SeasonSummary> }>()
+
+export function isValidYear(raw: string): boolean {
+  if (!/^\d{4}$/.test(raw)) return false
+  const y = parseInt(raw, 10)
+  // +1: a viewer east of the server can already be in next year at New Year.
+  return y >= 2000 && y <= new Date().getFullYear() + 1
+}
+
+router.get('/api/season-summary', async (req, res) => {
+  try {
+    const raw = typeof req.query.year === 'string' ? req.query.year : String(new Date().getFullYear())
+    if (!isValidYear(raw)) { res.status(400).json({ error: 'Invalid year' }); return }
+    const year = parseInt(raw, 10)
+    let hit = summaryCache.get(year)
+    if (!hit || Date.now() - hit.at >= SUMMARY_TTL_MS) {
+      const data = querySeasonSummaryData(year).then(buildSeasonSummary)
+      hit = { at: Date.now(), data }
+      summaryCache.set(year, hit)
+      // Don't cache failures.
+      data.catch(() => { if (summaryCache.get(year) === hit) summaryCache.delete(year) })
+    }
+    res.json(await hit.data)
+  } catch (err) { res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' }) }
+})
+
+// Off-season flag + the newest year with pool data (so the Season tab opens on
+// the season that just ended, even after New Year's). The app waits on this
+// before picking a tab, so it must be fast and must not fail: latestYear is
+// only looked up off-season (cached), and a failed lookup just returns null.
+let latestYearCache: { at: number; year: number | null } | null = null
+
+router.get('/api/mode', async (_req, res) => {
+  const offSeason = isOffSeason()
+  if (!offSeason) { res.json({ offSeason, latestYear: null }); return }
+  if (!latestYearCache || Date.now() - latestYearCache.at >= SUMMARY_TTL_MS) {
+    try {
+      latestYearCache = { at: Date.now(), year: await queryLatestReadingYear() }
+    } catch {
+      res.json({ offSeason, latestYear: null })
+      return
+    }
+  }
+  res.json({ offSeason, latestYear: latestYearCache.year })
 })
 
 router.get('/api/health', (_req, res) => {
