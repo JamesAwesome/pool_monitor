@@ -25,11 +25,46 @@ describe('og-image', () => {
     expect(data.summary?.swims.dips).toBe(12)
   })
 
-  it('getSeasonOgData falls back to the current year without stats on failure', async () => {
+  it('getSeasonOgData keeps the year but drops stats when the summary query fails', async () => {
     const influx = await import('./influx.js')
     vi.mocked(influx.querySeasonSummaryData).mockRejectedValueOnce(new Error('down'))
     const { getSeasonOgData } = await import('./og-image')
     expect(await getSeasonOgData()).toEqual({ year: 2025, summary: null })
+    // Failures aren't cached: the next call retries and succeeds.
+    expect((await getSeasonOgData()).summary).not.toBeNull()
+  })
+
+  it.each([
+    ['throws', () => Promise.reject(new Error('down'))],
+    ['finds no data', () => Promise.resolve(null)],
+  ])('getSeasonYear falls back to the last season when the lookup %s', async (_label, impl) => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2027, 1, 15))
+    try {
+      const influx = await import('./influx.js')
+      vi.mocked(influx.queryLatestReadingYear).mockImplementationOnce(impl as () => Promise<number | null>)
+      const { getSeasonYear } = await import('./og-image')
+      expect(await getSeasonYear()).toBe(2026)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('fallbackSeasonYear rolls back to last year before May', async () => {
+    const { fallbackSeasonYear } = await import('./og-image')
+    expect(fallbackSeasonYear(new Date(2027, 0, 5))).toBe(2026)
+    expect(fallbackSeasonYear(new Date(2027, 3, 30))).toBe(2026)
+    expect(fallbackSeasonYear(new Date(2027, 9, 17))).toBe(2027)
+  })
+
+  it('concurrent callers share one season query', async () => {
+    const influx = await import('./influx.js')
+    vi.mocked(influx.querySeasonSummaryData).mockClear()
+    vi.mocked(influx.queryLatestReadingYear).mockClear()
+    const { getSeasonOgData, getSeasonYear } = await import('./og-image')
+    await Promise.all([getSeasonOgData(), getSeasonOgData(), getSeasonYear()])
+    expect(influx.querySeasonSummaryData).toHaveBeenCalledTimes(1)
+    expect(influx.queryLatestReadingYear).toHaveBeenCalledTimes(1)
   })
 
   it('renders the high-score card as a 1200x630 PNG, with or without stats', async () => {

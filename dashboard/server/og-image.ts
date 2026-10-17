@@ -129,23 +129,45 @@ async function renderTempOgImage(): Promise<Buffer> {
 
 export interface SeasonOgData { year: number; summary: SeasonSummary | null }
 
-// The season is over, so its numbers barely change; shared with index.ts's OG tags.
-let seasonCache: { at: number; data: SeasonOgData } | null = null
+// The season is over, so its numbers barely change. Promises are cached (like
+// routes.ts) so concurrent requests share one query; failures aren't cached.
 const SEASON_TTL = 60 * 60 * 1000
+let yearCache: { at: number; year: Promise<number> } | null = null
+let seasonCache: { at: number; data: Promise<SeasonOgData> } | null = null
 
-/** The season that just ended (newest year with pool data) and its summary; never throws. */
-export async function getSeasonOgData(): Promise<SeasonOgData> {
+/** Off-season spans New Year's, so before May the last season was last year. */
+export function fallbackSeasonYear(now = new Date()): number {
+  return now.getMonth() < 4 ? now.getFullYear() - 1 : now.getFullYear()
+}
+
+/** The season that just ended (newest year with pool data); never throws. Cheap for index.ts's OG tags. */
+export function getSeasonYear(): Promise<number> {
+  if (yearCache && Date.now() - yearCache.at < SEASON_TTL) return yearCache.year
+  const entry: { at: number; year: Promise<number> } = { at: Date.now(), year: Promise.resolve(0) }
+  entry.year = queryLatestReadingYear()
+    .then((y) => y ?? fallbackSeasonYear())
+    .catch(() => {
+      if (yearCache === entry) yearCache = null
+      return fallbackSeasonYear()
+    })
+  yearCache = entry
+  return entry.year
+}
+
+/** That season's year and summary; never throws (summary is null on failure). */
+export function getSeasonOgData(): Promise<SeasonOgData> {
   if (seasonCache && Date.now() - seasonCache.at < SEASON_TTL) return seasonCache.data
-  let year = new Date().getFullYear()
-  try {
-    year = (await queryLatestReadingYear()) ?? year
-    const summary = buildSeasonSummary(await querySeasonSummaryData(year))
-    seasonCache = { at: Date.now(), data: { year, summary } }
-    return seasonCache.data
-  } catch {
-    // Don't cache failures; render the card without stats.
-    return { year, summary: null }
-  }
+  const entry: { at: number; data: Promise<SeasonOgData> } = { at: Date.now(), data: Promise.resolve({ year: 0, summary: null }) }
+  entry.data = getSeasonYear().then((year) =>
+    querySeasonSummaryData(year)
+      .then((raw) => ({ year, summary: buildSeasonSummary(raw) }))
+      .catch(() => {
+        if (seasonCache === entry) seasonCache = null
+        return { year, summary: null }
+      }),
+  )
+  seasonCache = entry
+  return entry.data
 }
 
 const ARC = {
@@ -254,7 +276,7 @@ export function renderSeasonOgImage({ year, summary }: SeasonOgData): Buffer {
     ctx.font = `16px ${PIXEL}`
     ctx.fillStyle = ARC.red
     ctx.fillText(label, barX, y)
-    // °F isn't in Press Start 2P's glyph set; VT323 has it and suits the CRT.
+    // VT323 keeps the decimal temp narrow enough for the column.
     const isTemp = label === 'HI-TEMP'
     ctx.font = isTemp ? `56px ${TERMINAL}` : `30px ${PIXEL}`
     ctx.fillStyle = ARC.text
