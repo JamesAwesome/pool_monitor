@@ -3,11 +3,12 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createCanvas, GlobalFonts } from '@napi-rs/canvas'
 import type { SKRSContext2D } from '@napi-rs/canvas'
-import { queryStats, queryLatestReadingYear, querySeasonSummaryData } from './influx.js'
+import { queryStats, querySeasonSummaryData } from './influx.js'
 import { buildSeasonSummary } from './seasonSummary.js'
 import type { SeasonSummary } from './seasonSummary.js'
 import { celsiusToFahrenheit } from './utils.js'
 import { isOffSeason } from './mode.js'
+import { getSeasonYear } from './seasonYear.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -53,9 +54,15 @@ export async function generateOgImage(): Promise<Buffer> {
     return cachedBuffer
   }
 
-  const buffer = isOffSeason() ? renderSeasonOgImage(await getSeasonOgData()) : await renderTempOgImage()
-  cachedBuffer = buffer
-  cachedAt = now
+  if (!isOffSeason()) {
+    cachedBuffer = await renderTempOgImage()
+    cachedAt = now
+    return cachedBuffer
+  }
+  const season = await getSeasonOgData()
+  const buffer = renderSeasonOgImage(season)
+  // Don't hold a degraded card for 5 min; crawlers keep the first one they see.
+  if (season.summary) { cachedBuffer = buffer; cachedAt = now }
   return buffer
 }
 
@@ -129,41 +136,23 @@ async function renderTempOgImage(): Promise<Buffer> {
 
 export interface SeasonOgData { year: number; summary: SeasonSummary | null }
 
-// The season is over, so its numbers barely change. Promises are cached (like
-// routes.ts) so concurrent requests share one query; failures aren't cached.
+// The season is over, so its numbers barely change. The promise is cached so
+// concurrent requests share one query; failures aren't cached.
 const SEASON_TTL = 60 * 60 * 1000
-let yearCache: { at: number; year: Promise<number> } | null = null
 let seasonCache: { at: number; data: Promise<SeasonOgData> } | null = null
 
-/** Off-season spans New Year's, so before May the last season was last year. */
-export function fallbackSeasonYear(now = new Date()): number {
-  return now.getMonth() < 4 ? now.getFullYear() - 1 : now.getFullYear()
-}
-
-/** The season that just ended (newest year with pool data); never throws. Cheap for index.ts's OG tags. */
-export function getSeasonYear(): Promise<number> {
-  if (yearCache && Date.now() - yearCache.at < SEASON_TTL) return yearCache.year
-  const entry: { at: number; year: Promise<number> } = { at: Date.now(), year: Promise.resolve(0) }
-  entry.year = queryLatestReadingYear()
-    .then((y) => y ?? fallbackSeasonYear())
-    .catch(() => {
-      if (yearCache === entry) yearCache = null
-      return fallbackSeasonYear()
-    })
-  yearCache = entry
-  return entry.year
-}
-
-/** That season's year and summary; never throws (summary is null on failure). */
+/** The season that just ended and its summary; never throws (summary is null on failure). */
 export function getSeasonOgData(): Promise<SeasonOgData> {
   if (seasonCache && Date.now() - seasonCache.at < SEASON_TTL) return seasonCache.data
   const entry: { at: number; data: Promise<SeasonOgData> } = { at: Date.now(), data: Promise.resolve({ year: 0, summary: null }) }
-  entry.data = getSeasonYear().then((year) =>
+  entry.data = getSeasonYear().then(({ year, fallback }) =>
     querySeasonSummaryData(year)
       .then((raw) => ({ year, summary: buildSeasonSummary(raw) }))
-      .catch(() => {
-        if (seasonCache === entry) seasonCache = null
-        return { year, summary: null }
+      .catch(() => ({ year, summary: null }))
+      .then((data) => {
+        // A guessed year or a failed summary is retried on the next call.
+        if ((fallback || data.summary === null) && seasonCache === entry) seasonCache = null
+        return data
       }),
   )
   seasonCache = entry

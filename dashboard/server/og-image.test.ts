@@ -34,35 +34,36 @@ describe('og-image', () => {
     expect((await getSeasonOgData()).summary).not.toBeNull()
   })
 
-  it.each([
-    ['throws', () => Promise.reject(new Error('down'))],
-    ['finds no data', () => Promise.resolve(null)],
-  ])('getSeasonYear falls back to the last season when the lookup %s', async (_label, impl) => {
-    vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date(2027, 1, 15))
-    try {
-      const influx = await import('./influx.js')
-      vi.mocked(influx.queryLatestReadingYear).mockImplementationOnce(impl as () => Promise<number | null>)
-      const { getSeasonYear } = await import('./og-image')
-      expect(await getSeasonYear()).toBe(2026)
-    } finally {
-      vi.useRealTimers()
-    }
+  it('getSeasonOgData retries when the year was a fallback guess', async () => {
+    const influx = await import('./influx.js')
+    vi.mocked(influx.queryLatestReadingYear).mockRejectedValueOnce(new Error('down'))
+    const { getSeasonOgData } = await import('./og-image')
+    const first = await getSeasonOgData()
+    expect(first.summary).not.toBeNull() // the summary for the guessed year still renders
+    expect((await getSeasonOgData()).year).toBe(2025)
   })
 
-  it('fallbackSeasonYear rolls back to last year before May', async () => {
-    const { fallbackSeasonYear } = await import('./og-image')
-    expect(fallbackSeasonYear(new Date(2027, 0, 5))).toBe(2026)
-    expect(fallbackSeasonYear(new Date(2027, 3, 30))).toBe(2026)
-    expect(fallbackSeasonYear(new Date(2027, 9, 17))).toBe(2027)
+  it('generateOgImage does not cache a card without stats', async () => {
+    const influx = await import('./influx.js')
+    vi.mocked(influx.querySeasonSummaryData).mockClear()
+    vi.mocked(influx.querySeasonSummaryData).mockRejectedValueOnce(new Error('down'))
+    process.env.OFF_SEASON = 'true'
+    try {
+      const { generateOgImage } = await import('./og-image')
+      await generateOgImage()
+      await generateOgImage()
+      expect(influx.querySeasonSummaryData).toHaveBeenCalledTimes(2)
+    } finally {
+      delete process.env.OFF_SEASON
+    }
   })
 
   it('concurrent callers share one season query', async () => {
     const influx = await import('./influx.js')
     vi.mocked(influx.querySeasonSummaryData).mockClear()
     vi.mocked(influx.queryLatestReadingYear).mockClear()
-    const { getSeasonOgData, getSeasonYear } = await import('./og-image')
-    await Promise.all([getSeasonOgData(), getSeasonOgData(), getSeasonYear()])
+    const { getSeasonOgData } = await import('./og-image')
+    await Promise.all([getSeasonOgData(), getSeasonOgData()])
     expect(influx.querySeasonSummaryData).toHaveBeenCalledTimes(1)
     expect(influx.queryLatestReadingYear).toHaveBeenCalledTimes(1)
   })

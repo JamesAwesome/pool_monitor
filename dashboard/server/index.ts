@@ -6,7 +6,7 @@ import router from './routes.js'
 import { queryStats } from './influx.js'
 import { celsiusToFahrenheit } from './utils.js'
 import { isOffSeason } from './mode.js'
-import { getSeasonYear } from './og-image.js'
+import { getSeasonYear } from './seasonYear.js'
 
 const app = express()
 const port = parseInt(process.env.PORT ?? '8080', 10)
@@ -46,7 +46,7 @@ if (process.env.NODE_ENV === 'production') {
   // Off-season the preview is the Season tab's high-score card, not a stale temp.
   async function getOgDescription(): Promise<string> {
     if (!isOffSeason()) return `Current pool temperature: ${await getCurrentTemp()}`
-    return `Season ${await getSeasonYear()} final stats and high scores`
+    return `Season ${(await getSeasonYear()).year} final stats and high scores`
   }
 
   app.get('{*path}', async (req, res) => {
