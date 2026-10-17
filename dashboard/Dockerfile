@@ -14,7 +14,7 @@ RUN pnpm build
 
 FROM node:24.16.0-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends fontconfig && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends fontconfig fonts-noto-color-emoji && rm -rf /var/lib/apt/lists/*
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 WORKDIR /app

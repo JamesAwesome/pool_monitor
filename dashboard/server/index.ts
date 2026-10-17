@@ -5,6 +5,8 @@ import express from 'express'
 import router from './routes.js'
 import { queryStats } from './influx.js'
 import { celsiusToFahrenheit } from './utils.js'
+import { isOffSeason } from './mode.js'
+import { getSeasonOgData } from './og-image.js'
 
 const app = express()
 const port = parseInt(process.env.PORT ?? '8080', 10)
@@ -41,12 +43,19 @@ if (process.env.NODE_ENV === 'production') {
     return ogCache.temp
   }
 
+  // Off-season the preview is the Season tab's high-score card, not a stale temp.
+  async function getOgDescription(): Promise<string> {
+    if (!isOffSeason()) return `Current pool temperature: ${await getCurrentTemp()}`
+    const { year } = await getSeasonOgData()
+    return `Season ${year} final stats and high scores`
+  }
+
   app.get('{*path}', async (req, res) => {
-    const temp = await getCurrentTemp()
+    const description = await getOgDescription()
     const publicUrl = process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`
     const ogTags = `
     <meta property="og:title" content="Pool Dashboard" />
-    <meta property="og:description" content="Current pool temperature: ${temp}" />
+    <meta property="og:description" content="${description}" />
     <meta property="og:image" content="${publicUrl}/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
