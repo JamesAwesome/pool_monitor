@@ -1,9 +1,10 @@
 import express, { Router } from 'express'
-import { querySensors, queryStats, queryHistory, queryBatteries, queryBatteryHistory, querySeasonHistory, queryStatDetail, queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry, querySwims, writeSwim, queryEvents, writeEvent, deletePoint, querySeasonSummaryData, queryLatestReadingYear } from './influx.js'
+import { querySensors, queryStats, queryHistory, queryBatteries, queryBatteryHistory, querySeasonHistory, queryStatDetail, queryWeatherCurrent, queryWeatherHistory, queryChemistry, writeChemistry, querySwims, writeSwim, queryEvents, writeEvent, deletePoint, querySeasonSummaryData } from './influx.js'
 import { isOffSeason } from './mode.js'
 import { buildSeasonSummary } from './seasonSummary.js'
 import type { SeasonSummary } from './seasonSummary.js'
 import { generateOgImage } from './og-image.js'
+import { getSeasonYear } from './seasonYear.js'
 import { requireAuth } from './auth.js'
 import { validateChemistryBody, isValidId } from './chemistry.js'
 import { validateSwimBody } from './swim.js'
@@ -371,24 +372,13 @@ router.get('/api/season-summary', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' }) }
 })
 
-// Off-season flag + the newest year with pool data (so the Season tab opens on
-// the season that just ended, even after New Year's). The app waits on this
-// before picking a tab, so it must be fast and must not fail: latestYear is
-// only looked up off-season (cached), and a failed lookup just returns null.
-let latestYearCache: { at: number; year: number | null } | null = null
-
+// Off-season flag + the season that just ended (so the Season tab opens on it,
+// even after New Year's). The app waits on this before picking a tab, so it must
+// be fast and must not fail: the year is only looked up off-season, cached, and
+// getSeasonYear never throws. Same year as the OG card (seasonYear.ts).
 router.get('/api/mode', async (_req, res) => {
   const offSeason = isOffSeason()
-  if (!offSeason) { res.json({ offSeason, latestYear: null }); return }
-  if (!latestYearCache || Date.now() - latestYearCache.at >= SUMMARY_TTL_MS) {
-    try {
-      latestYearCache = { at: Date.now(), year: await queryLatestReadingYear() }
-    } catch {
-      res.json({ offSeason, latestYear: null })
-      return
-    }
-  }
-  res.json({ offSeason, latestYear: latestYearCache.year })
+  res.json({ offSeason, latestYear: offSeason ? (await getSeasonYear()).year : null })
 })
 
 router.get('/api/health', (_req, res) => {
