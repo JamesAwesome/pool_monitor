@@ -177,7 +177,7 @@ services:
         condition: service_healthy
 
   cloudflared:
-    image: cloudflare/cloudflared:2026.5.2
+    image: cloudflare/cloudflared:2026.10.4
     container_name: cloudflared
     restart: unless-stopped
     profiles: ["standalone", "server"]
