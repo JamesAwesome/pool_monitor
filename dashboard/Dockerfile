@@ -1,4 +1,4 @@
-FROM node:24.16.0-slim AS build
+FROM node:24.22.1-slim AS build
 
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
@@ -12,7 +12,7 @@ ARG VITE_APP_TITLE="Pool Dashboard"
 ENV VITE_APP_TITLE=${VITE_APP_TITLE}
 RUN pnpm build
 
-FROM node:24.16.0-slim
+FROM node:24.22.1-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends fontconfig fonts-noto-color-emoji && rm -rf /var/lib/apt/lists/*
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
